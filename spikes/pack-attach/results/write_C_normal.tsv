@@ -1,0 +1,3 @@
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	baseline_rss_mb	7.4
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	rss_after_open_mb	9.3
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	teach (insert claim+audit, 1 txn)	write	warm	3000	34.5	55.3	82.2	1334.7	43.3	1.0

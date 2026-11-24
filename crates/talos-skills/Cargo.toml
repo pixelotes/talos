@@ -1,0 +1,16 @@
+[package]
+name = "talos-skills"
+description = "Talos built-in skills"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+build = "build.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+talos-core.workspace = true

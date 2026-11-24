@@ -1,0 +1,99 @@
+{"id": "en-r001", "text": "write me a poem about autumn", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r002", "text": "draft an email asking my boss for a raise", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r003", "text": "summarise Moby Dick for me", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r004", "text": "make up a short story about a dragon afraid of fire", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r005", "text": "Write a love song in the style of country music", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r006", "text": "translate this whole paragraph from German into English", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r007", "text": "give me an eight-week plan to train for a marathon", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r008", "text": "come up with a slogan for my coffee shop", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r009", "text": "write a cover letter for a waiter job", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r010", "text": "compose a haiku about the sea", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r011", "text": "tell me a joke about lawyers", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r012", "text": "write a speech for my brother's wedding", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r013", "text": "write a Python function that sorts a list", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r014", "text": "summarise this text: the economy grew two percent over the quarter", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r015", "text": "can you write me a believable excuse for being late", "lang": "en", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "en-r016", "text": "what's the capital of Mongolia?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "en-r017", "text": "who won the 2010 football World Cup?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "en-r018", "text": "how do I stop procrastinating?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "en-r019", "text": "should I study law or engineering?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "en-r020", "text": "how many people live in China?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "en-r021", "text": "why is it a bad idea to swim right after eating?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "en-r022", "text": "how do I make a Spanish omelette?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "en-r023", "text": "what's the best programming language for a beginner?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "en-r024", "text": "is it better to rent or buy a flat?", "lang": "en", "intent": null, "kind": "open_question", "status": "deflected", "trace": "ask-opinion"}
+{"id": "en-r025", "text": "what do you think about the Trojan War?", "lang": "en", "intent": null, "kind": "open_question", "status": "deflected", "trace": "ask-opinion"}
+{"id": "en-r026", "text": "when was the printing press invented?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "en-r027", "text": "how do I patch things up with my best friend?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "en-r028", "text": "what should I take for a headache?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "en-r029", "text": "who wrote Pride and Prejudice?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "en-r030", "text": "how far is Mars from Earth?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "en-r031", "text": "I had a horrible day at work", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "past"}
+{"id": "en-r032", "text": "I think football is overrated", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "opinion"}
+{"id": "en-r033", "text": "tomorrow I'm off on holiday to Cornwall", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "plan"}
+{"id": "en-r034", "text": "looks like it's going to rain all week", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "opinion"}
+{"id": "en-r035", "text": "I'm tired of all this", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "complaint"}
+{"id": "en-r036", "text": "my mum says I should change jobs", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "third-party"}
+{"id": "en-r037", "text": "saw a brilliant film last night", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "past"}
+{"id": "en-r038", "text": "I don't like broccoli", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "taste"}
+{"id": "en-r039", "text": "honestly I've been so bored lately", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "self"}
+{"id": "en-r040", "text": "this weekend is going to be all cleaning", "lang": "en", "intent": null, "kind": "statement", "status": "deflected"}
+{"id": "en-r041", "text": "my dog ate a sock again", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "third-party"}
+{"id": "en-r042", "text": "it's boiling out there", "lang": "en", "intent": null, "kind": "statement", "status": "deflected"}
+{"id": "en-r043", "text": "well, here we are", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "backchannel"}
+{"id": "en-r044", "text": "I heard the exam is hard", "lang": "en", "intent": null, "kind": "statement", "status": "deflected"}
+{"id": "en-r045", "text": "no idea what to do with my life", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "uncertain"}
+{"id": "en-r046", "text": "what's the weather going to be like tomorrow in London?", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "en-r047", "text": "set an alarm for seven", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "en-r048", "text": "start a ten minute timer", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "en-r049", "text": "search the web for paella recipes", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "en-r050", "text": "let's play hangman", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "en-r051", "text": "will it rain this weekend?", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "en-r052", "text": "what's the forecast for Manchester?", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "en-r053", "text": "google how to change a tyre", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "en-r054", "text": "let's play twenty questions", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "en-r055", "text": "time my run", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "en-r056", "text": "remind me to call mum at five", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "en-r057", "text": "how warm is it outside right now", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "en-r058", "text": "look up today's news about Arsenal", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "en-r059", "text": "play some relaxing music", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "en-r060", "text": "add milk to my shopping list", "lang": "en", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "en-r061", "text": "time flies", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "assertion"}
+{"id": "en-r062", "text": "I'm counting on you", "lang": "en", "intent": null, "kind": "near_miss", "status": "unhandled", "trace": "catch-all"}
+{"id": "en-r063", "text": "I don't mind what time you arrive", "lang": "en", "intent": null, "kind": "near_miss", "status": "unhandled", "trace": "catch-all"}
+{"id": "en-r064", "text": "hello and goodbye, everything goes so fast", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "generalisation"}
+{"id": "en-r065", "text": "I don't have time right now", "lang": "en", "intent": null, "kind": "near_miss", "status": "unhandled", "trace": "catch-all"}
+{"id": "en-r066", "text": "what a lovely day", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "en-r067", "text": "the die is cast", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "assertion"}
+{"id": "en-r068", "text": "thank God the week is over", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "en-r069", "text": "how are you off for money this month? you owe me forty quid", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "en-r070", "text": "percentages give me a headache", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "en-r071", "text": "I tossed a coin into the fountain and made a wish", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "past"}
+{"id": "en-r072", "text": "that sign caught my name's attention", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "en-r073", "text": "I live to work, I don't work to live", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "en-r074", "text": "I don't know who you are and I don't care", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "en-r075", "text": "my full name is on the pass list", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "en-r076", "text": "define your priorities before the term starts", "lang": "en", "intent": null, "kind": "near_miss", "status": "unhandled", "trace": "catch-all"}
+{"id": "en-r077", "text": "the difference between you and me is patience", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "en-r078", "text": "tomorrow is Tuesday and I've got the dentist", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "plan"}
+{"id": "en-r079", "text": "fortune favours the brave", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "assertion"}
+{"id": "en-r080", "text": "my cat is a very clever animal and I adore her", "lang": "en", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "third-party"}
+{"id": "en-r081", "text": "sdfghj kjhgfd", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "en-r082", "text": "?!?!?", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "en-r083", "text": "x", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "en-r084", "text": "98765432109876543210", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "en-r085", "text": "hahahahahaha", "lang": "en", "intent": null, "kind": "conversational", "status": "deflected", "trace": "exclaim"}
+{"id": "en-r086", "text": ",,,,,,,", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "en-r087", "text": "Wie spät ist es heute Abend in Berlin?", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "other-language"}
+{"id": "en-r088", "text": "Je voudrais une baguette s'il vous plaît", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "other-language"}
+{"id": "en-r089", "text": "zxcvbnm", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "en-r090", "text": "👍👍👍", "lang": "en", "intent": null, "kind": "conversational", "status": "answered"}
+{"id": "en-r091", "text": "ggggg", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "en-r092", "text": "今天天气怎么样", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "other-language"}
+{"id": "en-r093", "text": "ehhh", "lang": "en", "intent": null, "kind": "conversational", "status": "deflected", "trace": "backchannel"}
+{"id": "en-r094", "text": "!?!", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "en-r095", "text": "dolor sit amet consectetur", "lang": "en", "intent": null, "kind": "noise", "status": "unhandled", "trace": "other-language"}
+{"id": "en-r096", "text": "what does the future hold for me?", "lang": "en", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "en-r097", "text": "For your information, the blue whale is the biggest animal", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "assertion"}
+{"id": "en-r098", "text": "FYI spiders aren't insects", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "assertion"}
+{"id": "en-r099", "text": "I'm from Bristol, don't forget", "lang": "en", "intent": null, "kind": "statement", "status": "deflected", "trace": "self"}

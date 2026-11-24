@@ -1,0 +1,24 @@
+META	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	baseline_rss_mb	7.4
+META	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	rss_after_open_mb	9.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	lemma->senses	join	prepare	300	16.5	17.8	30.0	59.2	17.1	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	lemma->senses	in-subquery	prepare	300	10.5	10.7	11.4	22.1	10.6	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	form->lemma	join	prepare	300	8.5	8.7	12.6	18.8	8.6	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	form->lemma	in-subquery	prepare	300	6.0	6.2	10.9	28.4	6.1	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6	view	prepare	300	14.2	14.5	15.5	45.8	14.4	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6	branch	prepare	300	16.8	17.4	27.6	36.8	17.2	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa deep(<=16)	view	prepare	300	14.2	14.4	16.7	31.4	14.3	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa deep(<=16)	branch	prepare	300	16.6	16.9	21.1	33.4	16.8	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6 (user concept)	view	prepare	300	14.2	14.5	17.2	27.9	14.4	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6 (user concept)	branch	prepare	300	16.5	16.7	18.8	20.1	16.6	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 1 level	view	prepare	300	4.5	4.5	5.6	11.5	4.5	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 1 level (hub)	view	prepare	300	4.5	4.8	5.8	11.3	4.6	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels	view	prepare	300	14.4	14.5	14.9	21.0	14.4	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels	branch	prepare	300	16.6	16.8	22.6	36.2	16.8	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels (hub)	view	prepare	300	14.9	15.1	16.5	26.9	15.0	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels (hub)	branch	prepare	300	16.5	17.2	18.7	23.9	16.7	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	part_of forward (X is part of?)	view	prepare	300	5.4	5.6	6.8	20.3	5.5	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	part_of reverse (parts of X)	view	prepare	300	4.6	4.7	5.1	7.9	4.6	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	neighbourhood	join	prepare	300	17.0	17.7	21.8	30.7	17.3	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	neighbourhood	in-subquery	prepare	300	16.3	16.5	17.8	35.4	16.3	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	fts gloss top-20	ids	prepare	300	4.5	4.8	7.2	78.2	4.8	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	fts gloss top-20 + resolve 10	ids+view	prepare	300	6.4	6.5	7.2	10.5	6.4	0.0

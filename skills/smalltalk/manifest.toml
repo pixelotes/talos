@@ -1,0 +1,93 @@
+# smalltalk: greetings (docs/spec/basics.md, `smalltalk`).
+#
+# Slice A ships `smalltalk.greet` only; bye, thanks and how_are_you follow in
+# Slice C. Patterns match the normalised text (lower case, NFKC, whitespace
+# collapsed) and are anchored: a greeting followed by anything else
+# ("hola, qué hora es") is not a bare greeting and is left to other rules.
+#
+# Patterns set fixed slots that tell the handler which greeting was used:
+# `register = "casual"` for "buenas"/"hey", `daypart` for "buenos días",
+# "good evening" and the like. The handler echoes a time-of-day greeting only
+# when the local clock agrees with it, and otherwise says a plain hello.
+
+[skill]
+id = "smalltalk"
+summary.es = "saludos"
+summary.en = "greetings"
+
+[[intent]]
+id = "smalltalk.greet"
+priority = 100
+
+  [intent.examples]
+  es = ["hola", "buenas", "buenos días", "buenas tardes", "ey", "muy buenas", "hola talos"]
+  en = ["hi", "hello", "hey", "good morning", "good evening", "hiya", "hello talos"]
+
+  # Spanish. Leading "¡"/"¿", trailing "!", "?", "." and the name are optional;
+  # stretched letters ("holaaa") are accepted.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:hola+|holi+s?|h?ey+|wenas)(?:[\s,]+talos)?[\s!?.]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:h?ey+[\s,]+)?(?:muy\s+)?buenas+(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { register = "casual" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:muy\s+)?buen(?:os)?\s+d[ií]as(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { daypart = "morning" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:muy\s+)?buenas\s+tardes(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { daypart = "afternoon" }
+
+  # English. "good night" is a farewell (smalltalk.bye) and is not here.
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:hello+|hi+|hiya+|howdy|greetings)(?:\s+there)?(?:[\s,]+talos)?[\s!?.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^h?ey+(?:\s+there)?(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { register = "casual" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:good\s+)?morning(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { daypart = "morning" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^good\s+afternoon(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { daypart = "afternoon" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^good\s+evening(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { daypart = "evening" }
+
+# Replies. The first variant is the one a conversation opens with.
+[reply.hello]
+es = ["¡Hola!", "¡Hola, buenas!"]
+en = ["Hello!", "Hi!"]
+
+[reply.casual]
+es = ["¡Buenas!", "¡Muy buenas!"]
+en = ["Hey!", "Hi!"]
+
+[reply.morning]
+es = ["¡Buenos días!"]
+en = ["Good morning!"]
+
+[reply.afternoon]
+es = ["¡Buenas tardes!"]
+en = ["Good afternoon!"]
+
+# Spanish has no separate evening greeting: "buenas tardes" lasts until night,
+# and "buenas noches" is a farewell.
+[reply.evening]
+es = ["¡Buenas tardes!"]
+en = ["Good evening!"]

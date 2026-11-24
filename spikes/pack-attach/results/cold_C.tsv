@@ -1,0 +1,9 @@
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	baseline_rss_mb	7.4
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	rss_after_open_mb	9.3
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	lemma->senses	join	conn-cold	2000	243.3	274.1	388.6	685.3	246.4	1.3
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	form->lemma	join	conn-cold	2000	159.2	220.8	389.7	517.9	170.0	0.9
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6	view	conn-cold	2000	86769.9	100080.8	111128.6	137742.2	88960.3	0.5
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 1 level	view	conn-cold	2000	81.1	107.8	178.1	274.6	85.9	2.0
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	part_of reverse (parts of X)	view	conn-cold	2000	90.8	155.1	314.1	679.7	101.8	3.9
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	neighbourhood	join	conn-cold	2000	315.5	402.6	625.1	968.9	330.1	6.3
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	fts gloss top-20	ids	conn-cold	2000	234.2	1398.2	2233.6	2974.0	414.7	9.3

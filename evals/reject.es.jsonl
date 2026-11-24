@@ -1,0 +1,99 @@
+{"id": "es-r001", "text": "escríbeme un poema sobre el otoño", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r002", "text": "redacta un correo para pedirle un aumento a mi jefe", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r003", "text": "hazme un resumen de El Quijote", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r004", "text": "inventa un cuento corto sobre un dragón que tiene miedo al fuego", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r005", "text": "Escribe una canción de amor en tono de rap", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r006", "text": "tradúceme este párrafo entero del alemán al español", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r007", "text": "dame un plan de entrenamiento de ocho semanas para correr un maratón", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r008", "text": "genera un eslogan para mi cafetería", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r009", "text": "escribe una carta de presentación para un puesto de camarero", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r010", "text": "componme un haiku sobre el mar", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r011", "text": "Hazme un chiste sobre abogados", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r012", "text": "Redacta un discurso para la boda de mi hermano", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r013", "text": "escribe una función en Python que ordene una lista", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r014", "text": "resúmeme este texto: la economía creció un dos por ciento durante el trimestre", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r015", "text": "me puedes escribir una excusa creíble para llegar tarde", "lang": "es", "intent": null, "kind": "generative", "status": "unhandled", "trace": "generative"}
+{"id": "es-r016", "text": "¿cuál es la capital de Mongolia?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "es-r017", "text": "¿Quién ganó el Mundial de fútbol de 2010?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "es-r018", "text": "¿Cómo puedo dejar de procrastinar?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "es-r019", "text": "¿qué debería estudiar, derecho o ingeniería?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "es-r020", "text": "¿Cuántos habitantes tiene China?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "es-r021", "text": "¿Por qué es mala idea comer justo antes de nadar?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "es-r022", "text": "¿Cómo se hace una tortilla de patatas?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "es-r023", "text": "¿Cuál es el mejor lenguaje de programación para empezar?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "es-r024", "text": "¿Es mejor comprar o alquilar un piso?", "lang": "es", "intent": null, "kind": "open_question", "status": "deflected", "trace": "ask-opinion"}
+{"id": "es-r025", "text": "¿qué opinas de la guerra de Troya?", "lang": "es", "intent": null, "kind": "open_question", "status": "deflected", "trace": "ask-opinion"}
+{"id": "es-r026", "text": "¿cuándo se inventó la imprenta?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "es-r027", "text": "¿Cómo salgo de un mal rollo con mi mejor amigo?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "es-r028", "text": "¿Qué medicina me tomo para el dolor de cabeza?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "advice"}
+{"id": "es-r029", "text": "¿Quién escribió Cien años de soledad?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "es-r030", "text": "¿Cuál es la distancia entre la Tierra y Marte?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "es-r031", "text": "hoy he tenido un día horrible en el trabajo", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "past"}
+{"id": "es-r032", "text": "creo que el fútbol está sobrevalorado", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "opinion"}
+{"id": "es-r033", "text": "mañana me voy de vacaciones a Cádiz", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "plan"}
+{"id": "es-r034", "text": "Me parece que va a llover toda la semana", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "opinion"}
+{"id": "es-r035", "text": "Estoy cansado de todo esto", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "complaint"}
+{"id": "es-r036", "text": "mi madre dice que debería cambiar de trabajo", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "third-party"}
+{"id": "es-r037", "text": "ayer vi una película buenísima", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "past"}
+{"id": "es-r038", "text": "no me gusta el brócoli", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "taste"}
+{"id": "es-r039", "text": "la verdad es que me aburro mucho últimamente", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "self"}
+{"id": "es-r040", "text": "este fin de semana toca limpiar la casa", "lang": "es", "intent": null, "kind": "statement", "status": "deflected"}
+{"id": "es-r041", "text": "mi perro se ha comido un calcetín otra vez", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "third-party"}
+{"id": "es-r042", "text": "qué calor hace, madre mía", "lang": "es", "intent": null, "kind": "statement", "status": "deflected"}
+{"id": "es-r043", "text": "pues nada, aquí estamos", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "backchannel"}
+{"id": "es-r044", "text": "Me han dicho que el examen es difícil", "lang": "es", "intent": null, "kind": "statement", "status": "deflected"}
+{"id": "es-r045", "text": "no sé qué hacer con mi vida", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "uncertain"}
+{"id": "es-r046", "text": "¿qué tiempo hará mañana en Madrid?", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "es-r047", "text": "pon una alarma a las siete", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "es-r048", "text": "ponme un temporizador de diez minutos", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "es-r049", "text": "busca en internet recetas de paella", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "es-r050", "text": "juguemos al ahorcado", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "es-r051", "text": "¿Va a llover este fin de semana?", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "es-r052", "text": "¿Cuál es la previsión del tiempo para Sevilla?", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "es-r053", "text": "Busca en Google cómo cambiar una rueda", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "es-r054", "text": "vamos a jugar a las veinte preguntas", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "es-r055", "text": "cronometra mi carrera", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "es-r056", "text": "recuérdame llamar a mamá a las cinco", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "es-r057", "text": "¿qué temperatura hace ahora fuera?", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "not-yet"}
+{"id": "es-r058", "text": "busca noticias de hoy sobre el Real Madrid", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "es-r059", "text": "pon música relajante", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "es-r060", "text": "añade leche a mi lista de la compra", "lang": "es", "intent": null, "kind": "future_skill", "status": "unhandled", "trace": "cannot"}
+{"id": "es-r061", "text": "el tiempo vuela", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "assertion"}
+{"id": "es-r062", "text": "cuento contigo", "lang": "es", "intent": null, "kind": "near_miss", "status": "unhandled", "trace": "catch-all"}
+{"id": "es-r063", "text": "me da igual la hora a la que llegues", "lang": "es", "intent": null, "kind": "near_miss", "status": "unhandled", "trace": "catch-all"}
+{"id": "es-r064", "text": "Hola y adiós, qué rápido pasa todo", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "generalisation"}
+{"id": "es-r065", "text": "no tengo tiempo ahora", "lang": "es", "intent": null, "kind": "near_miss", "status": "unhandled", "trace": "catch-all"}
+{"id": "es-r066", "text": "Qué día más bonito", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "es-r067", "text": "el dado está echado", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "assertion"}
+{"id": "es-r068", "text": "gracias a Dios que se acabó la semana", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "es-r069", "text": "¿cómo estás de dinero este mes? me debes cuarenta euros", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "es-r070", "text": "los porcentajes me dan dolor de cabeza", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "es-r071", "text": "tiré la moneda a la fuente y pedí un deseo", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "past"}
+{"id": "es-r072", "text": "me llamo la atención ese cartel", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "es-r073", "text": "vivo para trabajar, no trabajo para vivir", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "es-r074", "text": "no sé quién eres, ni me importa", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "es-r075", "text": "mi nombre completo aparece en la lista de aprobados", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "es-r076", "text": "Define tus prioridades antes de empezar el curso", "lang": "es", "intent": null, "kind": "near_miss", "status": "unhandled", "trace": "catch-all"}
+{"id": "es-r077", "text": "la diferencia entre tú y yo es la paciencia", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected"}
+{"id": "es-r078", "text": "mañana es martes y tengo dentista", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "plan"}
+{"id": "es-r079", "text": "la suerte está echada", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "assertion"}
+{"id": "es-r080", "text": "mi gato es un animal muy listo y lo adoro", "lang": "es", "intent": null, "kind": "near_miss", "status": "deflected", "trace": "third-party"}
+{"id": "es-r081", "text": "asdkjh qweoiu", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "es-r082", "text": "???", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "es-r083", "text": "a", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "es-r084", "text": "12345678901234567890", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "es-r085", "text": "jajajajajaja", "lang": "es", "intent": null, "kind": "conversational", "status": "deflected", "trace": "exclaim"}
+{"id": "es-r086", "text": "..........", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "es-r087", "text": "Wie spät ist es in Berlin heute Abend?", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "other-language"}
+{"id": "es-r088", "text": "Je voudrais un croissant s'il vous plaît", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "other-language"}
+{"id": "es-r089", "text": "qwertyuiop", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "es-r090", "text": "😀😀😀", "lang": "es", "intent": null, "kind": "conversational", "status": "deflected", "trace": "exclaim"}
+{"id": "es-r091", "text": "zzzzz", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "es-r092", "text": "你好，今天天气怎么样", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "other-language"}
+{"id": "es-r093", "text": "hmmmm", "lang": "es", "intent": null, "kind": "conversational", "status": "deflected", "trace": "backchannel"}
+{"id": "es-r094", "text": "!!!", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "noise"}
+{"id": "es-r095", "text": "lorem ipsum dolor sit amet", "lang": "es", "intent": null, "kind": "noise", "status": "unhandled", "trace": "other-language"}
+{"id": "es-r096", "text": "¿Qué me depara el futuro?", "lang": "es", "intent": null, "kind": "open_question", "status": "unhandled", "trace": "unknown-fact"}
+{"id": "es-r097", "text": "Que sepas que la ballena azul es el animal más grande", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "assertion"}
+{"id": "es-r098", "text": "Para que lo sepas, las arañas no son insectos", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "assertion"}
+{"id": "es-r099", "text": "Soy de Bilbao, que no se te olvide", "lang": "es", "intent": null, "kind": "statement", "status": "deflected", "trace": "self"}

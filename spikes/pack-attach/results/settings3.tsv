@@ -1,0 +1,32 @@
+META	D	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=1	baseline_rss_mb	7.4
+META	D	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=1	rss_after_open_mb	9.8
+RESULT	D	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=1	lemma->senses	in-subquery	warm	3000	137.2	148.4	172.9	283.4	138.0	1.3
+RESULT	D	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=1	isa<=6	branch	warm	3000	36.2	54.3	75.1	116.6	34.5	0.5
+RESULT	D	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=1	kinds-of 1 level	view	warm	3000	59.5	67.6	82.4	144.2	60.2	2.1
+RESULT	D	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=1	neighbourhood	in-subquery	warm	3000	259.2	287.9	327.6	452.8	261.7	6.2
+RESULT	D	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=1	fts gloss top-20	ids	warm	3000	179.0	1059.5	1760.0	2176.9	311.5	9.4
+META	D	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=1	peak_rss_mb	21.9
+META	D	cache=512,mmap=0M,wal=1,sync=NORMAL,imm=1	baseline_rss_mb	7.4
+META	D	cache=512,mmap=0M,wal=1,sync=NORMAL,imm=1	rss_after_open_mb	9.7
+RESULT	D	cache=512,mmap=0M,wal=1,sync=NORMAL,imm=1	lemma->senses	in-subquery	warm	3000	135.8	148.9	176.8	366.6	137.0	1.3
+RESULT	D	cache=512,mmap=0M,wal=1,sync=NORMAL,imm=1	isa<=6	branch	warm	3000	31.7	49.0	70.3	102.6	30.9	0.5
+RESULT	D	cache=512,mmap=0M,wal=1,sync=NORMAL,imm=1	kinds-of 1 level	view	warm	3000	58.2	65.8	77.8	148.8	59.2	2.1
+RESULT	D	cache=512,mmap=0M,wal=1,sync=NORMAL,imm=1	neighbourhood	in-subquery	warm	3000	259.6	287.5	323.6	461.6	261.8	6.2
+RESULT	D	cache=512,mmap=0M,wal=1,sync=NORMAL,imm=1	fts gloss top-20	ids	warm	3000	181.0	1064.1	1762.6	2099.8	312.9	9.4
+META	D	cache=512,mmap=0M,wal=1,sync=NORMAL,imm=1	peak_rss_mb	23.7
+META	D	cache=1024,mmap=0M,wal=1,sync=NORMAL,imm=1	baseline_rss_mb	7.4
+META	D	cache=1024,mmap=0M,wal=1,sync=NORMAL,imm=1	rss_after_open_mb	9.8
+RESULT	D	cache=1024,mmap=0M,wal=1,sync=NORMAL,imm=1	lemma->senses	in-subquery	warm	3000	131.8	142.5	169.4	211.4	132.7	1.3
+RESULT	D	cache=1024,mmap=0M,wal=1,sync=NORMAL,imm=1	isa<=6	branch	warm	3000	24.2	35.3	47.2	71.8	22.9	0.5
+RESULT	D	cache=1024,mmap=0M,wal=1,sync=NORMAL,imm=1	kinds-of 1 level	view	warm	3000	57.0	64.5	74.8	148.0	58.0	2.1
+RESULT	D	cache=1024,mmap=0M,wal=1,sync=NORMAL,imm=1	neighbourhood	in-subquery	warm	3000	257.0	283.8	317.9	460.9	258.8	6.2
+RESULT	D	cache=1024,mmap=0M,wal=1,sync=NORMAL,imm=1	fts gloss top-20	ids	warm	3000	178.2	1060.0	1741.4	2117.7	310.4	9.4
+META	D	cache=1024,mmap=0M,wal=1,sync=NORMAL,imm=1	peak_rss_mb	28.7
+META	A	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=0	baseline_rss_mb	7.4
+META	A	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=0	rss_after_open_mb	8.9
+RESULT	A	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=0	lemma->senses	in-subquery	warm	3000	18.2	213.4	313.4	639.3	67.5	1.3
+RESULT	A	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6	view	warm	3000	13.1	19.2	27.5	610.9	13.3	0.5
+RESULT	A	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 1 level	view	warm	3000	9.1	21.6	128.5	393.6	14.1	2.1
+RESULT	A	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=0	neighbourhood	in-subquery	warm	3000	37.5	55.9	162.7	301.7	42.8	6.2
+RESULT	A	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=0	fts gloss top-20	ids	warm	3000	48.8	984.4	1656.1	2189.6	187.7	9.4
+META	A	cache=256,mmap=0M,wal=1,sync=NORMAL,imm=0	peak_rss_mb	14.4

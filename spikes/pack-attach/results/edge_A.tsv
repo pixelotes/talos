@@ -1,0 +1,16 @@
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	baseline_rss_mb	7.4
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	rss_after_open_mb	8.8
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	edge_build_ms	176.7	edge_rows	212401
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 view vs rust	mismatches	0/60
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 edge vs rust	mismatches	0/60
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa deep(<=16) view vs rust	mismatches	0/60
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa deep(<=16) edge vs rust	mismatches	0/60
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels view vs rust	mismatches	0/60
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels edge vs rust	mismatches	0/60
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels (hub) view vs rust	mismatches	0/10
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels (hub) edge vs rust	mismatches	0/10
+RESULT	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6	edge	warm	3000	8.5	12.3	16.7	51.8	8.3	0.5
+RESULT	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa deep(<=16)	edge	warm	3000	16.3	29.4	39.2	68.7	17.3	0.5
+RESULT	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels	edge	warm	3000	6.9	29.7	80.6	765.2	11.6	6.1
+RESULT	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels (hub)	edge	warm	3000	230.2	1248.3	2643.7	3797.9	388.8	289.4
+META	A	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	peak_rss_mb	23.8

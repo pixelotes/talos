@@ -1,0 +1,4 @@
+META	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	baseline_rss_mb	7.4
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	open+attach+views		open	300	770.9	995.2	1285.5	2699.3	802.8	0.0
+RESULT	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	first lemma query after open		open	300	1883.8	1958.4	2058.1	2621.6	1892.4	0.0
+META	B	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	peak_rss_mb	15.9

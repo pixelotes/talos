@@ -1,0 +1,40 @@
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	baseline_rss_mb	7.4
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	rss_after_open_mb	9.2
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 branch vs rust	mismatches	0/60
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 view vs rust	mismatches	0/60
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa deep(<=16) branch vs rust	mismatches	0/60
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa deep(<=16) view vs rust	mismatches	0/60
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels branch vs rust	mismatches	0/60
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels view vs rust	mismatches	0/60
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels (hub) branch vs rust	mismatches	0/10
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels (hub) view vs rust	mismatches	0/10
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 (user concept) branch vs rust	mismatches	0/60
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 (user concept) view vs rust	mismatches	0/60
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	lemma->senses	join	warm	3000	130.7	282.3	326.2	622.2	175.3	1.3
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	lemma->senses	in-subquery	warm	3000	57.8	61.4	65.6	126.0	58.0	1.3
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	form->lemma	join	warm	3000	79.2	233.4	397.0	2209.5	112.2	1.0
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	form->lemma	in-subquery	warm	3000	45.3	48.8	55.2	87.2	45.5	1.0
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6	view	warm	683	87105.6	88280.5	93446.6	103094.7	87221.3	0.5
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6	branch	warm	3000	22.8	30.3	37.8	86.4	22.6	0.5
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6	rust	warm	3000	239.8	306.8	451.8	679.7	197.6	0.5
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa deep(<=16)	view	warm	684	89704.0	104724.1	123476.2	312537.0	92165.4	0.5
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa deep(<=16)	branch	warm	3000	37.5	69.7	112.4	286.5	42.3	0.5
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa deep(<=16)	rust	warm	3000	586.8	1160.4	1663.9	3056.9	648.6	0.5
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6 (user concept)	view	warm	670	90860.5	118239.5	155823.1	201783.9	95266.7	1.0
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6 (user concept)	branch	warm	3000	17.5	26.5	62.0	146.5	18.7	1.0
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6 (user concept)	rust	warm	3000	105.4	210.0	320.6	503.8	114.9	1.0
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 1 level	view	warm	3000	37.0	86.9	124.4	264.7	43.3	2.1
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 1 level (hub)	view	warm	3000	48.5	83.0	116.1	210.2	53.3	67.2
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels	view	warm	539	98432.8	117304.9	136150.8	152985.8	101253.5	5.7
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels	branch	warm	3000	19.0	48.6	114.5	998.8	25.1	6.1
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels	rust	warm	3000	120.1	554.5	1371.8	14786.3	207.0	6.1
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels (hub)	view	warm	627	94489.3	103839.0	110287.3	116432.8	95349.9	293.8
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels (hub)	branch	warm	3000	367.5	1765.7	4198.2	9378.8	601.0	289.5
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels (hub)	rust	warm	2228	4951.5	19952.3	43559.7	89901.2	6852.8	290.7
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	part_of forward (X is part of?)	view	warm	3000	37.1	41.2	47.1	66.8	37.6	1.7
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	part_of reverse (parts of X)	view	warm	3000	35.5	43.0	63.8	144.2	36.9	4.0
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	neighbourhood	join	warm	3000	163.5	314.0	351.8	543.5	180.0	6.2
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	neighbourhood	in-subquery	warm	3000	136.6	313.6	459.2	895.7	156.5	6.2
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	fts gloss top-20	ids	warm	3000	105.0	912.3	1646.3	2838.0	230.1	9.4
+RESULT	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	fts gloss top-20 + resolve 10	ids+view	warm	3000	232.3	1204.8	1984.1	3803.2	333.8	5.2
+META	C	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	peak_rss_mb	36.5

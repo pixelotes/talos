@@ -1,0 +1,380 @@
+{"id": "en-0001", "text": "hello", "lang": "en", "intent": "smalltalk.greet"}
+{"id": "en-0002", "text": "hey there", "lang": "en", "intent": "smalltalk.greet"}
+{"id": "en-0003", "text": "Good morning!", "lang": "en", "intent": "smalltalk.greet"}
+{"id": "en-0004", "text": "hi talos", "lang": "en", "intent": "smalltalk.greet"}
+{"id": "en-0005", "text": "yo, what's up", "lang": "en", "intent": "smalltalk.how_are_you", "tags": ["informal"]}
+{"id": "en-0006", "text": "hiya", "lang": "en", "intent": "smalltalk.greet"}
+{"id": "en-0007", "text": "Good evening to you", "lang": "en", "intent": "smalltalk.greet"}
+{"id": "en-0008", "text": "hello? anyone home?", "lang": "en", "intent": "smalltalk.greet"}
+{"id": "en-0009", "text": "howdy", "lang": "en", "intent": "smalltalk.greet", "tags": ["informal"]}
+{"id": "en-0010", "text": "heya, you around?", "lang": "en", "intent": "smalltalk.greet"}
+{"id": "en-0011", "text": "goodbye", "lang": "en", "intent": "smalltalk.bye"}
+{"id": "en-0012", "text": "see you later", "lang": "en", "intent": "smalltalk.bye"}
+{"id": "en-0013", "text": "bye for now", "lang": "en", "intent": "smalltalk.bye"}
+{"id": "en-0014", "text": "gotta run, talk soon", "lang": "en", "intent": "smalltalk.bye", "tags": ["informal"]}
+{"id": "en-0015", "text": "Good night, Talos.", "lang": "en", "intent": "smalltalk.bye"}
+{"id": "en-0016", "text": "catch you tomorrow", "lang": "en", "intent": "smalltalk.bye", "tags": ["informal"]}
+{"id": "en-0017", "text": "I'm off now, take care", "lang": "en", "intent": "smalltalk.bye"}
+{"id": "en-0018", "text": "cya", "lang": "en", "intent": "smalltalk.bye", "tags": ["informal", "typo"]}
+{"id": "en-0019", "text": "that's all for today, farewell", "lang": "en", "intent": "smalltalk.bye"}
+{"id": "en-0020", "text": "ok I'm leaving, bye bye", "lang": "en", "intent": "smalltalk.bye"}
+{"id": "en-0021", "text": "thanks", "lang": "en", "intent": "smalltalk.thanks"}
+{"id": "en-0022", "text": "thank you so much", "lang": "en", "intent": "smalltalk.thanks"}
+{"id": "en-0023", "text": "Cheers, that was really useful", "lang": "en", "intent": "smalltalk.thanks", "tags": ["informal"]}
+{"id": "en-0024", "text": "thx", "lang": "en", "intent": "smalltalk.thanks", "tags": ["informal", "short"]}
+{"id": "en-0025", "text": "much appreciated", "lang": "en", "intent": "smalltalk.thanks"}
+{"id": "en-0026", "text": "That's exactly what I needed, thank you", "lang": "en", "intent": "smalltalk.thanks"}
+{"id": "en-0027", "text": "thanks a lot talos", "lang": "en", "intent": "smalltalk.thanks"}
+{"id": "en-0028", "text": "ta very much", "lang": "en", "intent": "smalltalk.thanks", "tags": ["informal"]}
+{"id": "en-0029", "text": "I really appreciate the help", "lang": "en", "intent": "smalltalk.thanks"}
+{"id": "en-0030", "text": "nice one, thanks", "lang": "en", "intent": "smalltalk.thanks", "tags": ["informal"]}
+{"id": "en-0031", "text": "how are you?", "lang": "en", "intent": "smalltalk.how_are_you"}
+{"id": "en-0032", "text": "How's it going?", "lang": "en", "intent": "smalltalk.how_are_you"}
+{"id": "en-0033", "text": "how are you doing today, Talos?", "lang": "en", "intent": "smalltalk.how_are_you"}
+{"id": "en-0034", "text": "hows it going", "lang": "en", "intent": "smalltalk.how_are_you", "tags": ["typo", "informal"]}
+{"id": "en-0035", "text": "you doing ok?", "lang": "en", "intent": "smalltalk.how_are_you"}
+{"id": "en-0036", "text": "How have you been?", "lang": "en", "intent": "smalltalk.how_are_you"}
+{"id": "en-0037", "text": "And how are you?", "lang": "en", "intent": "smalltalk.how_are_you"}
+{"id": "en-0038", "text": "how's your day been so far", "lang": "en", "intent": "smalltalk.how_are_you"}
+{"id": "en-0039", "text": "are you well?", "lang": "en", "intent": "smalltalk.how_are_you", "tags": ["indirect"]}
+{"id": "en-0040", "text": "what's up with you", "lang": "en", "intent": "smalltalk.how_are_you", "tags": ["informal"]}
+{"id": "en-0041", "text": "who are you?", "lang": "en", "intent": "identity.who"}
+{"id": "en-0042", "text": "What's your name?", "lang": "en", "intent": "identity.who"}
+{"id": "en-0043", "text": "what are you called", "lang": "en", "intent": "identity.who"}
+{"id": "en-0044", "text": "Who made you?", "lang": "en", "intent": "identity.who"}
+{"id": "en-0045", "text": "tell me about yourself", "lang": "en", "intent": "identity.who", "tags": ["indirect"]}
+{"id": "en-0046", "text": "Do you have a name?", "lang": "en", "intent": "identity.who"}
+{"id": "en-0047", "text": "who is Talos exactly?", "lang": "en", "intent": "identity.who"}
+{"id": "en-0048", "text": "and you are...?", "lang": "en", "intent": "identity.who", "tags": ["indirect", "informal"]}
+{"id": "en-0049", "text": "introduce yourself", "lang": "en", "intent": "identity.who"}
+{"id": "en-0050", "text": "What exactly are you?", "lang": "en", "intent": "identity.who"}
+{"id": "en-0051", "text": "are you an AI?", "lang": "en", "intent": "identity.nature"}
+{"id": "en-0052", "text": "Are you a real person or a bot?", "lang": "en", "intent": "identity.nature"}
+{"id": "en-0053", "text": "are you human", "lang": "en", "intent": "identity.nature"}
+{"id": "en-0054", "text": "how do you work under the hood?", "lang": "en", "intent": "identity.nature"}
+{"id": "en-0055", "text": "Is there a language model behind you?", "lang": "en", "intent": "identity.nature"}
+{"id": "en-0056", "text": "r u a robot", "lang": "en", "intent": "identity.nature", "tags": ["typo", "informal"]}
+{"id": "en-0057", "text": "Are you built on neural networks?", "lang": "en", "intent": "identity.nature"}
+{"id": "en-0058", "text": "Am I talking to a machine right now?", "lang": "en", "intent": "identity.nature"}
+{"id": "en-0059", "text": "do you actually think or just match patterns", "lang": "en", "intent": "identity.nature", "tags": ["long", "indirect"]}
+{"id": "en-0060", "text": "Is this a chatbot or is someone typing these replies?", "lang": "en", "intent": "identity.nature"}
+{"id": "en-0061", "text": "what can you do?", "lang": "en", "intent": "help.capabilities"}
+{"id": "en-0062", "text": "What are you good for?", "lang": "en", "intent": "help.capabilities"}
+{"id": "en-0063", "text": "what kinds of things can I ask you?", "lang": "en", "intent": "help.capabilities"}
+{"id": "en-0064", "text": "how can you help me", "lang": "en", "intent": "help.capabilities"}
+{"id": "en-0065", "text": "help", "lang": "en", "intent": "help.capabilities", "tags": ["short"]}
+{"id": "en-0066", "text": "List everything you're able to do", "lang": "en", "intent": "help.capabilities", "tags": ["long"]}
+{"id": "en-0067", "text": "I'm not sure what to ask, what do you offer?", "lang": "en", "intent": "help.capabilities", "tags": ["indirect"]}
+{"id": "en-0068", "text": "What are your features?", "lang": "en", "intent": "help.capabilities"}
+{"id": "en-0069", "text": "what's your skill set", "lang": "en", "intent": "help.capabilities", "tags": ["informal"]}
+{"id": "en-0070", "text": "Can you tell me what you're capable of?", "lang": "en", "intent": "help.capabilities"}
+{"id": "en-0071", "text": "how do I use the calculator?", "lang": "en", "intent": "help.skill"}
+{"id": "en-0072", "text": "How do I ask you to roll a dice?", "lang": "en", "intent": "help.skill"}
+{"id": "en-0073", "text": "what do I type to get a translation?", "lang": "en", "intent": "help.skill"}
+{"id": "en-0074", "text": "how does the time zone thing work", "lang": "en", "intent": "help.skill"}
+{"id": "en-0075", "text": "How can I teach you new facts?", "lang": "en", "intent": "help.skill", "tags": ["indirect"]}
+{"id": "en-0076", "text": "How would I ask for a unit conversion?", "lang": "en", "intent": "help.skill"}
+{"id": "en-0077", "text": "I don't get how to set my name, can you explain?", "lang": "en", "intent": "help.skill", "tags": ["indirect", "long"]}
+{"id": "en-0078", "text": "how do i ask about word meanings", "lang": "en", "intent": "help.skill", "tags": ["no-accents", "informal"]}
+{"id": "en-0079", "text": "How do I tell you what units I prefer?", "lang": "en", "intent": "help.skill"}
+{"id": "en-0080", "text": "What's the syntax for asking how long until a date?", "lang": "en", "intent": "help.skill"}
+{"id": "en-0081", "text": "what time is it?", "lang": "en", "intent": "clock.now"}
+{"id": "en-0082", "text": "tell me the time", "lang": "en", "intent": "clock.now"}
+{"id": "en-0083", "text": "got the time?", "lang": "en", "intent": "clock.now", "tags": ["informal"]}
+{"id": "en-0084", "text": "what's the time right now", "lang": "en", "intent": "clock.now"}
+{"id": "en-0085", "text": "Could you tell me the current time please?", "lang": "en", "intent": "clock.now"}
+{"id": "en-0086", "text": "time", "lang": "en", "intent": "clock.now", "tags": ["short"]}
+{"id": "en-0087", "text": "what time do you have", "lang": "en", "intent": "clock.now", "tags": ["informal"]}
+{"id": "en-0088", "text": "do you know what time it is?", "lang": "en", "intent": "clock.now"}
+{"id": "en-0089", "text": "current time", "lang": "en", "intent": "clock.now"}
+{"id": "en-0090", "text": "Hey, what's the time?", "lang": "en", "intent": "clock.now"}
+{"id": "en-0091", "text": "what's today's date?", "lang": "en", "intent": "clock.date"}
+{"id": "en-0092", "text": "What day is it today?", "lang": "en", "intent": "clock.weekday"}
+{"id": "en-0093", "text": "tell me the date", "lang": "en", "intent": "clock.date"}
+{"id": "en-0094", "text": "whats the date", "lang": "en", "intent": "clock.date", "tags": ["typo", "informal"]}
+{"id": "en-0095", "text": "what is the date today", "lang": "en", "intent": "clock.date"}
+{"id": "en-0096", "text": "Could you give me today's date?", "lang": "en", "intent": "clock.date"}
+{"id": "en-0097", "text": "today's date, please", "lang": "en", "intent": "clock.date"}
+{"id": "en-0098", "text": "Which date are we on?", "lang": "en", "intent": "clock.date"}
+{"id": "en-0099", "text": "remind me what the date is today", "lang": "en", "intent": "clock.date", "tags": ["indirect"]}
+{"id": "en-0100", "text": "what's the day of the month", "lang": "en", "intent": "clock.date", "tags": ["indirect"]}
+{"id": "en-0101", "text": "what day of the week is it?", "lang": "en", "intent": "clock.weekday"}
+{"id": "en-0102", "text": "Is it Tuesday today?", "lang": "en", "intent": "clock.weekday", "tags": ["indirect"]}
+{"id": "en-0103", "text": "What day of the week is December 25th?", "lang": "en", "intent": "clock.weekday", "slots": {"date": "--12-25"}}
+{"id": "en-0104", "text": "what weekday was 1 January 2000?", "lang": "en", "intent": "clock.weekday", "slots": {"date": "2000-01-01"}}
+{"id": "en-0105", "text": "Which day of the week does my birthday fall on this year, 14 March?", "lang": "en", "intent": "clock.weekday", "slots": {"date": "--03-14"}, "tags": ["long"]}
+{"id": "en-0106", "text": "what day is tomorrow, in terms of weekday", "lang": "en", "intent": "clock.weekday", "slots": {"date": "+1 d"}, "tags": ["indirect"]}
+{"id": "en-0107", "text": "What day of the week will July 4th be?", "lang": "en", "intent": "clock.weekday", "slots": {"date": "--07-04"}}
+{"id": "en-0108", "text": "tell me the weekday for 12 October", "lang": "en", "intent": "clock.weekday", "slots": {"date": "--10-12"}}
+{"id": "en-0109", "text": "Was 6 December 1978 a Monday or a Sunday?", "lang": "en", "intent": "clock.weekday", "slots": {"date": "1978-12-06"}, "tags": ["indirect"]}
+{"id": "en-0110", "text": "what day of the week is it today", "lang": "en", "intent": "clock.weekday"}
+{"id": "en-0111", "text": "how long until Christmas?", "lang": "en", "intent": "clock.until"}
+{"id": "en-0112", "text": "How many days are left until 1 January?", "lang": "en", "intent": "clock.until"}
+{"id": "en-0113", "text": "how long till 6pm", "lang": "en", "intent": "clock.until", "tags": ["informal"]}
+{"id": "en-0114", "text": "How much time has passed since 1 January 2020?", "lang": "en", "intent": "clock.until"}
+{"id": "en-0115", "text": "how many days to my birthday on May 3rd?", "lang": "en", "intent": "clock.until", "tags": ["informal"]}
+{"id": "en-0116", "text": "How many hours until tomorrow at eight?", "lang": "en", "intent": "clock.until"}
+{"id": "en-0117", "text": "How long ago was 11 September 2001?", "lang": "en", "intent": "clock.until", "tags": ["indirect"]}
+{"id": "en-0118", "text": "tell me how many days there are until 15 August", "lang": "en", "intent": "clock.until"}
+{"id": "en-0119", "text": "how long until the weekend", "lang": "en", "intent": "clock.until", "tags": ["indirect"]}
+{"id": "en-0120", "text": "How many months till summer?", "lang": "en", "intent": "clock.until", "tags": ["indirect"]}
+{"id": "en-0121", "text": "what time is it in Tokyo?", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "Tokyo"}}
+{"id": "en-0122", "text": "What's the time in New York right now?", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "New York"}}
+{"id": "en-0123", "text": "time in mexico city", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "Mexico City"}, "tags": ["short", "informal"]}
+{"id": "en-0124", "text": "Tell me the time in London", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "London"}}
+{"id": "en-0125", "text": "What time is it over in Buenos Aires?", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "Buenos Aires"}}
+{"id": "en-0126", "text": "is it the middle of the night in Sydney yet?", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "Sydney"}, "tags": ["indirect"]}
+{"id": "en-0127", "text": "what's the local time in Los Angeles", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "Los Angeles"}}
+{"id": "en-0128", "text": "My sister lives in Bogotá, what time is it there?", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "Bogotá"}, "tags": ["long", "indirect"]}
+{"id": "en-0129", "text": "what time is it in berlin rn", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "Berlin"}, "tags": ["informal"]}
+{"id": "en-0130", "text": "Could you check the clock in Lima for me?", "lang": "en", "intent": "timezones.time_in", "slots": {"place": "Lima"}, "tags": ["indirect"]}
+{"id": "en-0131", "text": "what's the time difference between Madrid and Tokyo?", "lang": "en", "intent": "timezones.difference"}
+{"id": "en-0132", "text": "How many hours apart are London and Chicago?", "lang": "en", "intent": "timezones.difference"}
+{"id": "en-0133", "text": "time difference with New York", "lang": "en", "intent": "timezones.difference", "tags": ["short"]}
+{"id": "en-0134", "text": "How far ahead is Berlin compared to Lisbon?", "lang": "en", "intent": "timezones.difference"}
+{"id": "en-0135", "text": "how many hours behind is California from here", "lang": "en", "intent": "timezones.difference", "tags": ["indirect"]}
+{"id": "en-0136", "text": "What's the offset between Argentina and Spain?", "lang": "en", "intent": "timezones.difference", "tags": ["long"]}
+{"id": "en-0137", "text": "Is there a big time difference with Caracas?", "lang": "en", "intent": "timezones.difference"}
+{"id": "en-0138", "text": "if it's nine here how different is Chicago for a call", "lang": "en", "intent": "timezones.difference", "tags": ["long", "indirect"]}
+{"id": "en-0139", "text": "how many hrs ahead is Beijing", "lang": "en", "intent": "timezones.difference", "tags": ["informal"]}
+{"id": "en-0140", "text": "Tell me the time gap between Paris and Sydney", "lang": "en", "intent": "timezones.difference"}
+{"id": "en-0141", "text": "what is 7 times 8?", "lang": "en", "intent": "calc.arithmetic"}
+{"id": "en-0142", "text": "whats 2+2", "lang": "en", "intent": "calc.arithmetic", "tags": ["short", "typo"]}
+{"id": "en-0143", "text": "what's 125 divided by 5", "lang": "en", "intent": "calc.arithmetic"}
+{"id": "en-0144", "text": "How much is 3.5 x 4?", "lang": "en", "intent": "calc.arithmetic"}
+{"id": "en-0145", "text": "calculate 1024 - 387", "lang": "en", "intent": "calc.arithmetic"}
+{"id": "en-0146", "text": "whats (3+4)*6", "lang": "en", "intent": "calc.arithmetic", "tags": ["typo"]}
+{"id": "en-0147", "text": "What do 15 plus 27 make?", "lang": "en", "intent": "calc.arithmetic"}
+{"id": "en-0148", "text": "square root of 144", "lang": "en", "intent": "calc.arithmetic"}
+{"id": "en-0149", "text": "What is the result of 90 divided by 4?", "lang": "en", "intent": "calc.arithmetic"}
+{"id": "en-0150", "text": "I keep getting 18 times 19 wrong, what is it?", "lang": "en", "intent": "calc.arithmetic", "tags": ["long", "informal", "indirect"]}
+{"id": "en-0151", "text": "what's 15% of 200?", "lang": "en", "intent": "calc.percent"}
+{"id": "en-0152", "text": "calculate 21 percent of 80", "lang": "en", "intent": "calc.percent"}
+{"id": "en-0153", "text": "What percentage is 30 of 120?", "lang": "en", "intent": "calc.percent"}
+{"id": "en-0154", "text": "If something costs 50 pounds and goes up 10%, what's the new price?", "lang": "en", "intent": "calc.percent", "tags": ["long"]}
+{"id": "en-0155", "text": "what is 20 per cent of 350", "lang": "en", "intent": "calc.percent"}
+{"id": "en-0156", "text": "How much VAT is on 80 at 21%?", "lang": "en", "intent": "calc.percent", "tags": ["indirect"]}
+{"id": "en-0157", "text": "I get 30% off 90 dollars, what do I pay?", "lang": "en", "intent": "calc.percent", "tags": ["long", "indirect"]}
+{"id": "en-0158", "text": "5% of 1200", "lang": "en", "intent": "calc.percent"}
+{"id": "en-0159", "text": "20 is what percent of 80?", "lang": "en", "intent": "calc.percent"}
+{"id": "en-0160", "text": "what's a 15 percent tip on 45?", "lang": "en", "intent": "calc.percent", "tags": ["informal"]}
+{"id": "en-0161", "text": "how many kilometres is 10 miles?", "lang": "en", "intent": "calc.convert"}
+{"id": "en-0162", "text": "Convert 100 degrees Fahrenheit to Celsius", "lang": "en", "intent": "calc.convert"}
+{"id": "en-0163", "text": "turn 5 pounds into kilos", "lang": "en", "intent": "calc.convert"}
+{"id": "en-0164", "text": "How many centimetres are in 3 inches?", "lang": "en", "intent": "calc.convert"}
+{"id": "en-0165", "text": "how many litres in 2 gallons", "lang": "en", "intent": "calc.convert"}
+{"id": "en-0166", "text": "What's 50 feet in metres?", "lang": "en", "intent": "calc.convert", "tags": ["indirect"]}
+{"id": "en-0167", "text": "72 kg in lbs", "lang": "en", "intent": "calc.convert", "tags": ["short"]}
+{"id": "en-0168", "text": "How many ounces is 250 grams?", "lang": "en", "intent": "calc.convert"}
+{"id": "en-0169", "text": "20 celsius to fahrenheit", "lang": "en", "intent": "calc.convert", "tags": ["short"]}
+{"id": "en-0170", "text": "what is 25 degrees Celsius in Kelvin", "lang": "en", "intent": "calc.convert"}
+{"id": "en-0171", "text": "roll a die", "lang": "en", "intent": "random.dice"}
+{"id": "en-0172", "text": "roll two six-sided dice", "lang": "en", "intent": "random.dice", "slots": {"count": 2, "sides": 6}}
+{"id": "en-0173", "text": "Throw a d20 for me", "lang": "en", "intent": "random.dice", "slots": {"sides": 20}, "tags": ["informal"]}
+{"id": "en-0174", "text": "can you roll a dice?", "lang": "en", "intent": "random.dice", "tags": ["indirect"]}
+{"id": "en-0175", "text": "roll 3 dice", "lang": "en", "intent": "random.dice", "slots": {"count": 3}}
+{"id": "en-0176", "text": "give me a roll of a 12-sided die", "lang": "en", "intent": "random.dice", "slots": {"sides": 12}}
+{"id": "en-0177", "text": "I need a number from one to six, throw a die", "lang": "en", "intent": "random.dice", "tags": ["indirect", "long"]}
+{"id": "en-0178", "text": "roll 4d6", "lang": "en", "intent": "random.dice", "slots": {"count": 4, "sides": 6}, "tags": ["short"]}
+{"id": "en-0179", "text": "dice roll please", "lang": "en", "intent": "random.dice"}
+{"id": "en-0180", "text": "let's see what the dice say", "lang": "en", "intent": "random.dice", "tags": ["indirect", "informal"]}
+{"id": "en-0181", "text": "flip a coin", "lang": "en", "intent": "random.coin"}
+{"id": "en-0182", "text": "heads or tails?", "lang": "en", "intent": "random.coin"}
+{"id": "en-0183", "text": "toss a coin for me", "lang": "en", "intent": "random.coin"}
+{"id": "en-0184", "text": "Flip a coin and let chance decide", "lang": "en", "intent": "random.coin", "tags": ["indirect"]}
+{"id": "en-0185", "text": "heads or tails", "lang": "en", "intent": "random.coin", "tags": ["short"]}
+{"id": "en-0186", "text": "Do a coin toss to settle who does the dishes", "lang": "en", "intent": "random.coin", "tags": ["indirect", "informal"]}
+{"id": "en-0187", "text": "flip the coin", "lang": "en", "intent": "random.coin"}
+{"id": "en-0188", "text": "can you flip a coin?", "lang": "en", "intent": "random.coin"}
+{"id": "en-0189", "text": "coin flip please", "lang": "en", "intent": "random.coin"}
+{"id": "en-0190", "text": "I need a virtual coin", "lang": "en", "intent": "random.coin"}
+{"id": "en-0191", "text": "choose between pizza and sushi", "lang": "en", "intent": "random.pick", "slots": {"options": ["pizza", "sushi"]}}
+{"id": "en-0192", "text": "Pick one: red, green or blue", "lang": "en", "intent": "random.pick", "slots": {"options": ["red", "green", "blue"]}}
+{"id": "en-0193", "text": "Should I see a film or go to the theatre? Pick for me", "lang": "en", "intent": "random.pick", "slots": {"options": ["film", "theatre"]}, "tags": ["indirect"]}
+{"id": "en-0194", "text": "decide for me: beach, mountains or city", "lang": "en", "intent": "random.pick", "slots": {"options": ["beach", "mountains", "city"]}}
+{"id": "en-0195", "text": "pick one at random from Anna, Luis, Marta, Pedro", "lang": "en", "intent": "random.pick", "slots": {"options": ["Anna", "Luis", "Marta", "Pedro"]}, "tags": ["long"]}
+{"id": "en-0196", "text": "can't decide between tea and coffee, you choose", "lang": "en", "intent": "random.pick", "slots": {"options": ["tea", "coffee"]}, "tags": ["indirect", "informal"]}
+{"id": "en-0197", "text": "Draw a name: John or Lucy", "lang": "en", "intent": "random.pick", "slots": {"options": ["John", "Lucy"]}, "tags": ["indirect"]}
+{"id": "en-0198", "text": "choose one of a, b, c", "lang": "en", "intent": "random.pick", "slots": {"options": ["a", "b", "c"]}, "tags": ["short"]}
+{"id": "en-0199", "text": "select one for me, either left or right", "lang": "en", "intent": "random.pick", "slots": {"options": ["left", "right"]}}
+{"id": "en-0200", "text": "which one: burgers, tacos, or ramen? you decide", "lang": "en", "intent": "random.pick", "slots": {"options": ["burgers", "tacos", "ramen"]}, "tags": ["informal"]}
+{"id": "en-0201", "text": "give me a random number from 1 to 100", "lang": "en", "intent": "random.number", "slots": {"low": 1, "high": 100}}
+{"id": "en-0202", "text": "A random number between 10 and 20", "lang": "en", "intent": "random.number", "slots": {"low": 10, "high": 20}}
+{"id": "en-0203", "text": "random number", "lang": "en", "intent": "random.number", "tags": ["short"]}
+{"id": "en-0204", "text": "say any number from 1 to 10", "lang": "en", "intent": "random.number", "slots": {"low": 1, "high": 10}}
+{"id": "en-0205", "text": "generate a number between 500 and 1000", "lang": "en", "intent": "random.number", "slots": {"low": 500, "high": 1000}}
+{"id": "en-0206", "text": "Think of a number between 1 and 50", "lang": "en", "intent": "random.number", "slots": {"low": 1, "high": 50}, "tags": ["indirect"]}
+{"id": "en-0207", "text": "pick me a lucky number", "lang": "en", "intent": "random.number", "tags": ["indirect", "informal"]}
+{"id": "en-0208", "text": "I need a random number for a raffle, 1 to 300", "lang": "en", "intent": "random.number", "slots": {"low": 1, "high": 300}, "tags": ["long"]}
+{"id": "en-0209", "text": "rand 1-5", "lang": "en", "intent": "random.number", "slots": {"low": 1, "high": 5}, "tags": ["informal", "short"]}
+{"id": "en-0210", "text": "could I get a random number?", "lang": "en", "intent": "random.number"}
+{"id": "en-0211", "text": "tell me a saying", "lang": "en", "intent": "fortune.tell"}
+{"id": "en-0212", "text": "Give me my fortune", "lang": "en", "intent": "fortune.tell"}
+{"id": "en-0214", "text": "I'd like a fortune cookie", "lang": "en", "intent": "fortune.tell", "tags": ["informal"]}
+{"id": "en-0215", "text": "quote of the day", "lang": "en", "intent": "fortune.tell"}
+{"id": "en-0216", "text": "Tell me a proverb", "lang": "en", "intent": "fortune.tell"}
+{"id": "en-0217", "text": "read my fortune", "lang": "en", "intent": "fortune.tell", "tags": ["indirect"]}
+{"id": "en-0218", "text": "give me some wisdom", "lang": "en", "intent": "fortune.tell"}
+{"id": "en-0219", "text": "Got any old sayings for today?", "lang": "en", "intent": "fortune.tell", "tags": ["indirect"]}
+{"id": "en-0220", "text": "Say something wise", "lang": "en", "intent": "fortune.tell"}
+{"id": "en-0221", "text": "what does \"ephemeral\" mean?", "lang": "en", "intent": "define.word", "slots": {"word": "ephemeral"}}
+{"id": "en-0222", "text": "What is the meaning of the word ubiquitous?", "lang": "en", "intent": "define.word", "slots": {"word": "ubiquitous"}}
+{"id": "en-0223", "text": "definition of resilience", "lang": "en", "intent": "define.word", "slots": {"word": "resilience"}, "tags": ["short"]}
+{"id": "en-0224", "text": "whats sempiternal", "lang": "en", "intent": "define.word", "slots": {"word": "sempiternal"}, "tags": ["typo"]}
+{"id": "en-0225", "text": "Define \"bribery\"", "lang": "en", "intent": "define.word", "slots": {"word": "bribery"}}
+{"id": "en-0226", "text": "I don't know the word \"peremptory\", could you explain it?", "lang": "en", "intent": "define.word", "slots": {"word": "peremptory"}, "tags": ["indirect", "long"]}
+{"id": "en-0227", "text": "what's the definition of random", "lang": "en", "intent": "define.word", "slots": {"word": "random"}}
+{"id": "en-0228", "text": "meaning of ostracism", "lang": "en", "intent": "define.word", "slots": {"word": "ostracism"}, "tags": ["short"]}
+{"id": "en-0229", "text": "Hey, what's \"tangible\" supposed to mean?", "lang": "en", "intent": "define.word", "slots": {"word": "tangible"}, "tags": ["informal"]}
+{"id": "en-0230", "text": "can you tell me what palindrome means", "lang": "en", "intent": "define.word", "slots": {"word": "palindrome"}}
+{"id": "en-0231", "text": "is a dog an animal?", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "dog", "class": "animal"}}
+{"id": "en-0232", "text": "Is a tomato a fruit?", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "tomato", "class": "fruit"}}
+{"id": "en-0233", "text": "is a whale a fish", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "whale", "class": "fish"}}
+{"id": "en-0234", "text": "Are dolphins mammals?", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "dolphins", "class": "mammals"}}
+{"id": "en-0235", "text": "is a cat a feline?", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "cat", "class": "feline"}}
+{"id": "en-0236", "text": "Would you say a bat is a bird?", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "bat", "class": "bird"}, "tags": ["indirect"]}
+{"id": "en-0237", "text": "is pine a type of tree", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "pine", "class": "tree"}}
+{"id": "en-0238", "text": "Does yoghurt count as dairy?", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "yoghurt", "class": "dairy"}, "tags": ["indirect"]}
+{"id": "en-0239", "text": "Is a spider an insect?", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "spider", "class": "insect"}}
+{"id": "en-0240", "text": "is python a programming language", "lang": "en", "intent": "relations.is_a", "slots": {"subject": "python", "class": "programming language"}}
+{"id": "en-0241", "text": "what kinds of dog are there?", "lang": "en", "intent": "relations.kinds", "slots": {"class": "dog"}}
+{"id": "en-0242", "text": "List some types of trees", "lang": "en", "intent": "relations.kinds", "slots": {"class": "trees"}}
+{"id": "en-0243", "text": "What sorts of cheese do you know?", "lang": "en", "intent": "relations.kinds", "slots": {"class": "cheese"}}
+{"id": "en-0244", "text": "what are the types of triangle", "lang": "en", "intent": "relations.kinds", "slots": {"class": "triangle"}}
+{"id": "en-0245", "text": "examples of musical instruments", "lang": "en", "intent": "relations.kinds", "slots": {"class": "musical instruments"}, "tags": ["indirect"]}
+{"id": "en-0246", "text": "which varieties of apple exist?", "lang": "en", "intent": "relations.kinds", "slots": {"class": "apple"}}
+{"id": "en-0247", "text": "Name some breeds of cat", "lang": "en", "intent": "relations.kinds", "slots": {"class": "cat"}, "tags": ["indirect"]}
+{"id": "en-0248", "text": "What kind of things are mammals?", "lang": "en", "intent": "define.word", "tags": ["indirect", "long"]}
+{"id": "en-0249", "text": "what species of shark do you know about", "lang": "en", "intent": "relations.kinds", "slots": {"class": "shark"}}
+{"id": "en-0250", "text": "different forms of energy", "lang": "en", "intent": "relations.kinds", "slots": {"class": "energy"}, "tags": ["short"]}
+{"id": "en-0251", "text": "what parts does a car have?", "lang": "en", "intent": "relations.parts", "slots": {"whole": "car"}}
+{"id": "en-0252", "text": "What is a cell made of?", "lang": "en", "intent": "relations.parts", "slots": {"whole": "cell"}}
+{"id": "en-0253", "text": "What are the parts of a flower?", "lang": "en", "intent": "relations.parts", "slots": {"whole": "flower"}}
+{"id": "en-0254", "text": "what components does a bicycle have", "lang": "en", "intent": "relations.parts", "slots": {"whole": "bicycle"}}
+{"id": "en-0255", "text": "What's inside a computer?", "lang": "en", "intent": "relations.parts", "slots": {"whole": "computer"}, "tags": ["indirect"]}
+{"id": "en-0256", "text": "tell me the components of an atom", "lang": "en", "intent": "relations.parts", "slots": {"whole": "atom"}}
+{"id": "en-0257", "text": "Which organs make up the digestive system?", "lang": "en", "intent": "relations.parts", "slots": {"whole": "digestive system"}}
+{"id": "en-0258", "text": "what's an eye got in it", "lang": "en", "intent": "relations.parts", "slots": {"whole": "eye"}, "tags": ["indirect", "informal"]}
+{"id": "en-0259", "text": "parts of a guitar", "lang": "en", "intent": "relations.parts", "slots": {"whole": "guitar"}, "tags": ["short"]}
+{"id": "en-0260", "text": "How is a house put together?", "lang": "en", "intent": "relations.parts", "slots": {"whole": "house"}, "tags": ["indirect"]}
+{"id": "en-0261", "text": "what is the engine part of?", "lang": "en", "intent": "relations.part_of", "slots": {"part": "engine"}}
+{"id": "en-0262", "text": "What does a tyre belong to?", "lang": "en", "intent": "relations.part_of", "slots": {"part": "tyre"}}
+{"id": "en-0263", "text": "what is a wheel a part of", "lang": "en", "intent": "relations.part_of", "slots": {"part": "wheel"}}
+{"id": "en-0264", "text": "Which things contain a transistor?", "lang": "en", "intent": "relations.part_of", "slots": {"part": "transistor"}, "tags": ["indirect"]}
+{"id": "en-0265", "text": "what's the Enter key part of", "lang": "en", "intent": "relations.part_of", "slots": {"part": "Enter key"}, "tags": ["informal"]}
+{"id": "en-0266", "text": "what does the liver belong to", "lang": "en", "intent": "relations.part_of", "slots": {"part": "liver"}}
+{"id": "en-0267", "text": "Where does a piston fit in?", "lang": "en", "intent": "relations.part_of", "slots": {"part": "piston"}, "tags": ["indirect"]}
+{"id": "en-0268", "text": "what whole is a petal a part of?", "lang": "en", "intent": "relations.part_of", "slots": {"part": "petal"}, "tags": ["indirect"]}
+{"id": "en-0269", "text": "Madrid is part of what?", "lang": "en", "intent": "relations.part_of", "slots": {"part": "Madrid"}}
+{"id": "en-0270", "text": "what is a battery a component of", "lang": "en", "intent": "relations.part_of", "slots": {"part": "battery"}}
+{"id": "en-0271", "text": "what causes rain?", "lang": "en", "intent": "relations.causes", "slots": {"topic": "rain", "direction": "causes_of"}}
+{"id": "en-0272", "text": "Why does it rain?", "lang": "en", "intent": "relations.causes", "slots": {"topic": "rain", "direction": "causes_of"}}
+{"id": "en-0273", "text": "what makes an earthquake happen", "lang": "en", "intent": "relations.causes", "slots": {"topic": "earthquake", "direction": "causes_of"}}
+{"id": "en-0274", "text": "why does iron rust", "lang": "en", "intent": "relations.causes", "slots": {"topic": "rusting", "direction": "causes_of"}}
+{"id": "en-0275", "text": "What gives rise to a rainbow?", "lang": "en", "intent": "relations.causes", "slots": {"topic": "rainbow", "direction": "causes_of"}, "tags": ["indirect"]}
+{"id": "en-0276", "text": "what are the effects of smoking", "lang": "en", "intent": "relations.causes", "slots": {"topic": "smoking", "direction": "effects_of"}}
+{"id": "en-0277", "text": "What are the consequences of drought?", "lang": "en", "intent": "relations.causes", "slots": {"topic": "drought", "direction": "effects_of"}}
+{"id": "en-0278", "text": "how come we have seasons", "lang": "en", "intent": "relations.causes", "slots": {"topic": "seasons", "direction": "causes_of"}, "tags": ["informal"]}
+{"id": "en-0279", "text": "What does excessive heat lead to?", "lang": "en", "intent": "relations.causes", "slots": {"topic": "excessive heat", "direction": "effects_of"}, "tags": ["indirect"]}
+{"id": "en-0280", "text": "whats the cause of the tides", "lang": "en", "intent": "relations.causes", "slots": {"topic": "tides", "direction": "causes_of"}, "tags": ["typo"]}
+{"id": "en-0281", "text": "what do you know about volcanoes?", "lang": "en", "intent": "relations.about", "slots": {"topic": "volcanoes"}}
+{"id": "en-0282", "text": "Tell me everything you know about cats", "lang": "en", "intent": "relations.about", "slots": {"topic": "cats"}, "tags": ["long"]}
+{"id": "en-0283", "text": "tell me about Jupiter", "lang": "en", "intent": "relations.about", "slots": {"topic": "Jupiter"}}
+{"id": "en-0284", "text": "What do you know of photosynthesis?", "lang": "en", "intent": "relations.about", "slots": {"topic": "photosynthesis"}}
+{"id": "en-0285", "text": "info on coffee", "lang": "en", "intent": "relations.about", "slots": {"topic": "coffee"}, "tags": ["short", "informal"]}
+{"id": "en-0286", "text": "Anything you know regarding Cervantes?", "lang": "en", "intent": "relations.about", "slots": {"topic": "Cervantes"}, "tags": ["indirect"]}
+{"id": "en-0287", "text": "what do you have on bees", "lang": "en", "intent": "relations.about", "slots": {"topic": "bees"}, "tags": ["informal"]}
+{"id": "en-0288", "text": "I want to know what's in your memory about iron", "lang": "en", "intent": "relations.about", "slots": {"topic": "iron"}, "tags": ["long", "indirect"]}
+{"id": "en-0289", "text": "What facts do you have about the Thames?", "lang": "en", "intent": "relations.about", "slots": {"topic": "Thames"}}
+{"id": "en-0290", "text": "give me what you've got on the sun", "lang": "en", "intent": "relations.about", "slots": {"topic": "sun"}, "tags": ["informal"]}
+{"id": "en-0291", "text": "how do you know that?", "lang": "en", "intent": "relations.provenance"}
+{"id": "en-0292", "text": "Are you sure about that?", "lang": "en", "intent": "relations.provenance"}
+{"id": "en-0293", "text": "where did you get that from?", "lang": "en", "intent": "relations.provenance"}
+{"id": "en-0294", "text": "who told you that?", "lang": "en", "intent": "relations.provenance"}
+{"id": "en-0295", "text": "How confident are you in what you just said?", "lang": "en", "intent": "relations.provenance", "tags": ["long"]}
+{"id": "en-0296", "text": "is that reliable?", "lang": "en", "intent": "relations.provenance"}
+{"id": "en-0297", "text": "what's your source", "lang": "en", "intent": "relations.provenance", "tags": ["short"]}
+{"id": "en-0298", "text": "When did you learn that?", "lang": "en", "intent": "relations.provenance"}
+{"id": "en-0299", "text": "you sure?", "lang": "en", "intent": "relations.provenance", "tags": ["informal", "indirect"]}
+{"id": "en-0300", "text": "Who taught you that a tomato is a fruit?", "lang": "en", "intent": "relations.provenance"}
+{"id": "en-0301", "text": "learn that a dolphin is a mammal", "lang": "en", "intent": "teach.assert"}
+{"id": "en-0302", "text": "Let me teach you something: the Thames flows through London", "lang": "en", "intent": "teach.assert"}
+{"id": "en-0303", "text": "remember that my cat is a Siamese", "lang": "en", "intent": "teach.assert", "tags": ["indirect"]}
+{"id": "en-0305", "text": "note that a triangle has three sides", "lang": "en", "intent": "teach.assert"}
+{"id": "en-0306", "text": "learn this: a tomato is a fruit", "lang": "en", "intent": "teach.assert", "tags": ["short"]}
+{"id": "en-0307", "text": "Take note that an engine is part of a car", "lang": "en", "intent": "teach.assert"}
+{"id": "en-0308", "text": "I want to teach you that ice is frozen water", "lang": "en", "intent": "teach.assert", "tags": ["long"]}
+{"id": "en-0310", "text": "learn that heat expands metals", "lang": "en", "intent": "teach.assert"}
+{"id": "en-0311", "text": "forget that a dolphin is a mammal", "lang": "en", "intent": "teach.forget"}
+{"id": "en-0312", "text": "Delete what I told you about the Thames", "lang": "en", "intent": "teach.forget"}
+{"id": "en-0313", "text": "Retract what I said about the tomato being a vegetable", "lang": "en", "intent": "teach.forget", "tags": ["indirect"]}
+{"id": "en-0314", "text": "forget the last thing I taught you", "lang": "en", "intent": "teach.forget"}
+{"id": "en-0315", "text": "it's no longer true that my cat is a Siamese, remove it", "lang": "en", "intent": "teach.forget", "tags": ["long", "indirect"]}
+{"id": "en-0316", "text": "erase the fact that the whale is a fish", "lang": "en", "intent": "teach.forget"}
+{"id": "en-0317", "text": "That thing I told you was wrong, drop it", "lang": "en", "intent": "teach.forget", "tags": ["indirect"]}
+{"id": "en-0318", "text": "remove from your memory that a triangle has four sides", "lang": "en", "intent": "teach.forget", "tags": ["long"]}
+{"id": "en-0319", "text": "scrap the bit about spiders", "lang": "en", "intent": "teach.forget", "tags": ["short"]}
+{"id": "en-0320", "text": "unlearn the engine thing", "lang": "en", "intent": "teach.forget", "tags": ["informal"]}
+{"id": "en-0321", "text": "what have I taught you?", "lang": "en", "intent": "teach.list"}
+{"id": "en-0322", "text": "Show me what you've learned", "lang": "en", "intent": "teach.list"}
+{"id": "en-0323", "text": "list the facts I've taught you", "lang": "en", "intent": "teach.list"}
+{"id": "en-0324", "text": "What have I told you so far?", "lang": "en", "intent": "teach.list"}
+{"id": "en-0325", "text": "Show me everything you remember that I told you", "lang": "en", "intent": "teach.list", "tags": ["long"]}
+{"id": "en-0326", "text": "what have you learned from me", "lang": "en", "intent": "teach.list", "tags": ["indirect"]}
+{"id": "en-0327", "text": "tell me which facts you have stored", "lang": "en", "intent": "teach.list"}
+{"id": "en-0328", "text": "What do you know that I told you?", "lang": "en", "intent": "teach.list"}
+{"id": "en-0329", "text": "show taught facts", "lang": "en", "intent": "teach.list", "tags": ["short"]}
+{"id": "en-0330", "text": "what's in your notebook of things I've taught you", "lang": "en", "intent": "teach.list", "tags": ["informal"]}
+{"id": "en-0331", "text": "when I say \"go wild\" I mean \"tell me the time\"", "lang": "en", "intent": "teach.phrase"}
+{"id": "en-0332", "text": "If I type \"good vibes\" it means \"hello\"", "lang": "en", "intent": "teach.phrase"}
+{"id": "en-0333", "text": "when i tell you \"enough already\" understand \"thanks\"", "lang": "en", "intent": "teach.phrase", "tags": ["informal"]}
+{"id": "en-0334", "text": "From now on \"see you around, pal\" means goodbye", "lang": "en", "intent": "teach.phrase"}
+{"id": "en-0335", "text": "I want you to treat \"flip it\" as flipping a coin", "lang": "en", "intent": "teach.phrase", "tags": ["long"]}
+{"id": "en-0336", "text": "\"how many left\" means how long until Christmas", "lang": "en", "intent": "teach.phrase", "tags": ["short"]}
+{"id": "en-0337", "text": "When I write \"pass me the day\" you should read it as today's date", "lang": "en", "intent": "teach.phrase", "tags": ["long"]}
+{"id": "en-0338", "text": "Learn that \"tell me the truth\" is the same as \"who are you\"", "lang": "en", "intent": "teach.phrase"}
+{"id": "en-0339", "text": "when I say \"sup\" I'm greeting you", "lang": "en", "intent": "teach.phrase", "tags": ["informal"]}
+{"id": "en-0340", "text": "If I say \"what's cooking\" interpret it as how are you", "lang": "en", "intent": "teach.phrase"}
+{"id": "en-0341", "text": "how do you say \"dog\" in Spanish?", "lang": "en", "intent": "translate.word", "slots": {"term": "dog", "target": "es"}}
+{"id": "en-0342", "text": "translate \"window\" into Spanish", "lang": "en", "intent": "translate.word", "slots": {"term": "window", "target": "es"}}
+{"id": "en-0343", "text": "What's \"mariposa\" in English?", "lang": "en", "intent": "translate.word", "slots": {"term": "mariposa", "target": "en"}}
+{"id": "en-0344", "text": "How do you say good morning in Spanish", "lang": "en", "intent": "translate.word", "slots": {"term": "good morning", "target": "es"}}
+{"id": "en-0345", "text": "translate \"buenas noches\"", "lang": "en", "intent": "translate.word", "tags": ["short"]}
+{"id": "en-0346", "text": "How would you say \"me duele la cabeza\" in English?", "lang": "en", "intent": "translate.word", "slots": {"term": "me duele la cabeza", "target": "en"}}
+{"id": "en-0347", "text": "say \"computer\" in Spanish", "lang": "en", "intent": "translate.word", "slots": {"term": "computer", "target": "es"}}
+{"id": "en-0348", "text": "What does \"break a leg\" translate to in Spanish?", "lang": "en", "intent": "translate.word", "slots": {"term": "break a leg", "target": "es"}}
+{"id": "en-0349", "text": "what's the Spanish word for apple", "lang": "en", "intent": "translate.word", "slots": {"term": "apple", "target": "es"}, "tags": ["indirect"]}
+{"id": "en-0350", "text": "In English, how do you say \"de nada\"?", "lang": "en", "intent": "translate.word", "slots": {"term": "de nada", "target": "en"}}
+{"id": "en-0351", "text": "my name is Paul", "lang": "en", "intent": "preferences.set", "slots": {"key": "name", "value": "Paul"}}
+{"id": "en-0352", "text": "Call me Marta", "lang": "en", "intent": "preferences.set", "slots": {"key": "name", "value": "Marta"}}
+{"id": "en-0353", "text": "I live in Valencia", "lang": "en", "intent": "preferences.set", "slots": {"key": "place", "value": "Valencia"}}
+{"id": "en-0354", "text": "my city is Seville", "lang": "en", "intent": "preferences.set", "slots": {"key": "place", "value": "Seville"}}
+{"id": "en-0355", "text": "I prefer kilometres to miles", "lang": "en", "intent": "preferences.set", "slots": {"key": "units", "value": "metric"}}
+{"id": "en-0356", "text": "remember that I like Celsius", "lang": "en", "intent": "preferences.set", "slots": {"key": "units", "value": "metric"}}
+{"id": "en-0357", "text": "My name's Peter, make a note of it", "lang": "en", "intent": "preferences.set", "slots": {"key": "name", "value": "Peter"}, "tags": ["indirect"]}
+{"id": "en-0359", "text": "use imperial units with me", "lang": "en", "intent": "preferences.set", "slots": {"key": "units", "value": "imperial"}, "tags": ["indirect"]}
+{"id": "en-0360", "text": "my name is Helen and I live in Leeds", "lang": "en", "intent": "preferences.set", "tags": ["long"]}
+{"id": "en-0361", "text": "what's my name?", "lang": "en", "intent": "preferences.get"}
+{"id": "en-0362", "text": "Where do I live?", "lang": "en", "intent": "preferences.get"}
+{"id": "en-0363", "text": "What do you know about me?", "lang": "en", "intent": "preferences.get"}
+{"id": "en-0364", "text": "which city am I in", "lang": "en", "intent": "preferences.get", "tags": ["indirect"]}
+{"id": "en-0365", "text": "Do you know my name?", "lang": "en", "intent": "preferences.get"}
+{"id": "en-0366", "text": "What units do I prefer?", "lang": "en", "intent": "preferences.get"}
+{"id": "en-0367", "text": "Do you remember my name?", "lang": "en", "intent": "preferences.get"}
+{"id": "en-0368", "text": "tell me what you remember about my preferences", "lang": "en", "intent": "preferences.get", "tags": ["long"]}
+{"id": "en-0369", "text": "Remember where I live?", "lang": "en", "intent": "preferences.get"}
+{"id": "en-0370", "text": "who am I to you", "lang": "en", "intent": "preferences.get", "tags": ["indirect", "informal"]}
+{"id": "en-0371", "text": "forget my name", "lang": "en", "intent": "preferences.forget"}
+{"id": "en-0372", "text": "delete my city", "lang": "en", "intent": "preferences.forget"}
+{"id": "en-0373", "text": "I don't want you to remember my preferences any more", "lang": "en", "intent": "preferences.forget"}
+{"id": "en-0374", "text": "forget where I live", "lang": "en", "intent": "preferences.forget"}
+{"id": "en-0375", "text": "remove my personal details", "lang": "en", "intent": "preferences.forget", "tags": ["indirect"]}
+{"id": "en-0376", "text": "forget that I live in Valencia", "lang": "en", "intent": "preferences.forget", "slots": {"key": "place"}}
+{"id": "en-0377", "text": "Erase everything you know about me", "lang": "en", "intent": "preferences.forget", "tags": ["indirect", "long"]}
+{"id": "en-0378", "text": "Stop remembering my units", "lang": "en", "intent": "preferences.forget", "tags": ["indirect"]}
+{"id": "en-0379", "text": "i don't want you keeping my name", "lang": "en", "intent": "preferences.forget", "tags": ["indirect"]}
+{"id": "en-0380", "text": "wipe me from your memory", "lang": "en", "intent": "preferences.forget", "tags": ["indirect", "informal"]}
+{"id": "en-0381", "text": "got any wisdom for the road?", "lang": "en", "intent": "fortune.tell", "tags": ["indirect"]}
+{"id": "en-0382", "text": "learn: squares are a kind of polygon", "lang": "en", "intent": "teach.assert"}
+{"id": "en-0383", "text": "take note that a wheel is part of a bicycle", "lang": "en", "intent": "teach.assert"}
+{"id": "en-0384", "text": "I've just moved to Norwich, remember that", "lang": "en", "intent": "preferences.set", "slots": {"key": "place", "value": "Norwich"}, "tags": ["indirect"]}

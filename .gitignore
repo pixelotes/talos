@@ -1,0 +1,10 @@
+/target
+*.db
+*.db-wal
+*.db-shm
+*.talospack
+/data/
+/models/*.bin
+.DS_Store
+.venv/
+__pycache__/

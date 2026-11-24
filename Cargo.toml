@@ -1,0 +1,57 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+# spikes/ holds standalone throwaway projects with their own Cargo.toml.
+exclude = ["spikes"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+rust-version = "1.99"
+repository = "https://github.com/pixelotes/talos"
+publish = false
+
+# Every third-party dependency is justified on its own line (DESIGN.md s.9:
+# prefer no dependency, then a small one, then a feature-gated one).
+[workspace.dependencies]
+talos-core = { path = "crates/talos-core", version = "0.0.0" }
+talos-skills = { path = "crates/talos-skills", version = "0.0.0" }
+# Derive for the manifest model; the de facto standard, needed by `toml`.
+serde = { version = "1.0.228", default-features = false, features = ["std", "derive"] }
+# Parses skill manifests (ADR 0007); parse-only, no writer or display code.
+toml = { version = "1.2", default-features = false, features = ["std", "parse", "serde"] }
+# Rule patterns as a linear-time RegexSet; only the Unicode classes \b \w \s
+# are needed, so the other Unicode tables and the perf engines are left out.
+regex = { version = "1.12", default-features = false, features = ["std", "unicode-perl"] }
+# NFKC for the normalisation stage (DESIGN.md s.4, stage 0); small, standard.
+unicode-normalization = "0.1.24"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+# Pedantic lints that are noise at this stage.
+module_name_repetitions = "allow"
+
+# Release profile tuned for the 15 MB stripped-binary budget (DESIGN.md s.8).
+[profile.release]
+# "z" optimises for size; the workload is small and not CPU-bound.
+opt-level = "z"
+# Fat LTO lets the linker drop unused code across crates.
+lto = "fat"
+# One codegen unit gives the optimiser the whole crate; smaller, slower build.
+codegen-units = 1
+# Remove symbols and debug info from the shipped binary.
+strip = true
+# No unwinding tables or landing pads; a panic aborts the process.
+panic = "abort"

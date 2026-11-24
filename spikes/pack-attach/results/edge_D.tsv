@@ -1,0 +1,24 @@
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	baseline_rss_mb	7.4
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	rss_after_open_mb	9.8
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	edge_build_ms	170.1	edge_rows	213002
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 branch vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 view vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 edge vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa deep(<=16) branch vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa deep(<=16) view vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa deep(<=16) edge vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels branch vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels view vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels edge vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels (hub) branch vs rust	mismatches	0/10
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels (hub) view vs rust	mismatches	0/10
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify kinds-of 3 levels (hub) edge vs rust	mismatches	0/10
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 (user concept) branch vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 (user concept) view vs rust	mismatches	0/60
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	verify isa<=6 (user concept) edge vs rust	mismatches	0/60
+RESULT	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6	edge	warm	3000	6.5	9.4	12.2	17.9	6.2	0.5
+RESULT	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa deep(<=16)	edge	warm	3000	12.0	22.4	29.1	48.7	13.2	0.5
+RESULT	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	isa<=6 (user concept)	edge	warm	3000	3.9	5.5	6.5	17.5	3.9	1.0
+RESULT	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels	edge	warm	3000	5.5	20.2	54.0	551.4	8.6	6.1
+RESULT	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	kinds-of 3 levels (hub)	edge	warm	3000	151.8	870.5	2216.6	2774.9	286.8	289.5
+META	D	cache=def,mmap=0M,wal=1,sync=NORMAL,imm=0	peak_rss_mb	52.3
