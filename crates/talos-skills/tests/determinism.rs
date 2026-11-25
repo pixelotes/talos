@@ -57,6 +57,7 @@ fn transcript(file: &Path, engines: &mut Vec<(Config, Engine)>) -> String {
         let engine = &engines[index].1;
         if case.starts_conversation {
             engine.end(&conversation);
+            engine.set_user_data(s.user_data()).unwrap();
         }
         let turn = Turn::new(case.text.clone(), conversation.clone(), s.now)
             .with_lang(s.hint)

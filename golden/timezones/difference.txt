@@ -1,0 +1,174 @@
+# timezones.difference (docs/spec/state.md). Each exchange is its own
+# conversation unless the turns follow one another with no blank line.
+#
+# The reply names the second place against the first ("Tokio va 8 horas por
+# delante de Madrid"); in "how far ahead is X of Y" the place asked about is
+# the second. A change of summer time at either place within 30 days that
+# changes the difference is added, with its date (Europe changes on 28 March
+# 2027, Australia on 4 April). A yes/no question gets yes or no.
+#
+# The remembered place is not stored yet (the `preferences` skill), so the
+# exchanges that use it are run with the caller's place instead, the next
+# reference place in state.md's precedence.
+#
+# Given: now defaults to 2027-03-14 18:42 Europe/Madrid (a Sunday).
+
+[es] U: ¿cuántas horas de diferencia hay entre Madrid y Tokio?
+     T: Tokio va 8 horas por delante de Madrid. Desde el 28 de marzo serán 7.
+                                                  → answered · timezones.difference · from=Madrid to=Tokio
+
+[es] U: ¿qué diferencia horaria hay entre España y Argentina?
+     T: Buenos Aires va 4 horas por detrás de Madrid. Desde el 28 de marzo serán 5.
+                                                  → answered · timezones.difference · from=España to=Argentina
+[es] U: ¿y entre Lima y Bogotá?
+     T: Lima y Bogotá tienen la misma hora.       → answered · timezones.difference · from=Lima to=Bogotá
+
+[es] U: cuántas horas va Pekín por delante de Tokio
+     T: Pekín va 1 hora por detrás de Tokio.      → answered · timezones.difference · from=Tokio to=Pekín
+     (the user's premise was wrong, and Talos corrects it without comment)
+
+[es] U: ¿Sevilla y Madrid tienen la misma hora?
+     T: Sí, tienen la misma hora.                 → answered · timezones.difference · from=Sevilla to=Madrid
+
+[es] U: diferencia horaria entre Londres y Dubái
+     T: Dubái va 4 horas por delante de Londres. Desde el 28 de marzo serán 3.
+                                                  → answered · timezones.difference · from=Londres to=Dubái
+
+[es] U: cuanta diferencia horaria hay entre delhi y dubai
+     T: Dubái va 1 hora y media por detrás de Delhi.
+                                                  → answered · timezones.difference · from=Delhi to=Dubái
+
+[en] U: what's the time difference between Madrid and Tokyo?
+     T: Tokyo is 8 hours ahead of Madrid. From 28 March it will be 7.
+                                                  → answered · timezones.difference · from=Madrid to=Tokyo
+
+[en] U: how many hours ahead is Tokyo of London?
+     T: Tokyo is 9 hours ahead of London. From 28 March it will be 8.
+                                                  → answered · timezones.difference · from=London to=Tokyo
+
+[en] U: how far behind is Los Angeles from Madrid
+     T: Los Angeles is 8 hours behind Madrid. From 28 March it will be 9.
+                                                  → answered · timezones.difference · from=Madrid to=Los Angeles
+
+[en] U: time difference between London and Delhi
+     T: Delhi is 5 hours 30 minutes ahead of London. From 28 March it will be 4 hours 30 minutes.
+                                                  → answered · timezones.difference · from=London to=Delhi
+
+[en] U: is Delhi ahead of Dubai?
+     T: Yes, by 1 hour 30 minutes.                → answered · timezones.difference · from=Dubai to=Delhi
+
+[en] U: are Lima and Bogota on the same time?
+     T: Yes, they have the same time.             → answered · timezones.difference · from=Lima to=Bogotá
+
+[en] U: Mexico City vs Chicago, what's the difference
+     T: Chicago is 1 hour ahead of Mexico City.   → answered · timezones.difference · from=Mexico City to=Chicago
+     (no daylight-saving change at either place in the next 30 days: no note)
+
+# One place named, with a reference place: the caller's (see above).
+Given: place = Sevilla
+[es] U: ¿qué diferencia horaria hay con Nueva York?
+     T: Nueva York va 5 horas por detrás de Sevilla. Desde el 28 de marzo serán 6.
+                                                  → answered · timezones.difference · from=Sevilla to=Nueva York
+
+[es] U: diferencia con Tokio
+     T: Tokio va 8 horas por delante de Sevilla. Desde el 28 de marzo serán 7.
+                                                  → answered · timezones.difference · from=Sevilla to=Tokio
+[es] U: ¿y con Nueva York?
+     T: Nueva York va 5 horas por detrás de Sevilla. Desde el 28 de marzo serán 6.
+                                                  → answered · timezones.difference · from=Sevilla to=Nueva York
+
+[en] U: time difference with Sydney?
+     T: Sydney is 10 hours ahead of Seville. From 28 March it will be 9; from 4 April, 8.
+                                                  → answered · timezones.difference · from=Seville to=Sydney
+     (when there is a second change within the same 30 days, both are given)
+
+Given: place = Bristol
+[en] U: how far ahead is Madrid?
+     T: Madrid is 1 hour ahead of Bristol.        → answered · timezones.difference · from=Bristol to=Madrid
+[en] U: and with Tokyo?
+     T: Tokyo is 9 hours ahead of Bristol. From 28 March it will be 8.
+                                                  → answered · timezones.difference · from=Bristol to=Tokyo
+     (the spec's bare "and Tokyo?" is left to the classifier: a rule for
+      "and <anything>" that declines would keep "and you?" from it)
+
+Given: place = none
+
+# A missing place is asked back.
+[es] U: ¿cuántas horas de diferencia hay con?
+     T: ¿Con qué lugar?                           → asks · timezones.difference · to
+[es] U: Bogotá
+     T: ¿Respecto a qué lugar?                    → asks · timezones.difference · from
+[es] U: Madrid
+     T: Bogotá va 6 horas por detrás de Madrid. Desde el 28 de marzo serán 7.
+                                                  → answered · timezones.difference · from=Madrid to=Bogotá
+
+[es] U: ¿cuántas horas de diferencia hay con Bogotá?
+     T: ¿Respecto a qué lugar?                    → asks · timezones.difference · from
+[es] U: Madrid
+     T: Bogotá va 6 horas por detrás de Madrid. Desde el 28 de marzo serán 7.
+                                                  → answered · timezones.difference · from=Madrid to=Bogotá
+
+[en] U: what's the time difference with Tokyo?
+     T: Compared to which place?                  → asks · timezones.difference · from
+[en] U: london
+     T: Tokyo is 9 hours ahead of London. From 28 March it will be 8.
+                                                  → answered · timezones.difference · from=London to=Tokyo
+
+# Edge cases.
+[es] U: diferencia horaria entre Madrid y Madrid
+     T: Es el mismo lugar: no hay diferencia.     → answered · timezones.difference · from=Madrid to=Madrid
+
+[es] U: ¿cuál es la diferencia horaria entre Córdoba y Madrid?
+     T: ¿Córdoba de España o de Argentina?        → asks · timezones.difference · from
+[es] U: de España
+     T: Córdoba (España) y Madrid tienen la misma hora.
+                                                  → answered · timezones.difference · from=Córdoba (ES) to=Madrid
+
+[es] U: diferencia horaria entre Narnia y Madrid
+     T: No conozco Narnia.                        → unhandled · timezones.difference · from=Narnia to=Madrid
+
+[es] U: diferencia horaria entre Estados Unidos y España
+     T: ¿Qué ciudad de Estados Unidos? Hay varios husos horarios.
+                                                  → asks · timezones.difference · from
+
+[es] U: diferencia entre Berlín y París
+     T: Berlín y París tienen la misma hora.      → answered · timezones.difference · from=Berlín to=París
+
+[en] U: time difference with here
+     T: Compared to which place? I don't know where you are.
+                                                  → asks · timezones.difference · to
+
+[en] U: what's the time difference between New York and New York?
+     T: It's the same place, so there's no difference.
+                                                  → answered · timezones.difference · from=New York to=New York
+
+[en] U: how many hours ahead is London of Tokyo?
+     T: London is 9 hours behind Tokyo. From 28 March it will be 8.
+                                                  → answered · timezones.difference · from=Tokyo to=London
+     (premise wrong; Talos states the true direction)
+
+[en] U: what's the time difference between the US and Spain?
+     T: Which city in the United States? It has several time zones.
+                                                  → asks · timezones.difference · from
+
+[en] U: time difference UTC+2 and Madrid
+     T: Madrid is 1 hour behind UTC+2. From 28 March they have the same time.
+                                                  → answered · timezones.difference · from=UTC+2 to=Madrid
+
+[en] U: what's the time difference between Madrid and Tokyo and Sydney
+     T: Which two places do you mean?             → asks · timezones.difference · to
+[en] U: Madrid and Tokyo
+     T: Tokyo is 8 hours ahead of Madrid. From 28 March it will be 7.
+                                                  → answered · timezones.difference · from=Madrid to=Tokyo
+
+[en] U: is London behind Madrid?
+     T: Yes, by 1 hour.                           → answered · timezones.difference · from=Madrid to=London
+
+[es] U: ¿va Tokio por detrás de Madrid?
+     T: No: Tokio va 8 horas por delante de Madrid.
+                                                  → answered · timezones.difference · from=Madrid to=Tokio
+
+# Summer time on both sides: in July Madrid is UTC+2 and Sydney UTC+10.
+Given: now = 2027-07-01 12:00 Europe/Madrid
+[es] U: diferencia horaria entre Madrid y Sídney
+     T: Sídney va 8 horas por delante de Madrid.  → answered · timezones.difference · from=Madrid to=Sídney

@@ -2,7 +2,7 @@
 
 use talos_core::extract;
 use talos_core::normalise::fold;
-use talos_core::{Call, Context, Expectation, Lang, Message, SkillResult, Value};
+use talos_core::{Call, Context, Expectation, Lang, Message, SkillResult, Units, Value};
 
 use super::numbers::{ReadError, canonical_number, echo_number, read_digits};
 use super::rat::{Rat, show_places};
@@ -167,7 +167,52 @@ fn request(call: &Call<'_>) -> Result<Request, SkillResult> {
     }
 }
 
+/// The usual counterpart of a unit in the other system, by id, as an alias
+/// [`resolve`] reads (docs/spec/basics.md, calc.convert): for metric users,
+/// what an imperial unit converts to; for imperial users, the reverse. A
+/// unit already in the user's system, or in neither, has none.
+fn counterpart(from: &Unit, units: Units) -> Option<&'static str> {
+    let to = match (units, from.id) {
+        (Units::Metric, "in") => "cm",
+        (Units::Metric, "ft" | "yd") => "m",
+        (Units::Metric, "mi") => "km",
+        (Units::Metric, "oz") => "g",
+        (Units::Metric, "lb") => "kg",
+        (Units::Metric, "floz") => "ml",
+        (Units::Metric, "gal") => "l",
+        (Units::Metric, "mph") => "km/h",
+        (Units::Metric, "°F") => "c",
+        (Units::Imperial, "mm" | "cm") => "in",
+        (Units::Imperial, "m") => "ft",
+        (Units::Imperial, "km") => "mi",
+        (Units::Imperial, "mg" | "g") => "oz",
+        (Units::Imperial, "kg" | "t") => "lb",
+        (Units::Imperial, "ml" | "cl") => "floz",
+        (Units::Imperial, "l") => "gal",
+        (Units::Imperial, "km/h" | "m/s") => "mph",
+        (Units::Imperial, "°C" | "K") => "f",
+        _ => return None,
+    };
+    Some(to)
+}
+
 pub(super) fn handle(cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
+    // No target named: the remembered units choose one (docs/spec/state.md).
+    let mut slots;
+    let mut call = *call;
+    if !call.slots.contains_key("to")
+        && let Some(units) = cx.preferences().units()
+        && let Some(Resolved::Unit(from)) = call.slots.get("from").and_then(Value::as_text).map(resolve)
+        && let Some(to) = counterpart(from, units)
+    {
+        slots = call.slots.clone();
+        slots.insert("to".to_owned(), Value::Text(to.to_owned()));
+        call = Call {
+            slots: &slots,
+            ..call
+        };
+    }
+    let call = &call;
     let request = match request(call) {
         Ok(request) => request,
         Err(reply) => return reply,

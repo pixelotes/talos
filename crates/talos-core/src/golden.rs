@@ -13,9 +13,11 @@
 //!
 //! Turns with no blank line between them are one conversation; a blank line
 //! starts a new one. `Given:` settings last until changed, except `draw`,
-//! which applies to the next turn only. The reply and the outcome line are
-//! compared byte for byte, and the `[es]`/`[en]` tag with the turn's
-//! language.
+//! which applies to the next turn only. What is stored about the user
+//! (`Given: stored …`, `Given: phrase …`) is set afresh at the start of
+//! every conversation; within one, the turns change it. The reply and the
+//! outcome line are compared byte for byte, and the `[es]`/`[en]` tag with
+//! the turn's language.
 
 use std::fmt::Write as _;
 use std::fs;
@@ -24,7 +26,8 @@ use std::path::{Path, PathBuf};
 
 use crate::civil::Date;
 use crate::random::Draw;
-use crate::{Config, ConvId, Engine, Error, Lang, Place, Timestamp, Turn};
+use crate::user::{Correction, UserData};
+use crate::{Config, ConvId, Engine, Error, Lang, Place, Preferences, Timestamp, Turn, Units};
 
 /// The column where a same-line outcome arrow starts.
 const ARROW_COLUMN: usize = 50;
@@ -46,6 +49,14 @@ pub struct Settings {
     /// `slots = all` adds internal slots to the outcome line; `slots =
     /// public` (the default) leaves them out.
     pub all_slots: bool,
+    /// `stored name = Raúl, place = Sevilla, units = metric`, or `stored =
+    /// none` (the default): the preferences at the start of each
+    /// conversation.
+    pub stored: Preferences,
+    /// `phrase = tira -> random.dice count=2`, or `phrase = none` (the
+    /// default): the user-correction table at the start of each
+    /// conversation, one entry per line.
+    pub phrases: Vec<Correction>,
 }
 
 impl Default for Settings {
@@ -57,6 +68,8 @@ impl Default for Settings {
             hint: None,
             place: None,
             all_slots: false,
+            stored: Preferences::NONE,
+            phrases: Vec::new(),
         }
     }
 }
@@ -337,6 +350,10 @@ fn apply_given(
     settings: &mut Settings,
     draws: &mut Option<Vec<Draw>>,
 ) -> Result<(), String> {
+    if let Some(list) = given.trim().strip_prefix("stored") {
+        settings.stored = parse_stored(list)?;
+        return Ok(());
+    }
     let Some((key, value)) = given.split_once('=') else {
         return Err(format!("`Given:{given}`: expected `key = value`"));
     };
@@ -362,6 +379,8 @@ fn apply_given(
         }
         "hint" => settings.hint = lang(value)?,
         "place" => settings.place = (value != "none").then(|| Place(value.to_owned())),
+        "phrase" if value == "none" => settings.phrases.clear(),
+        "phrase" => settings.phrases.push(parse_phrase(value)?),
         "draw" => *draws = Some(Draw::parse_list(value)?),
         "slots" => {
             settings.all_slots = match value {
@@ -372,11 +391,53 @@ fn apply_given(
         }
         _ => {
             return Err(format!(
-                "unknown `Given: {key}` (known: now, seed, default language, hint, place, draw, slots)"
+                "unknown `Given: {key}` (known: now, seed, default language, hint, place, draw, slots, stored, phrase)"
             ));
         }
     }
     Ok(())
+}
+
+/// `name = Raúl, place = Sevilla, units = metric`, or `= none`.
+fn parse_stored(list: &str) -> Result<Preferences, String> {
+    let list = list.trim();
+    if list.trim_start_matches('=').trim() == "none" {
+        return Ok(Preferences::NONE);
+    }
+    let mut stored = Preferences::NONE;
+    for item in list.split(',') {
+        let Some((key, value)) = item.split_once('=') else {
+            return Err(format!("`stored {list}`: expected `key = value, …`"));
+        };
+        let value = value.trim();
+        stored = match key.trim() {
+            "name" => stored.with_name(value),
+            "place" => stored.with_place(value),
+            "units" => stored
+                .with_units(Units::parse(value).ok_or_else(|| format!("unknown units `{value}`"))?),
+            other => return Err(format!("`stored {other}`: expected name, place or units")),
+        };
+    }
+    Ok(stored)
+}
+
+/// `tira -> random.dice count=2`: a taught phrase, its intent and slots.
+fn parse_phrase(value: &str) -> Result<Correction, String> {
+    let Some((phrase, meaning)) = value.split_once("->") else {
+        return Err(format!(
+            "`phrase = {value}`: expected `phrase -> intent slot=value …`"
+        ));
+    };
+    let mut words = meaning.split_whitespace();
+    let intent = words.next().ok_or("a phrase needs an intent")?;
+    let mut slots = std::collections::BTreeMap::new();
+    for word in words {
+        let (k, v) = word
+            .split_once('=')
+            .ok_or_else(|| format!("`{word}`: expected `slot=value`"))?;
+        slots.insert(k.to_owned(), v.to_owned());
+    }
+    Ok(Correction::new(phrase, intent, slots))
 }
 
 /// A case that did not come out as expected.
@@ -451,6 +512,22 @@ fn format_reply(reply: &str, outcome: &str) -> Vec<String> {
     lines
 }
 
+impl Settings {
+    /// What is stored about the user at the start of a conversation: set
+    /// it with [`Engine::set_user_data`] whenever a case starts one.
+    #[must_use]
+    pub fn user_data(&self) -> UserData {
+        let mut stored = UserData {
+            preferences: self.stored.clone(),
+            corrections: Vec::new(),
+        };
+        for phrase in &self.phrases {
+            stored.correct(phrase.clone());
+        }
+        stored
+    }
+}
+
 /// Runs one parsed golden file. With `bless`, returns the file's text with
 /// every T block regenerated instead of failures.
 fn run_golden(
@@ -480,6 +557,9 @@ fn run_golden(
         let engine = &engines[index].1;
         if case.starts_conversation {
             engine.end(&conversation);
+            engine
+                .set_user_data(s.user_data())
+                .map_err(|e| e.to_string())?;
         }
         let mut turn = Turn::new(case.text.clone(), conversation.clone(), s.now)
             .with_lang(s.hint)

@@ -3,6 +3,7 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
+use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use crate::classifier::{Classifiers, ModelFiles};
 use crate::dialog::{self, CommandLine};
@@ -14,10 +15,13 @@ use crate::normalise::{Normalised, normalise};
 use crate::random::{Draw, Random, ScriptReport, turn_seed};
 use crate::reflector::Reflector;
 use crate::render;
-use crate::rules::{Candidate, Rules};
+use crate::rules::{Candidate, Rules, Source};
 use crate::safety::{self, DEFAULT_EMERGENCY, Emergency};
-use crate::skill::{Call, Context, Expects, Message, Registration, Skill, SkillResult};
+use crate::skill::{
+    Call, Context, Expects, Message, PreferenceChange, Registration, Skill, SkillResult,
+};
 use crate::state::{ConversationState, Conversations, Open, lock_state};
+use crate::user::{MemoryStore, UserData, UserStore};
 use crate::value::{SlotType, Slots, Value};
 use crate::{
     ConvId, Error, IntentId, Lang, Outcome, Reason, Status, Trace, TraceStep, Turn, fallback,
@@ -76,7 +80,16 @@ pub struct Engine {
     conversations: Conversations,
     /// Stage 4 and language step 3; none until [`Engine::with_models`].
     classifiers: Classifiers,
+    /// What is kept about the user (preferences, corrections), as last
+    /// loaded or saved.
+    user: Mutex<UserData>,
+    /// Where it is kept; in memory until [`Engine::with_user_store`].
+    store: Box<dyn UserStore>,
 }
+
+/// Intents a taught phrase may never stand for: a short phrase must not be
+/// able to delete anything (docs/spec/knowledge.md, teach.phrase).
+const NEVER_CORRECTED: &[&str] = &["preferences.forget", "teach.forget", "teach.phrase"];
 
 /// How many turns after the one that asked an open question stays open,
 /// and for how long by the turns' clock (docs/spec/conversation.md 3.7).
@@ -151,6 +164,8 @@ struct Handled {
     open: Option<Open>,
     /// The slot asked for, when the turn asked back.
     asks: Option<String>,
+    /// Preference changes the handler asked for, applied after the turn.
+    changes: Vec<PreferenceChange>,
 }
 
 impl Handled {
@@ -197,6 +212,7 @@ impl Handled {
             internal: Slots::new(),
             open: None,
             asks: None,
+            changes: Vec::new(),
         }
     }
 }
@@ -293,7 +309,51 @@ impl Engine {
             commands,
             reflector: Reflector::new()?,
             classifiers: Classifiers::none(),
+            user: Mutex::default(),
+            store: Box::new(MemoryStore::default()),
         })
+    }
+
+    /// Keeps the user's data in `store` (a file, for the front ends), and
+    /// loads what it holds now. Until this is called the engine keeps it in
+    /// memory only, so tests touch no disk.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Store`] when the store holds data it cannot read; the
+    /// engine is then unchanged.
+    pub fn use_user_store(&mut self, store: Box<dyn UserStore>) -> Result<(), Error> {
+        let data = store.load()?;
+        self.user = Mutex::new(data);
+        self.store = store;
+        Ok(())
+    }
+
+    fn user(&self) -> MutexGuard<'_, UserData> {
+        self.user.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// What is kept about the user now.
+    #[must_use]
+    pub fn user_data(&self) -> UserData {
+        self.user().clone()
+    }
+
+    /// Replaces what is kept about the user, and saves it unless it is the
+    /// same (golden files' `Given: stored …`; the corrections the `teach`
+    /// skill will make).
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Store`] when it cannot be saved; the data in memory is
+    /// replaced anyway.
+    pub fn set_user_data(&self, data: UserData) -> Result<(), Error> {
+        let mut user = self.user();
+        if *user == data {
+            return Ok(());
+        }
+        *user = data;
+        self.store.save(&user)
     }
 
     /// Attaches the classifier models (ADR 0008, ADR 0015). A model that is
@@ -424,11 +484,14 @@ impl Engine {
             alarm
         };
 
+        // What the user asked to be remembered, as of this turn's start.
+        let preferences = self.user().preferences.clone();
         let mut cx = Context::new(
             turn.now,
             turn.place.as_ref(),
             random,
             &state,
+            &preferences,
             &self.manifests,
         );
         let at = At {
@@ -511,6 +574,10 @@ impl Engine {
             Handled::reflected(reply.text, reply.status, reply.reason)
         };
         trace.note("random", || format!("{} draws", random.draws()));
+        let mut handled = handled;
+        if !handled.changes.is_empty() {
+            self.remember(&std::mem::take(&mut handled.changes), &mut trace);
+        }
 
         state.set_last_intent(handled.intent.clone());
         state.remember_reply(&handled.reply, handled.status);
@@ -537,9 +604,59 @@ impl Engine {
         (outcome, random.into_report())
     }
 
-    /// Stage 3: the rules of the turn's language, then the other's; failing
-    /// both, the same after dropping a courtesy ("hola, …").
+    /// Applies the preference changes of a turn and saves them, unless
+    /// they change nothing: then nothing is written (DESIGN.md section 7).
+    fn remember(&self, changes: &[PreferenceChange], trace: &mut Tracer) {
+        let mut user = self.user();
+        let mut data = user.clone();
+        for change in changes {
+            data.preferences.apply(change);
+        }
+        if *user == data {
+            trace.note("preferences", || "no change; nothing written".to_owned());
+            return;
+        }
+        let saved = self.store.save(&data);
+        *user = data;
+        trace.note("preferences", || match saved {
+            Ok(()) => format!("{changes:?}; saved"),
+            Err(e) => format!("{changes:?}; kept for this run only: {e}"),
+        });
+    }
+
+    /// The user-correction table (ADR 0008): a message that is a taught
+    /// phrase is that phrase's request, ahead of every pattern.
+    fn corrected(&self, lang: Lang, message: &Normalised) -> Option<Candidate> {
+        let user = self.user();
+        let correction = user.correction(&message.original)?;
+        if NEVER_CORRECTED.contains(&correction.intent.as_str()) {
+            return None;
+        }
+        let (_, intent) = self.intent(&correction.intent)?;
+        Some(Candidate {
+            intent: intent.id.clone(),
+            priority: intent.priority,
+            lang,
+            pattern: format!("taught phrase {:?}", correction.phrase),
+            fixed: correction.slots.clone(),
+            captures: Vec::new(),
+            source: Source::Correction,
+        })
+    }
+
+    /// Stage 3: the user-correction table; then the rules of the turn's
+    /// language, then the other's; failing both, the same after dropping a
+    /// courtesy ("hola, …").
     fn recognise(&self, lang: Lang, message: &Normalised, trace: &mut Tracer) -> Vec<Candidate> {
+        if let Some(candidate) = self.corrected(lang, message) {
+            trace.note("rules", || {
+                format!(
+                    "{} → {}, by the user-correction table",
+                    candidate.pattern, candidate.intent
+                )
+            });
+            return vec![candidate];
+        }
         let text = &message.folded;
         let candidates = self.rules.candidates_any(lang, text, 0);
         if !candidates.is_empty() {
@@ -580,6 +697,14 @@ impl Engine {
         let verdict = self.classifiers.recognise(lang, &message.folded);
         trace.note("classifier", || verdict.describe());
         *confidence = verdict.confidence();
+        let confirm = verdict.to_confirm();
+        if !confirm.is_empty() {
+            trace.note("classifier", || {
+                "offered to its skill only to ask for a confirmation".to_owned()
+            });
+            *confidence = verdict.top_probability();
+            return confirm;
+        }
         verdict.candidates()
     }
 
@@ -595,8 +720,11 @@ impl Engine {
         handled
     }
 
-    /// Typed slots for a candidate: fixed values from its pattern, then each
-    /// capture through its slot type's extractor.
+    /// Typed slots for a candidate: fixed values from its pattern (or from
+    /// the user-correction table, read by the slot's extractor when the
+    /// slot is not a term), then each capture through its slot type's
+    /// extractor; for a classifier's guess, which has no captures, the
+    /// slots its manifest says where to look for (`extract::guess`).
     fn extract(
         intent: &Intent,
         candidate: &Candidate,
@@ -607,8 +735,35 @@ impl Engine {
         let mut slots: Slots = candidate
             .fixed
             .iter()
-            .map(|(name, value)| (name.clone(), Value::Text(value.clone())))
+            .map(|(name, value)| {
+                let value = match intent.slot(name) {
+                    Some(decl) if decl.kind != SlotType::Term => {
+                        // Taught in either language ("tres", "three").
+                        let n = normalise(value);
+                        let read = |l| extract::slot(decl, &n.original, &n.folded, l, cx.now());
+                        match read(lang) {
+                            Value::Invalid { .. } => match read(lang.other()) {
+                                Value::Invalid { .. } => read(lang),
+                                other => other,
+                            },
+                            value => value,
+                        }
+                    }
+                    _ => Value::Text(value.clone()),
+                };
+                (name.clone(), value)
+            })
             .collect();
+        if candidate.source == Source::Classifier {
+            for decl in &intent.slots {
+                if decl.internal || decl.guess.is_empty() || slots.contains_key(&decl.name) {
+                    continue;
+                }
+                if let Some(value) = extract::guess(decl, message, lang, cx.now()) {
+                    slots.insert(decl.name.clone(), value);
+                }
+            }
+        }
         for (name, range) in &candidate.captures {
             let Some(decl) = intent.slot(name) else {
                 continue;
@@ -618,7 +773,15 @@ impl Engine {
             if original.trim().is_empty() {
                 continue;
             }
-            let value = extract::slot(decl, original, folded, lang, cx.now());
+            let mut value = extract::slot(decl, original, folded, lang, cx.now());
+            // A rule of the other language captured words of its own
+            // language ("twenty" in an English rule of a Spanish turn).
+            if matches!(value, Value::Invalid { .. }) && candidate.lang != lang {
+                let other = extract::slot(decl, original, folded, candidate.lang, cx.now());
+                if !matches!(other, Value::Invalid { .. }) {
+                    value = other;
+                }
+            }
             slots.insert(name.clone(), value);
         }
         slots
@@ -827,6 +990,7 @@ impl Engine {
         });
         let mut slots = open.slots.clone();
         slots.insert(open.expectation.slot.clone(), value);
+        cx.set_guessed(open.guessed);
         let handled = match self.intent(&open.intent) {
             Some((index, decl)) => self.call(cx, at, index, decl, slots, trace, Some(&open)),
             None => None,
@@ -879,6 +1043,7 @@ impl Engine {
             internal,
             asks: Some(open.expectation.slot.clone()),
             open: Some(Open { asked: 2, ..open }),
+            changes: Vec::new(),
         }
     }
 
@@ -928,6 +1093,7 @@ impl Engine {
             pattern: line.name.clone(),
             fixed: BTreeMap::new(),
             captures,
+            source: Source::Command,
         };
         self.dispatch(cx, at, &candidate, trace, None)
             .unwrap_or_else(|| Handled::fallback(lang, Reason::CANNOT, Some(intent.id.clone())))
@@ -956,6 +1122,7 @@ impl Engine {
                 describe_slots(&slots)
             }
         });
+        cx.set_guessed(candidate.source == Source::Classifier);
         self.call(cx, at, index, intent, slots, trace, previous)
     }
 
@@ -996,6 +1163,8 @@ impl Engine {
         };
         let result = handler.handle(cx, &call);
         let reported = cx.take_reported();
+        let changes = cx.take_changes();
+        let guessed = cx.guessed();
         trace.note("dispatch", || {
             format!("{intent_id} → {}", describe_result(&result))
         });
@@ -1007,6 +1176,19 @@ impl Engine {
                 Reason::FAILED,
                 Some(intent_id.clone()),
             ))
+        };
+        // A guess changes nothing without the user's yes (DESIGN.md
+        // section 11): the handler must have asked, and been answered.
+        if guessed && !changes.is_empty() && !slots.values().any(|v| *v == Value::Confirm(true)) {
+            return failed(
+                trace,
+                format!("{intent_id} changed something on a guess without a confirmation"),
+            );
+        }
+        let changes = if matches!(result, SkillResult::Answer(_)) {
+            changes
+        } else {
+            Vec::new()
         };
         let mut question = None;
         let (message, status, reason) = match result {
@@ -1087,6 +1269,7 @@ impl Engine {
                     turn: again.map_or(number, |p| p.turn),
                     at: again.map_or(turn.now.unix_seconds, |p| p.at),
                     asked,
+                    guessed,
                 };
                 (reply, Some(open), Some(asks))
             }
@@ -1100,6 +1283,7 @@ impl Engine {
             internal,
             open,
             asks,
+            changes,
         })
     }
 
@@ -1218,6 +1402,7 @@ fn describe_state(conversation: &ConvId, state: &ConversationState) -> String {
 mod tests {
     use super::*;
     use crate::skill::{Choice, Expectation, SkillError};
+    use crate::user::{UserData, UserStore};
     use crate::{Number, Timestamp};
 
     /// A skill whose behaviour per intent is fixed by the test.
@@ -1281,6 +1466,17 @@ mod tests {
                     SkillResult::Answer(Message::new("count").var("n", face.to_string()))
                 }
                 "t.undeclared" => SkillResult::Answer(Message::new("undeclared")),
+                "t.remember" => {
+                    let name = cx.preferences().name().map(str::to_owned);
+                    cx.remember(PreferenceChange::Name(Some("Ana".to_owned())));
+                    SkillResult::Answer(
+                        Message::new("echo").var("x", name.unwrap_or_else(|| "nadie".to_owned())),
+                    )
+                }
+                "t.remember_unable" => {
+                    cx.remember(PreferenceChange::Name(Some("Eva".to_owned())));
+                    SkillResult::Unable(Message::new("echo").var("x", "no"))
+                }
                 "t.bad_report" => {
                     cx.report("mode", Value::Text("x".to_owned()));
                     SkillResult::Answer(Message::new("echo").var("x", "y"))
@@ -1376,6 +1572,18 @@ priority = 50
 examples = { es = ["x"], en = ["x"] }
 slot = [{ name = "mode", type = "term", internal = true }]
 pattern = [{ lang = "es", regex = '^informa$' }]
+
+[[intent]]
+id = "t.remember"
+priority = 50
+examples = { es = ["x"], en = ["x"] }
+pattern = [{ lang = "es", regex = '^recuerda$' }]
+
+[[intent]]
+id = "t.remember_unable"
+priority = 50
+examples = { es = ["x"], en = ["x"] }
+pattern = [{ lang = "es", regex = '^no recuerdes$' }]
 
 [[intent]]
 id = "t.roll"
@@ -1697,6 +1905,93 @@ en = ["How many?"]
         let again = engine();
         let second: Vec<String> = (0..5).map(|_| roll(&again)).collect();
         assert_eq!(first, second);
+    }
+
+    /// A store that counts its writes.
+    #[derive(Debug, Default)]
+    struct Counting {
+        saves: std::sync::atomic::AtomicUsize,
+    }
+
+    impl UserStore for std::sync::Arc<Counting> {
+        fn load(&self) -> Result<UserData, Error> {
+            Ok(UserData::default())
+        }
+
+        fn save(&self, _: &UserData) -> Result<(), Error> {
+            self.saves.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn preferences_change_only_on_an_answer_and_are_written_only_when_changed() {
+        let mut e = engine();
+        let store = std::sync::Arc::new(Counting::default());
+        e.use_user_store(Box::new(std::sync::Arc::clone(&store)))
+            .unwrap();
+        let saves = || store.saves.load(std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(e.respond(turn("responde", None)).reply, "Eco uno.");
+        assert_eq!(saves(), 0, "an ordinary turn writes nothing");
+        assert_eq!(e.respond(turn("no recuerdes", None)).reply, "Eco no.");
+        assert_eq!(e.user_data().preferences.name(), None, "not on Unable");
+        assert_eq!(saves(), 0);
+        assert_eq!(e.respond(turn("recuerda", None)).reply, "Eco nadie.");
+        assert_eq!(e.user_data().preferences.name(), Some("Ana"));
+        assert_eq!(saves(), 1);
+        // The next turn sees it; the same value again is no write.
+        assert_eq!(e.respond(turn("recuerda", None)).reply, "Eco Ana.");
+        assert_eq!(saves(), 1);
+        // Every conversation of the installation shares it.
+        let other = Turn::new("recuerda", ConvId::new("d"), Timestamp::from_unix(0));
+        assert_eq!(e.respond(other).reply, "Eco Ana.");
+    }
+
+    #[test]
+    fn a_taught_phrase_is_its_request_ahead_of_the_rules() {
+        let e = engine();
+        let mut data = UserData::default();
+        data.correct(crate::user::Correction::new(
+            "¡Zas!",
+            "t.ask",
+            BTreeMap::from([("x".to_owned(), "tres".to_owned())]),
+        ));
+        // Ahead of the patterns: "responde" is t.answer's own word.
+        data.correct(crate::user::Correction::new(
+            "responde",
+            "t.unable",
+            BTreeMap::new(),
+        ));
+        // An intent no skill has is ignored.
+        data.correct(crate::user::Correction::new(
+            "nada de nada",
+            "t.nothing",
+            BTreeMap::new(),
+        ));
+        e.set_user_data(data).unwrap();
+        let o = e.respond(turn("zas", Some(Lang::En)).with_trace());
+        assert_eq!(o.line(None), "answered · t.ask · x=3");
+        assert_eq!(o.reply, "Echo 3.");
+        let steps = o.trace.unwrap().steps;
+        assert!(
+            steps
+                .iter()
+                .any(|s| s.note.contains("user-correction table")),
+            "{steps:?}"
+        );
+        assert_eq!(
+            intent(&e.respond(turn("Responde.", None))),
+            Some("t.unable")
+        );
+        // Only the whole message.
+        assert_eq!(
+            e.respond(turn("zas zas", None)).line(None),
+            "unhandled · catch-all"
+        );
+        assert_ne!(
+            intent(&e.respond(turn("nada de nada", None))),
+            Some("t.nothing")
+        );
     }
 
     #[test]

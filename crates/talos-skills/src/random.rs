@@ -89,9 +89,60 @@ fn capitalise(text: &str) -> String {
     })
 }
 
+/// A die in notation, as the rest of a `/dado` line gives it: `2d6`,
+/// `d20`, `3d8+2`, `2d6-1`, or a bare number of sides (`20`). The slots it
+/// stands for, as the sentence form's rules would capture them; `None` when
+/// it is none of these.
+fn notation(text: &str) -> Option<Vec<(&'static str, i64)>> {
+    let compact: String = text
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect();
+    let number = |s: &str| -> Option<i64> {
+        (!s.is_empty() && s.len() <= 9 && s.bytes().all(|b| b.is_ascii_digit()))
+            .then(|| s.parse().ok())
+            .flatten()
+    };
+    if let Some(sides) = number(&compact) {
+        return Some(vec![("sides", sides)]);
+    }
+    let (count, rest) = compact.split_once('d')?;
+    let mut slots = Vec::new();
+    if !count.is_empty() {
+        slots.push(("count", number(count)?));
+    }
+    let (sides, modifier) = match rest.find(['+', '-']) {
+        Some(at) => (&rest[..at], Some((&rest[at..=at], &rest[at + 1..]))),
+        None => (rest, None),
+    };
+    slots.push(("sides", number(sides)?));
+    match modifier {
+        Some(("+", k)) => slots.push(("modifier", number(k)?)),
+        Some((_, k)) => slots.push(("minus", number(k)?)),
+        None => {}
+    }
+    Some(slots)
+}
+
 impl Random {
     fn dice(cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
         let unable = |id| SkillResult::Unable(Message::new(id));
+        // A command line: its notation stands for the sentence's slots.
+        if let Some(line) = call.slots.get("notation").and_then(Value::as_text) {
+            let Some(read) = notation(line) else {
+                return unable("dice_usage");
+            };
+            let mut slots = call.slots.clone();
+            slots.remove("notation");
+            for (name, n) in read {
+                slots.insert(name.to_owned(), Value::Number(Number::from_int(n)));
+            }
+            return Self::dice(cx, &Call {
+                slots: &slots,
+                ..*call
+            });
+        }
         match call.slots.get("kind").and_then(Value::as_text) {
             Some("mixed") => return unable("dice_mixed"),
             Some("unsupported") => return unable("dice_unsupported"),

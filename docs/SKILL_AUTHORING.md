@@ -147,7 +147,13 @@ give is simply absent from `call.slots`. The extractors are in
 
 A place has no gazetteer yet: the `place` extractor keeps a name as typed
 and resolves only references ("aquí", "home") and time zones; checking that
-a name is a real place is the skill's job.
+a name is a real place is the skill's job. "home"/"mi ciudad" is the place
+in `cx.preferences().place()`.
+
+**Guesses.** A slot may declare `guess = { before = […], after = […], words
+= { value = […] } }`: where to find it, next to cue words, in a message the
+classifier recognised (SKILLS.md §1). Without it, a guess carries no value
+for the slot.
 
 **Internal slots** (`internal = true`) tell the handler which phrasing was
 used (smalltalk's `register`, `daypart`). They are in `call.slots` but not in
@@ -178,10 +184,12 @@ intent a shortcut ([ADR 0016](adr/0016-command-shortcuts.md)): `/weekday
 rest of the line read by the `date` slot's extractor. Names are `/` and
 lower-case ASCII, one per language (they may be equal, as `/calc` is); both
 work in either conversation language. Leave `slot` out when the intent takes
-no argument (`/dado`). Give a command only where it helps: an intent with
+no argument (`/refran`). Give a command only where it helps: an intent with
 several independent slots gets none unless one free-text slot its handler
-already reads covers them. `talos skills check` rejects a name declared
-twice and a slot the intent does not declare.
+already reads covers them; that slot may be `internal`, and the handler
+reports the sentence form's slots from it (`/dado 2d6` → `count=2
+sides=6`). `talos skills check` rejects a name declared twice and a slot the
+intent does not declare.
 
 ## 3. The handler
 
@@ -198,7 +206,13 @@ pub trait Skill: Send + Sync {
   check` fails if one is missing from the manifest or if a manifest reply is
   not listed (unreachable); the engine turns a message with an unlisted id
   into an honest failure.
-- `handle` is called with an intent of yours that a rule recognised.
+- `handle` is called with an intent of yours that a rule, a command, a
+  taught phrase or the classifier recognised (`cx.guessed()` tells the
+  last apart). A guess has no captures: declare `guess` cues on the slots it
+  should find (§2.2), and decline when what you need is missing rather than
+  guess further. An intent that changes something (`classifier::
+  SIDE_EFFECTS`) is offered on a guess only so that you can ask a yes/no
+  that restates the change.
 
 ### 3.1 What a handler receives
 
@@ -219,7 +233,9 @@ pub trait Skill: Send + Sync {
 | `place() -> Option<&Place>` | the caller's place, uninterpreted until Slice C |
 | `random() -> &mut Random` | the turn's random source; see §3.4 |
 | `conversation() -> &ConversationState` | `turn()` (1-based), `lang()`, `last_intent()` (the recent topic) |
-| `preferences() -> &Preferences` | empty until v0.3; there so that its arrival changes no signature |
+| `preferences() -> &Preferences` | what the user asked to be remembered: `name()`, `place()` (as typed, a leading capital added), `units()` (`Units::Metric`/`Imperial`), each an `Option` |
+| `guessed() -> bool` | the classifier, not a rule, recognised the request; it has only the slots its manifest's `guess` cues found |
+| `remember(PreferenceChange)` | asks the engine to store (`Some`) or forget (`None`) a preference; applied only if you answer (`Answer`), and dropped, with the turn failed, if made on a guess without a `confirm` slot answered yes |
 | `skills() -> &[Manifest]` | the installed manifests in catalogue order (for `help`) |
 | `report(name, Value)` | puts a slot on the outcome: a default you applied or a value you resolved. It must be a declared, non-internal slot of the intent, or the turn fails |
 
@@ -250,7 +266,8 @@ basics.md. Pre-rendered prose in a variable is the escape hatch for lists
 - Read the system clock, the environment, files, the network, or any global
   or static mutable state. Everything comes through `Call` and `Context`.
 - Keep state between turns. (Conversation state belongs to the engine; ask
-  the integrator if you need some.)
+  the integrator if you need some. Preferences are changed only through
+  `cx.remember`.)
 - Draw randomness other than through `cx.random()`.
 - Panic, `unwrap`, or loop unboundedly on user input; cap sizes (dice, list
   lengths) and answer `Unable` beyond them.

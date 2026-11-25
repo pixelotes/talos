@@ -71,6 +71,38 @@ pub struct SlotDecl {
     pub internal: bool,
     /// For a `choice` slot, the options, in order; empty otherwise.
     pub options: Vec<ChoiceOption>,
+    /// How to find the slot in a message the classifier recognised, which
+    /// has no captures (docs/SKILLS.md section 3); empty: it is not looked
+    /// for.
+    pub guess: Guess,
+}
+
+/// Where a slot's value sits in a message with no rule captures: next to
+/// cue words the manifest names. Every cue is in the match form, both
+/// languages together. A value found in two places that disagree is not
+/// taken; nor is one its extractor cannot read. Conservative by design: a
+/// wrong value is worse than a question.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Guess {
+    /// The value is the one to three words just before one of these
+    /// ("tres" in "lanza tres dados", before `dados`).
+    pub before: Vec<String>,
+    /// The value is everything after one of these to the end of the
+    /// message, closing courtesies dropped ("pizza o sushi" in "escoge
+    /// entre pizza o sushi", after `entre`).
+    pub after: Vec<String>,
+    /// The slot takes the value whose words occur in the message, when the
+    /// words of exactly one value do (`name` for "nombre", "llamo"); the
+    /// value is read by the slot's extractor.
+    pub words: BTreeMap<String, Vec<String>>,
+}
+
+impl Guess {
+    /// Whether the slot is looked for at all.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.before.is_empty() && self.after.is_empty() && self.words.is_empty()
+    }
 }
 
 /// One option of a `choice` slot.
@@ -231,6 +263,19 @@ struct RawSlot {
     internal: bool,
     #[serde(default)]
     options: Vec<RawOption>,
+    #[serde(default)]
+    guess: Option<RawGuess>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawGuess {
+    #[serde(default)]
+    before: Vec<String>,
+    #[serde(default)]
+    after: Vec<String>,
+    #[serde(default)]
+    words: BTreeMap<String, Vec<String>>,
 }
 
 #[derive(Deserialize)]
@@ -375,6 +420,12 @@ fn slots(skill: &str, intent: &str, raw: Vec<RawSlot>) -> Result<Vec<SlotDecl>, 
                 names,
             });
         }
+        let guess = match slot.guess {
+            None => Guess::default(),
+            Some(raw) => {
+                guess(raw, slot.internal).map_err(|m| at(format!("slot `{}`: {m}", slot.name)))?
+            }
+        };
         out.push(SlotDecl {
             name: slot.name,
             kind,
@@ -382,13 +433,41 @@ fn slots(skill: &str, intent: &str, raw: Vec<RawSlot>) -> Result<Vec<SlotDecl>, 
             repeated: slot.repeated,
             internal: slot.internal,
             options,
+            guess,
         });
     }
     Ok(out)
 }
 
+/// A slot's `guess` table, its cues in the match form.
+fn guess(raw: RawGuess, internal: bool) -> Result<Guess, String> {
+    if internal {
+        return Err("an internal slot is never guessed".to_owned());
+    }
+    let fold = |words: Vec<String>| -> Vec<String> {
+        words
+            .iter()
+            .map(|w| crate::normalise::normalise(w).folded)
+            .filter(|w| !w.is_empty())
+            .collect()
+    };
+    let guess = Guess {
+        before: fold(raw.before),
+        after: fold(raw.after),
+        words: raw
+            .words
+            .into_iter()
+            .map(|(value, words)| (value, fold(words)))
+            .collect(),
+    };
+    if guess.is_empty() || guess.words.values().any(Vec::is_empty) {
+        return Err("`guess` names no cue words".to_owned());
+    }
+    Ok(guess)
+}
+
 /// Validates an intent's command: well-formed names, and a slot the intent
-/// declares as public.
+/// declares (an internal one holds free text its handler reads).
 fn command(
     skill: &str,
     intent: &str,
@@ -404,9 +483,10 @@ fn command(
         }
     }
     if let Some(slot) = &raw.slot {
+        // An internal slot takes the line as free text the handler reads
+        // and reports as the sentence form's slots (ADR 0016).
         match declared.iter().find(|s| &s.name == slot) {
-            Some(s) if !s.internal => {}
-            Some(_) => return Err(at(format!("command slot `{slot}` is internal"))),
+            Some(_) => {}
             None => {
                 return Err(at(format!(
                     "command slot `{slot}` is not a slot the intent declares"
@@ -668,9 +748,34 @@ en = ["Pong."]
             error(&with("es = \"/eco\"\n  en = \"/echo\"\n  slot = \"nope\""))
                 .contains("not a slot")
         );
-        assert!(
-            error(&with("es = \"/eco\"\n  en = \"/echo\"\n  slot = \"kind\"")).contains("internal")
+        // An internal slot takes the line as free text for the handler.
+        let m = Manifest::parse(
+            "test",
+            &with("es = \"/eco\"\n  en = \"/echo\"\n  slot = \"kind\""),
+        )
+        .unwrap();
+        assert_eq!(
+            m.intents[0].command.as_ref().unwrap().slot.as_deref(),
+            Some("kind")
         );
+        // Guesses: cues in the match form, never on an internal slot.
+        let guessed = GOOD.replace(
+            "  name = \"items\"",
+            "  name = \"items\"\n  guess = { after = [\"Entre\"], words = { a = [\"Á\"] } }",
+        );
+        let m = Manifest::parse("test", &guessed).unwrap();
+        let guess = &m.intents[0].slot("items").unwrap().guess;
+        assert_eq!(guess.after, ["entre"]);
+        assert_eq!(guess.words["a"], ["a"]);
+        assert!(
+            error(&guessed.replace("words = { a = [\"Á\"] }", "words = { a = [] }"))
+                .contains("no cue words")
+        );
+        let internal = GOOD.replace(
+            "  name = \"kind\"",
+            "  name = \"kind\"\n  guess = { before = [\"x\"] }",
+        );
+        assert!(error(&internal).contains("never guessed"));
         assert!(error(&with("es = \"/Eco\"\n  en = \"/echo\"")).contains("lower-case"));
         assert!(error(&with("es = \"eco\"\n  en = \"/echo\"")).contains("must be `/`"));
         assert!(error(&with("es = \"/eco\"")).contains("en"));

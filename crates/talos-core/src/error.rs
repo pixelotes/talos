@@ -24,6 +24,8 @@ pub enum Error {
         /// What is wrong.
         message: String,
     },
+    /// The user's data could not be read or kept (`user` module).
+    Store(String),
 }
 
 impl Error {
@@ -42,6 +44,7 @@ impl fmt::Display for Error {
             Error::Registry(message) => write!(f, "skill registry: {message}"),
             Error::Render(message) => write!(f, "render: {message}"),
             Error::Script { script, message } => write!(f, "script `{script}`: {message}"),
+            Error::Store(message) => write!(f, "user data: {message}"),
         }
     }
 }

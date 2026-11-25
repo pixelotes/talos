@@ -1,0 +1,139 @@
+# preferences.forget (docs/spec/state.md). Written by hand from the spec.
+# A named key is forgotten at once; everything, only after a yes.
+
+Given: stored name = Raúl, place = Sevilla, units = metric
+[es] U: olvida mi nombre
+     T: Hecho, ya no recuerdo tu nombre.          → answered · preferences.forget · key=name
+
+[es] U: borra mi ciudad
+     T: Hecho, ya no recuerdo dónde vives.        → answered · preferences.forget · key=place
+
+[es] U: ya no quiero que recuerdes mis unidades
+     T: Hecho, ya no recuerdo tus unidades.       → answered · preferences.forget · key=units
+
+[es] U: olvida todo lo que sabes de mí
+     T: ¿Seguro? Borraré tu nombre, tu lugar y tus unidades.
+                                                  → asks · preferences.forget · confirm
+[es] U: sí
+     T: Hecho. Ya no recuerdo nada sobre ti.      → answered · preferences.forget · confirm=yes key=all
+[es] U: ¿qué sabes de mí?
+     T: Todavía no sé nada de ti.                 → answered · preferences.get · key=all
+
+# A "no" answers the question; the intent is kept (conversation.md 3.3).
+[es] U: olvídame
+     T: ¿Seguro? Borraré tu nombre, tu lugar y tus unidades.
+                                                  → asks · preferences.forget · confirm
+[es] U: no
+     T: Vale, no borro nada.                      → answered · preferences.forget · confirm=no key=all
+[es] U: ¿cómo me llamo?
+     T: Te llamas Raúl.                           → answered · preferences.get · key=name
+
+# A statement of change that names no new place.
+[es] U: ya no vivo en Sevilla
+     T: Hecho, ya no recuerdo dónde vives.        → answered · preferences.forget · key=place
+
+[es] U: borra mi nombre porfa
+     T: Hecho, ya no recuerdo tu nombre.          → answered · preferences.forget · key=name
+
+Given: hint = en
+[en] U: forget my name
+     T: Done, I no longer remember your name.     → answered · preferences.forget · key=name
+
+[en] U: delete my location
+     T: Done, I no longer remember where you live.
+                                                  → answered · preferences.forget · key=place
+
+[en] U: stop remembering my units
+     T: Done, I no longer remember your units.    → answered · preferences.forget · key=units
+
+[en] U: forget everything about me
+     T: Are you sure? I'll delete your name, location and units.
+                                                  → asks · preferences.forget · confirm
+[en] U: yes
+     T: Done. I no longer remember anything about you.
+                                                  → answered · preferences.forget · confirm=yes key=all
+
+[en] U: clear my preferences
+     T: Are you sure? I'll delete your name, location and units.
+                                                  → asks · preferences.forget · confirm
+[en] U: nope
+     T: Okay, nothing deleted.                    → answered · preferences.forget · confirm=no key=all
+
+[en] U: I don't live in Bristol any more
+     T: Done, I no longer remember where you live.
+                                                  → answered · preferences.forget · key=place
+
+[en] U: please forget my name
+     T: Done, I no longer remember your name.     → answered · preferences.forget · key=name
+
+# A bare request is asked back.
+Given: hint = none
+[es] U: olvida
+     T: ¿Qué olvido: tu nombre, tu lugar o tus unidades?
+                                                  → asks · preferences.forget · key
+[es] U: el lugar
+     T: Hecho, ya no recuerdo dónde vives.        → answered · preferences.forget · key=place
+
+Given: hint = en
+[en] U: forget
+     T: What should I forget: your name, your location or your units?
+                                                  → asks · preferences.forget · key
+[en] U: the first one
+     T: Done, I no longer remember your name.     → answered · preferences.forget · key=name
+
+# Nothing stored: said so, and nothing to confirm.
+Given: hint = none
+Given: stored = none
+[es] U: olvida mi nombre
+     T: No tenía guardado tu nombre.              → answered · preferences.forget · key=name
+
+Given: hint = en
+[en] U: forget everything about me
+     T: I don't have anything stored about you.   → answered · preferences.forget · key=all
+
+# "venga" is yes while a yes/no is open.
+Given: hint = none
+Given: stored name = Raúl
+[es] U: olvida todo lo que sabes de mí
+     T: ¿Seguro? Borraré tu nombre.               → asks · preferences.forget · confirm
+[es] U: venga
+     T: Hecho. Ya no recuerdo nada sobre ti.      → answered · preferences.forget · confirm=yes key=all
+
+# An unrelated message releases the question: nothing is deleted.
+[es] U: olvida todo lo que sabes de mí
+     T: ¿Seguro? Borraré tu nombre.               → asks · preferences.forget · confirm
+[es] U: cuánto es 2 más 2
+     T: 2 + 2 = 4.                                → answered · calc.arithmetic · expression=2+2
+[es] U: sí
+     T: No tengo ninguna pregunta pendiente.      → unhandled · nothing-pending
+[es] U: ¿cómo me llamo?
+     T: Te llamas Raúl.                           → answered · preferences.get · key=name
+
+Given: hint = en
+[en] U: forget everything about me
+     T: Are you sure? I'll delete your name.      → asks · preferences.forget · confirm
+[en] U: never mind
+     T: Okay, dropped.                            → answered · cancelled
+
+# Nothing open and no object: a bare cancellation, not a deletion.
+Given: hint = none
+[es] U: olvídalo
+     T: Vale.                                     → answered · acknowledgement
+
+Given: hint = en
+[en] U: forget our conversation
+     T: I can't forget the conversation.          → unhandled · preferences.forget · key=conversation
+
+Given: hint = none
+[es] U: olvida mi color favorito
+     T: Solo guardo tu nombre, tu lugar y tus unidades.
+                                                  → unhandled · preferences.forget · key=other
+
+# How a forgotten place changes other answers is for the skills that use
+# it (`timezones`, docs/spec/state.md); here, what is left is what is
+# answered.
+Given: stored name = Raúl, place = Sevilla
+[es] U: olvida mi ciudad
+     T: Hecho, ya no recuerdo dónde vives.        → answered · preferences.forget · key=place
+[es] U: ¿qué sabes de mí?
+     T: Solo sé que te llamas Raúl.               → answered · preferences.get · key=all

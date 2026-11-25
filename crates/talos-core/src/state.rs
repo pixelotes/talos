@@ -52,6 +52,9 @@ pub(crate) struct Open {
     /// How many times the question has been put: 1, or 2 after a failed
     /// answer. It is never put a third time.
     pub(crate) asked: u8,
+    /// Whether the request was the classifier's guess: its answer is
+    /// handled as a guess too (the handler still owes a confirmation).
+    pub(crate) guessed: bool,
 }
 
 /// What Talos said lately in a conversation: enough for the reflector to

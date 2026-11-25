@@ -530,6 +530,38 @@ fn slot_text<'a>(call: &'a Call<'_>, name: &str) -> Option<&'a str> {
     call.slots.get(name).and_then(Value::as_text)
 }
 
+/// Whether an unreadable date phrase names a place instead ("qué día es en
+/// Tokio", "what's the date in Sydney"): that is `timezones.time_in`, so the
+/// rule declines it.
+fn names_a_place(text: &str) -> bool {
+    let folded = normalise(text).folded;
+    let words: Vec<&str> = folded.split_whitespace().collect();
+    let words = match words.as_slice() {
+        ["hoy" | "today", rest @ ..] => rest,
+        all => all,
+    };
+    match words {
+        ["en" | "in", next, ..] => {
+            !folded.chars().any(|c| c.is_ascii_digit())
+                && !matches!(
+                    *next,
+                    "un" | "una"
+                        | "unos"
+                        | "unas"
+                        | "a"
+                        | "an"
+                        | "formato"
+                        | "format"
+                        | "iso"
+                        | "medio"
+                        | "media"
+                        | "half"
+                )
+        }
+        _ => false,
+    }
+}
+
 fn dated(date: Date) -> Value {
     Value::Date {
         date,
@@ -602,6 +634,7 @@ impl Clock {
                     cx.report("day", dated(found.date));
                     found.date
                 }
+                Err(Bad::Unreadable) if names_a_place(text) => return SkillResult::Decline,
                 Err(bad) => return bad.result(lang, "day", "bad_date"),
             },
         };
@@ -636,6 +669,7 @@ impl Clock {
                     cx.report("date", dated(found.date));
                     found.date
                 }
+                Err(Bad::Unreadable) if names_a_place(text) => return SkillResult::Decline,
                 Err(bad) => return bad.result(lang, "date", "bad_date"),
             },
         };

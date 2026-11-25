@@ -1,0 +1,726 @@
+# preferences: what Talos remembers about the user across turns and
+# restarts — name, place and units, nothing else (docs/spec/state.md).
+#
+# Patterns match the match form of the message (lower case, accents
+# removed), so they are written without accents. They are anchored: the
+# obvious phrasings only. Within an intent, the first pattern in the file
+# that matches wins, so the specific ones come first and the catch-alls for
+# a key Talos does not keep ("mi color favorito") last.
+#
+# Slots:
+# - `key`: which preference — `name`, `place`, `units`; `all` (everything),
+#   `other` (one Talos does not keep), `conversation` ("forget our
+#   conversation"). Fixed by most patterns; a captured phrase ("mi ciudad")
+#   is mapped by the handler.
+# - `value`: what to store, in the user's spelling; the handler reports the
+#   value it stored (a name with its capitals, `metric`/`imperial`).
+# - `confirm`: the answer to "¿Seguro?" (forgetting everything) and to the
+#   confirmation a classifier's guess always needs before a change.
+# - `form` (internal): which wording of the reply the phrasing calls for.
+#
+# `preferences.set` and `preferences.forget` change something: the
+# classifier never dispatches them alone (talos_core::classifier::
+# SIDE_EFFECTS). A guess is offered to the handler only to ask; the
+# `guess` cues below say where its key and value are in the message.
+#
+# Words the handler reads from here are the `word_*` replies (never answered
+# as messages).
+
+[skill]
+id = "preferences"
+summary.es = "recordar tu nombre, dónde vives y tus unidades"
+summary.en = "remember your name, where you live and your units"
+names.es = ["preferencias", "memoria", "mis datos"]
+names.en = ["preferences", "memory", "my details"]
+help.es = ["me llamo Ana", "vivo en Sevilla", "prefiero unidades métricas", "¿qué sabes de mí?", "olvida mi nombre"]
+help.en = ["my name is Sam", "I live in Bristol", "I prefer metric", "what do you know about me?", "forget my name"]
+capabilities = []
+
+# ---------------------------------------------------------------- set
+
+[[intent]]
+id = "preferences.set"
+priority = 70
+courtesy = false
+
+  [intent.examples]
+  es = ["me llamo Raúl", "mi nombre es Ana", "llámame Rulo", "soy Marta", "puedes llamarme Pepe",
+    "vivo en Sevilla", "estoy en Valencia", "mi ciudad es Bilbao", "recuerda que vivo en Madrid",
+    "ahora vivo en Barcelona", "me he mudado a Granada", "prefiero unidades métricas",
+    "uso el sistema métrico", "prefiero millas", "prefiero grados fahrenheit", "usa el sistema imperial",
+    "recuerda mi nombre", "apunta dónde vivo", "configura mis unidades", "recuerda mi ciudad",
+    "hola, me llamo Lucía", "oye, llámame Juanjo", "mi nombre es ana maría", "apunta que vivo en Cádiz",
+    "guarda que vivo en Zaragoza", "yo uso millas y fahrenheit", "quiero que me llames Nacho",
+    "me puedes llamar Toni", "resido en Málaga", "ahora estoy en Lisboa", "me mudé a Valencia",
+    "cambia a unidades imperiales", "prefiero el sistema métrico", "uso kilómetros y grados celsius",
+    "anota que me llamo Elena", "recuerda que me llamo Pablo", "guarda mi nombre", "apunta mi nombre",
+    "cambia mis unidades", "pon unidades métricas", "mi nombre es Sofía, recuérdalo",
+    "a partir de ahora llámame Jefe", "dime Lola a partir de ahora", "que sepas que vivo en Oviedo",
+    "te cuento que me llamo Iván", "vivo en Valladolid, apúntalo", "recuerda que mi ciudad es Toledo",
+    "quiero usar el sistema imperial", "mejor usa unidades métricas", "pásate al sistema métrico"]
+  en = ["my name is Sam", "call me Sammy", "I'm Alex", "you can call me Jo", "my name's Chris",
+    "I live in Bristol", "I'm in New York", "my city is Leeds", "remember that I live in Leeds",
+    "I moved to Edinburgh", "set my location to Bristol", "I prefer metric", "use imperial units please",
+    "I use miles", "I prefer Fahrenheit", "remember my name", "set my units", "remember where I live",
+    "hi, my name is Kate", "please call me Bob", "I now live in Dublin", "I've moved to Cardiff",
+    "I'm living in Boston", "switch to metric", "I prefer imperial units", "I use kilometres and Celsius",
+    "remember that my name is Tom", "note my name", "save where I live", "change my units",
+    "from now on call me Boss", "just call me Ed", "I'm based in Glasgow", "my home town is York",
+    "remember my city", "use the metric system", "I'd rather use metric", "metric units for me please",
+    "I want imperial units", "my name is Jane, remember it", "I just moved to Paris",
+    "my location is Oxford", "set my city to Bath", "remember I live in Manchester",
+    "save my name", "store my name please", "I live in Cork now", "you should call me Max",
+    "I go by Liz", "people call me Bill"]
+
+  [[intent.slot]]
+  name = "key"
+  type = "term"
+  required = true
+  guess = { words = { name = ["nombre", "llamo", "llamame", "llamarme", "llames", "llamar", "name", "call me", "go by"], place = ["vivo", "resido", "ciudad", "ubicacion", "mude", "mudado", "live", "living", "city", "location", "moved", "based in", "home town", "hometown"], units = ["unidades", "sistema metrico", "sistema imperial", "units", "metric", "imperial"] } }
+
+  [[intent.slot]]
+  name = "value"
+  type = "term"
+  required = true
+  guess = { after = ["me llamo", "llamame", "llamarme", "me llames", "me puedes llamar", "mi nombre es", "call me", "my name is", "go by", "vivo en", "resido en", "mudado a", "mude a", "mi ciudad es", "live in", "living in", "moved to", "based in", "my city is", "location to", "city to"] }
+
+  [[intent.slot]]
+  name = "confirm"
+  type = "confirm"
+
+  [[intent.slot]]
+  name = "form"
+  type = "term"
+  internal = true
+
+  # Names.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:pues|oye|bueno),?\s+)?(?:(?:recuerda|apunta|anota|guarda)\s+que\s+)?(?:me\s+llamo|mi\s+nombre\s+es)(?:\s+(?<value>[^\s].*?))?[\s.!]*$'
+  slots = { key = "name" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:pues|oye|bueno),?\s+)?(?:llamame|puedes\s+llamarme|me\s+puedes\s+llamar|quiero\s+que\s+me\s+llames)(?:\s+(?<value>[^\s].*?))?[\s.!]*$'
+  slots = { key = "name", form = "call" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*soy\s+(?<value>[^\s,.!?]+(?:\s+[^\s,.!?]+){0,2})[\s.!]*$'
+  slots = { key = "name", form = "soy" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:recuerda|apunta|anota|guarda|memoriza)\s+(?:mi\s+nombre|como\s+me\s+llamo)[\s.!]*$'
+  slots = { key = "name" }
+
+  # Places.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:recuerda|apunta|anota|guarda)\s+que\s+)?(?:ahora\s+|yo\s+)?(?:vivo|resido)\s+en\s+(?<value>[^\s].*?)[\s.!]*$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:recuerda|apunta|anota|guarda)\s+que\s+)?(?:ahora\s+|yo\s+)?estoy\s+en\s+(?<value>[^\s].*?)[\s.!]*$'
+  slots = { key = "place", form = "are" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:recuerda|apunta|anota|guarda)\s+que\s+)?mi\s+ciudad\s+es\s+(?<value>[^\s].*?)[\s.!]*$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:me\s+he\s+mudado|me\s+mude)\s+a\s+(?<value>[^\s].*?)[\s.!]*$'
+  slots = { key = "place", form = "are" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:recuerda|apunta|anota|guarda)\s+(?:donde\s+vivo|mi\s+lugar|mi\s+ubicacion)[\s.!]*$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:recuerda|apunta|anota|guarda)\s+mi\s+ciudad[\s.!]*$'
+  slots = { key = "place", form = "city" }
+
+  # Units.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:yo\s+)?(?:prefiero|uso|utilizo|quiero\s+usar|quiero)\s+(?<value>.*\b(?:metric\w*|imperial\w*|millas?|kilometros?|fahrenheit|celsius|centigrados?|libras?|kilos?|pies|pulgadas?|onzas?|galon\w*|litros?)\b.*?)[\s.!]*$'
+  slots = { key = "units" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:mejor\s+)?(?:usa|cambia\s+a|pasa\s+a|pasate\s+al?|pon)\s+(?<value>(?:el\s+|las\s+)?(?:sistema\s+|unidades\s+)?(?:metric\w*|imperial\w*))(?:\s+(?:por\s+favor|porfa))?[\s.!]*$'
+  slots = { key = "units" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:configura|cambia|pon|ajusta|elige|apunta|guarda)\s+(?:mis|las)\s+unidades[\s.!]*$'
+  slots = { key = "units" }
+
+  # A key Talos does not keep.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:recuerda|apunta|anota|guarda|memoriza)\s+que\s+mi\s+(?<key>.+?)\s+(?:es|son)\s+.+$'
+
+  # English.
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:(?:well|so|oh),?\s+)?(?:remember\s+(?:that\s+)?)?(?:my\s+name\s+is|my\s+name\x27s)(?:\s+(?<value>[^\s].*?))?[\s.!]*$'
+  slots = { key = "name" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+|just\s+)?(?:call\s+me|you\s+can\s+call\s+me)(?:\s+(?<value>[^\s].*?))?[\s.!]*$'
+  slots = { key = "name", form = "call" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:remember\s+(?:that\s+)?)?(?:i\s+live|i\s+now\s+live|i\x27m\s+living|i\s+am\s+living|now\s+i\s+live)\s+in\s+(?<value>[^\s].*?)[\s.!]*$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:remember\s+(?:that\s+)?)?(?:i\x27m|im|i\s+am)\s+(?:now\s+)?in\s+(?<value>[^\s].*?)[\s.!]*$'
+  slots = { key = "place", form = "are" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:i\s+moved|i\x27ve\s+moved|i\s+have\s+moved|i\s+just\s+moved)\s+to\s+(?<value>[^\s].*?)[\s.!]*$'
+  slots = { key = "place", form = "are" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:remember\s+(?:that\s+)?)?my\s+(?:city|town|home\s+town|hometown)\s+is\s+(?<value>[^\s].*?)[\s.!]*$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?set\s+my\s+(?:location|city|place)\s+to\s+(?<value>[^\s].*?)(?:\s+please)?[\s.!]*$'
+  slots = { key = "place", form = "are" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:i\x27m|im|i\s+am)\s+(?<value>[^\s,.!?]+(?:\s+[^\s,.!?]+){0,2})[\s.!]*$'
+  slots = { key = "name", form = "soy" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:remember|save|note|store)\s+(?:my\s+name|what\s+my\s+name\s+is)(?:\s+please)?[\s.!]*$'
+  slots = { key = "name" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:remember|save|note|store)\s+(?:where\s+i\s+live|my\s+location|my\s+place)(?:\s+please)?[\s.!]*$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:remember|save|note|store)\s+my\s+city(?:\s+please)?[\s.!]*$'
+  slots = { key = "place", form = "city" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:i\s+)?(?:prefer|use|want)\s+(?<value>.*\b(?:metric|imperial|miles?|kilometers?|kilometres?|fahrenheit|celsius|pounds?|kilos?|kilograms?|feet|inches?|ounces?|gallons?|liters?|litres?)\b.*?)[\s.!]*$'
+  slots = { key = "units" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:switch|change)\s+to\s+(?<value>(?:the\s+)?(?:metric|imperial)(?:\s+(?:units|system))?)(?:\s+please)?[\s.!]*$'
+  slots = { key = "units" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:set|change|choose)\s+my\s+units(?:\s+please)?[\s.!]*$'
+  slots = { key = "units" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*remember\s+(?:that\s+)?my\s+(?<key>.+?)\s+(?:is|are)\s+.+$'
+
+# ---------------------------------------------------------------- get
+
+[[intent]]
+id = "preferences.get"
+priority = 72
+courtesy = false
+
+  [intent.examples]
+  es = ["cómo me llamo", "¿cómo me llamo?", "qué sabes de mí", "dónde vivo", "qué unidades uso",
+    "oye, ¿te acuerdas de cómo me llamo?", "a ver, ¿dónde estoy según tú?", "¿sabes mi nombre?",
+    "dime todo lo que recuerdas de mí", "cuál es mi nombre", "en qué ciudad vivo", "qué recuerdas de mí",
+    "¿recuerdas mi nombre?", "¿sabes cómo me llamo?", "¿dónde estoy?", "¿cuál es mi ciudad?",
+    "qué unidades prefiero", "qué sabes sobre mí", "¿cómo me llamo yo?", "¿cuál es mi color favorito?",
+    "a ver si sabes cómo me llamo", "te acuerdas de dónde vivo", "qué datos tienes de mí",
+    "qué has guardado de mí", "recuerdas dónde vivo", "qué tienes apuntado sobre mí",
+    "dime mi nombre", "dime dónde vivo", "qué unidades tengo puestas", "sabes dónde vivo",
+    "qué sabes tú de mí", "repíteme mi nombre", "cuál era mi nombre", "dónde te dije que vivía",
+    "qué te he contado de mí", "mi nombre cuál es", "qué ciudad tienes apuntada", "qué guardas de mí",
+    "tienes mi nombre apuntado", "cómo dije que me llamaba"]
+  en = ["what's my name", "what is my name?", "what do you know about me?", "where do I live?",
+    "which units do I use", "do you remember my name?", "what do you remember about me",
+    "where am I, according to you?", "remind me, what's my name again", "who am I?",
+    "do you know my name", "what's my city", "what units do I prefer", "tell me what you know about me",
+    "what have you got on me", "what did I tell you my name was", "do you know where I live",
+    "what's stored about me", "say my name", "tell me my name", "what city do I live in",
+    "where did I say I live", "what units am I using", "what's my favourite colour?",
+    "what do you have saved about me", "do you recall my name", "remember my name? what is it",
+    "what name did I give you", "where am I?", "what have I told you about myself",
+    "what details do you have about me", "do you remember where I live", "what are my units",
+    "which system of units do I use", "tell me everything you remember about me",
+    "what do you know of me", "repeat my name", "what was my name again", "my name, what is it",
+    "what location do you have for me"]
+
+  [[intent.slot]]
+  name = "key"
+  type = "term"
+  guess = { words = { name = ["nombre", "llamo", "llamaba", "name", "who am i"], place = ["vivo", "vivia", "ciudad", "donde estoy", "live", "city", "location", "where am i"], units = ["unidades", "units"], all = ["de mi", "sobre mi", "about me", "on me", "about myself"] } }
+
+  [[intent.slot]]
+  name = "form"
+  type = "term"
+  internal = true
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|a\s+ver|y),?\s+)?(?:¿\s*)?(?:como\s+me\s+llamo(?:\s+yo)?|cual\s+es\s+mi\s+nombre|cual\s+era\s+mi\s+nombre)[\s?.!]*$'
+  slots = { key = "name" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|a\s+ver|y),?\s+)?(?:¿\s*)?(?:te\s+acuerdas\s+de|recuerdas)\s+(?:como\s+me\s+llamo|mi\s+nombre)[\s?.!]*$'
+  slots = { key = "name", form = "yes" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|a\s+ver|y),?\s+)?(?:¿\s*)?(?:sabes|conoces)\s+(?:como\s+me\s+llamo|mi\s+nombre)[\s?.!]*$'
+  slots = { key = "name", form = "know" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|a\s+ver|y),?\s+)?(?:¿\s*)?(?:donde\s+vivo(?:\s+yo)?|cual\s+es\s+mi\s+ciudad|en\s+que\s+ciudad\s+vivo)[\s?.!]*$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|a\s+ver|y),?\s+)?(?:¿\s*)?donde\s+estoy(?:,?\s+segun\s+tu)?[\s?.!]*$'
+  slots = { key = "place", form = "where" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|a\s+ver|y),?\s+)?(?:¿\s*)?que\s+unidades\s+(?:uso|utilizo|prefiero)[\s?.!]*$'
+  slots = { key = "units" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|a\s+ver|y),?\s+)?(?:¿\s*)?(?:que\s+sabes\s+(?:de|sobre)\s+mi|que\s+recuerdas\s+de\s+mi|dime\s+(?:todo\s+)?lo\s+que\s+(?:sabes|recuerdas)\s+(?:de|sobre)\s+mi)[\s?.!]*$'
+  slots = { key = "all" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|a\s+ver|y),?\s+)?(?:¿\s*)?cual\s+es\s+mi\s+(?<key>[^\s?].*?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:so,?\s+)?(?:what\x27s|whats|what\s+is)\s+my\s+name(?:\s+again)?[\s?.!]*$'
+  slots = { key = "name" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*remind\s+me,?\s+(?:what\x27s|whats|what\s+is)\s+my\s+name(?:\s+again)?[\s?.!]*$'
+  slots = { key = "name", form = "bare" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:do\s+you|you)\s+remember\s+my\s+name[\s?.!]*$'
+  slots = { key = "name", form = "yes" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*do\s+you\s+know\s+my\s+name[\s?.!]*$'
+  slots = { key = "name", form = "know" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*who\s+am\s+i[\s?.!]*$'
+  slots = { key = "name", form = "who" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:where\s+do\s+i\s+live|(?:what\x27s|whats|what\s+is)\s+my\s+city)[\s?.!]*$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*where\s+am\s+i(?:,?\s+according\s+to\s+you)?[\s?.!]*$'
+  slots = { key = "place", form = "where" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:which|what)\s+units\s+do\s+i\s+(?:use|prefer)[\s?.!]*$'
+  slots = { key = "units" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:what\s+do\s+you\s+(?:know|remember)\s+about\s+me|tell\s+me\s+(?:everything\s+)?(?:what\s+)?you\s+(?:know|remember)\s+about\s+me)[\s?.!]*$'
+  slots = { key = "all" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:what\x27s|whats|what\s+is)\s+my\s+(?<key>[^\s?].*?)[\s?.!]*$'
+
+# ---------------------------------------------------------------- forget
+
+[[intent]]
+id = "preferences.forget"
+priority = 74
+courtesy = false
+
+  [intent.examples]
+  es = ["olvida mi nombre", "borra mi ciudad", "ya no vivo en Sevilla", "olvídate de mí",
+    "borra todo lo que sabes de mí", "olvida todo lo que sabes de mí", "ya no quiero que recuerdes mis unidades",
+    "olvídame", "borra mi nombre porfa", "olvida", "olvida dónde vivo", "olvida mis unidades",
+    "elimina mi nombre", "borra mis datos", "borra mis preferencias", "olvida lo que sabes de mí",
+    "no recuerdes mi nombre", "deja de recordar dónde vivo", "quita mi ciudad", "borra dónde vivo",
+    "por favor, olvida mi nombre", "olvida cómo me llamo", "ya no vivo en Madrid", "elimina mis datos",
+    "olvida mi ubicación", "borra mis unidades", "no quiero que guardes mi nombre", "suprime mi nombre",
+    "olvida todo sobre mí", "borra todo lo que tienes de mí", "quiero que olvides mi nombre",
+    "deja de guardar mis unidades", "ya no vivo allí", "olvida lo que te dije de mi ciudad",
+    "olvida mi color favorito", "borra mi información", "elimina todo lo que sabes de mí",
+    "olvida mi nombre, por favor", "quita mis unidades", "borra mi ubicación"]
+  en = ["forget my name", "delete my location", "forget everything about me", "clear my preferences",
+    "stop remembering my units", "I don't live in Bristol any more", "please forget my name", "forget",
+    "forget where I live", "forget my units", "delete my name", "erase my name", "forget me",
+    "remove my city", "clear my data", "delete everything you know about me", "forget all about me",
+    "don't remember my name", "stop remembering where I live", "forget my city", "delete my units",
+    "I don't live in Leeds anymore", "wipe my details", "forget what you know about me",
+    "erase everything about me", "remove my name please", "forget my location", "delete my details",
+    "I no longer live in York", "stop storing my name", "unset my units", "clear my location",
+    "forget my favourite colour", "remove everything you have on me", "delete my data please",
+    "you can forget my name", "forget about my units", "drop my location", "clear my name",
+    "reset my preferences"]
+
+  [[intent.slot]]
+  name = "key"
+  type = "term"
+  required = true
+  guess = { words = { name = ["nombre", "llamo", "name"], place = ["vivo", "ciudad", "ubicacion", "live", "city", "location"], units = ["unidades", "units"], all = ["todo", "de mi", "sobre mi", "datos", "preferencias", "everything", "about me", "on me", "data", "details", "preferences"] } }
+
+  [[intent.slot]]
+  name = "confirm"
+  type = "confirm"
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+favor,?\s+)?(?:olvida|olvidate\s+de|borra|elimina|quita|no\s+recuerdes|deja\s+de\s+recordar|ya\s+no\s+quiero\s+que\s+recuerdes)\s+(?<key>mi\s+nombre|como\s+me\s+llamo|mi\s+ciudad|donde\s+vivo|mi\s+lugar|mi\s+ubicacion|mis\s+unidades)(?:,?\s+(?:porfa|por\s+favor))?[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+favor,?\s+)?(?:olvida|borra|elimina)\s+(?:todo\s+lo\s+que\s+(?:sabes|recuerdas)\s+(?:de|sobre)\s+mi|todo\s+sobre\s+mi|lo\s+que\s+sabes\s+de\s+mi|lo\s+que\s+sabes|mis\s+datos|mis\s+preferencias)(?:,?\s+(?:porfa|por\s+favor))?[\s.!]*$'
+  slots = { key = "all" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:olvidate\s+de\s+mi|olvidame)(?:,?\s+(?:porfa|por\s+favor))?[\s.!]*$'
+  slots = { key = "all" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*ya\s+no\s+vivo\s+en\s+.+$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:olvida|borra)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:olvida|borra)\s+(?:la|esta|nuestra)\s+conversacion[\s.!]*$'
+  slots = { key = "conversation" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:olvida|borra|elimina)\s+(?:mi|mis)\s+(?<key>[^\s].*?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:forget|delete|erase|clear|remove|stop\s+remembering|don\x27t\s+remember)\s+(?<key>my\s+name|my\s+location|my\s+city|my\s+place|where\s+i\s+live|my\s+units)(?:\s+please)?[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:forget|delete|erase|clear)\s+(?:everything\s+(?:you\s+know\s+)?about\s+me|all\s+about\s+me|what\s+you\s+know\s+about\s+me|(?:all\s+)?my\s+preferences|my\s+data|my\s+details)(?:\s+please)?[\s.!]*$'
+  slots = { key = "all" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?forget\s+me(?:\s+please)?[\s.!]*$'
+  slots = { key = "all" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*i\s+(?:don\x27t|dont|do\s+not)\s+live\s+in\s+.+?\s+any\s*more[\s.!]*$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*i\s+no\s+longer\s+live\s+in\s+.+$'
+  slots = { key = "place" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*forget[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*forget\s+(?:our|this|the)\s+conversation[\s.!]*$'
+  slots = { key = "conversation" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:forget|delete)\s+my\s+(?<key>[^\s].*?)[\s.!]*$'
+
+# ---------------------------------------------------------------- replies
+
+[reply.set_name]
+es = ["Mucho gusto, {name}. Lo recordaré."]
+en = ["Nice to meet you, {name}. I'll remember that."]
+
+[reply.set_name_call]
+es = ["Hecho, te llamaré {name}."]
+en = ["Okay, I'll call you {name}."]
+
+[reply.set_place_live]
+es = ["Vale, vives en {place}."]
+en = ["Got it, you live in {place}."]
+
+[reply.set_place_are]
+es = ["Vale, estás en {place}."]
+en = ["Got it, you're in {place}."]
+
+[reply.set_units]
+es = ["Anotado: unidades {units}."]
+en = ["Noted: {units} units."]
+
+[reply.set_ask_name]
+es = ["¿Cómo te llamas?"]
+en = ["What's your name?"]
+
+[reply.set_ask_place]
+es = ["¿Dónde vives?"]
+en = ["Where do you live?"]
+
+[reply.set_ask_city]
+es = ["¿En qué ciudad vives?"]
+en = ["Which city do you live in?"]
+
+[reply.set_ask_zones]
+es = ["¿En qué ciudad? Hay varios husos horarios."]
+en = ["Which city? There are several time zones."]
+
+[reply.set_ask_units]
+es = ["¿Métricas o imperiales?"]
+en = ["Metric or imperial?"]
+
+[reply.set_confirm_name]
+es = ["¿Quieres que te llame {name}?"]
+en = ["Do you want me to call you {name}?"]
+
+[reply.set_confirm_place]
+es = ["¿Guardo que vives en {place}?"]
+en = ["Shall I remember that you live in {place}?"]
+
+[reply.set_confirm_units]
+es = ["¿Guardo que usas unidades {units}?"]
+en = ["Shall I remember that you use {units} units?"]
+
+[reply.set_kept]
+es = ["Vale, no guardo nada."]
+en = ["Okay, nothing stored."]
+
+[reply.set_other]
+es = ["Solo recuerdo tu nombre, tu lugar y tus unidades."]
+en = ["I only remember your name, your place and your units."]
+
+[reply.set_unknown_place]
+es = ["No conozco ese lugar, así que no lo he guardado."]
+en = ["I don't know that place, so I haven't stored it."]
+
+[reply.get_name]
+es = ["Te llamas {name}."]
+en = ["Your name is {name}."]
+
+[reply.get_name_yes]
+es = ["Sí, {name}."]
+en = ["Yes, it's {name}."]
+
+[reply.get_name_know]
+es = ["Sí: {name}."]
+en = ["Yes: {name}."]
+
+[reply.get_name_bare]
+es = ["{name}."]
+en = ["{name}."]
+
+[reply.get_place]
+es = ["Vives en {place}."]
+en = ["You live in {place}."]
+
+[reply.get_place_where]
+es = ["En {place}."]
+en = ["In {place}."]
+
+[reply.get_units]
+es = ["Unidades {units}."]
+en = ["{units} units."]
+
+[reply.get_all_n]
+es = ["Solo sé que te llamas {name}."]
+en = ["Only that your name is {name}."]
+
+[reply.get_all_p]
+es = ["Solo sé que vives en {place}."]
+en = ["Only that you live in {place}."]
+
+[reply.get_all_u]
+es = ["Solo sé que usas unidades {units}."]
+en = ["Only that you use {units} units."]
+
+[reply.get_all_np]
+es = ["Te llamas {name} y vives en {place}."]
+en = ["Your name is {name} and you live in {place}."]
+
+[reply.get_all_nu]
+es = ["Te llamas {name} y usas unidades {units}."]
+en = ["Your name is {name} and you use {units} units."]
+
+[reply.get_all_pu]
+es = ["Vives en {place} y usas unidades {units}."]
+en = ["You live in {place} and you use {units} units."]
+
+[reply.get_all_npu]
+es = ["Te llamas {name}, vives en {place} y usas unidades {units}."]
+en = ["Your name is {name}, you live in {place} and you use {units} units."]
+
+[reply.get_none_name]
+es = ["No sé cómo te llamas."]
+en = ["I don't know your name."]
+
+[reply.get_none_who]
+es = ["No sé quién eres."]
+en = ["I don't know who you are."]
+
+[reply.get_none_place]
+es = ["No sé dónde vives."]
+en = ["I don't know where you live."]
+
+[reply.get_none_units]
+es = ["No sé qué unidades usas."]
+en = ["I don't know which units you use."]
+
+[reply.get_none_all]
+es = ["Todavía no sé nada de ti."]
+en = ["I don't know anything about you yet."]
+
+[reply.get_other]
+es = ["No recuerdo eso: solo guardo tu nombre, tu lugar y tus unidades."]
+en = ["I don't remember that: I only keep your name, your place and your units."]
+
+[reply.forget_name]
+es = ["Hecho, ya no recuerdo tu nombre."]
+en = ["Done, I no longer remember your name."]
+
+[reply.forget_place]
+es = ["Hecho, ya no recuerdo dónde vives."]
+en = ["Done, I no longer remember where you live."]
+
+[reply.forget_units]
+es = ["Hecho, ya no recuerdo tus unidades."]
+en = ["Done, I no longer remember your units."]
+
+[reply.forget_all]
+es = ["Hecho. Ya no recuerdo nada sobre ti."]
+en = ["Done. I no longer remember anything about you."]
+
+[reply.forget_none_name]
+es = ["No tenía guardado tu nombre."]
+en = ["I didn't have your name stored."]
+
+[reply.forget_none_place]
+es = ["No tenía guardado dónde vives."]
+en = ["I didn't have your location stored."]
+
+[reply.forget_none_units]
+es = ["No tenía guardadas tus unidades."]
+en = ["I didn't have your units stored."]
+
+[reply.forget_none_all]
+es = ["No tengo nada guardado sobre ti."]
+en = ["I don't have anything stored about you."]
+
+[reply.forget_confirm_n]
+es = ["¿Seguro? Borraré tu nombre."]
+en = ["Are you sure? I'll delete your name."]
+
+[reply.forget_confirm_p]
+es = ["¿Seguro? Borraré tu lugar."]
+en = ["Are you sure? I'll delete your location."]
+
+[reply.forget_confirm_u]
+es = ["¿Seguro? Borraré tus unidades."]
+en = ["Are you sure? I'll delete your units."]
+
+[reply.forget_confirm_np]
+es = ["¿Seguro? Borraré tu nombre y tu lugar."]
+en = ["Are you sure? I'll delete your name and location."]
+
+[reply.forget_confirm_nu]
+es = ["¿Seguro? Borraré tu nombre y tus unidades."]
+en = ["Are you sure? I'll delete your name and units."]
+
+[reply.forget_confirm_pu]
+es = ["¿Seguro? Borraré tu lugar y tus unidades."]
+en = ["Are you sure? I'll delete your location and units."]
+
+[reply.forget_confirm_npu]
+es = ["¿Seguro? Borraré tu nombre, tu lugar y tus unidades."]
+en = ["Are you sure? I'll delete your name, location and units."]
+
+[reply.forget_confirm_one_name]
+es = ["¿Quieres que olvide tu nombre?"]
+en = ["Do you want me to forget your name?"]
+
+[reply.forget_confirm_one_place]
+es = ["¿Quieres que olvide dónde vives?"]
+en = ["Do you want me to forget where you live?"]
+
+[reply.forget_confirm_one_units]
+es = ["¿Quieres que olvide tus unidades?"]
+en = ["Do you want me to forget your units?"]
+
+[reply.forget_kept]
+es = ["Vale, no borro nada."]
+en = ["Okay, nothing deleted."]
+
+[reply.forget_which]
+es = ["¿Qué olvido: tu nombre, tu lugar o tus unidades?"]
+en = ["What should I forget: your name, your location or your units?"]
+
+[reply.forget_other]
+es = ["Solo guardo tu nombre, tu lugar y tus unidades."]
+en = ["I only keep your name, your place and your units."]
+
+[reply.forget_conversation]
+es = ["No puedo olvidar la conversación."]
+en = ["I can't forget the conversation."]
+
+# Words the handler reads from here (never answered as a message).
+[reply.word_metric]
+es = ["métricas"]
+en = ["metric"]
+
+[reply.word_imperial]
+es = ["imperiales"]
+en = ["imperial"]

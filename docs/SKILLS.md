@@ -90,8 +90,9 @@ Rules that follow from the format:
   declare a shortcut: `command = { es = "/calc", en = "/calc", slot =
   "expression" }`. Each name is `/` and lower-case ASCII (letters, digits,
   `_`); both languages' names always work, and the reply is in the
-  conversation's language. `slot`, if given, is a public slot the intent
-  declares: the rest of the line fills it, read by that slot type's
+  conversation's language. `slot`, if given, is a slot the intent
+  declares (an internal one: free text the handler reads, below): the rest
+  of the line fills it, read by that slot type's
   extractor exactly as a rule capture is. A command without `slot` takes no
   argument, and one given anyway is refused (`unhandled ·
   command-argument`), never silently ignored. A command is the first check
@@ -105,12 +106,24 @@ Rules that follow from the format:
 - **`choice` slots** list their options, each with its id and its names in
   both languages: `options = [{ id = "metric", es = ["métrico"], en =
   ["metric"] }, …]`. The slot holds the chosen id.
+- **`guess`** on a public slot says where its value sits in a message the
+  classifier recognised, which has no captures: `guess = { before =
+  ["dados", "dice"] }` (the one to three words before a cue: "tres" in
+  "lanza tres dados"), `guess = { after = ["entre", "between"] }` (everything
+  after a cue to the end, closing courtesies dropped), `guess = { words = {
+  name = ["nombre", "name"] } }` (the value whose words occur, when only one
+  value's do). Cues are in either language and may be several words. The
+  value is read by the slot's extractor; one that cannot be read, or two
+  readings that differ, give nothing, and the handler asks as after a rule.
+- **A command's slot** may be internal: it then takes the rest of the line
+  as free text that the handler reads and reports as the sentence form's
+  slots (`/dado 2d6` fills `notation`; the outcome is `count=2 sides=6`).
 
 `talos skills check` validates every manifest together with its handler.
 Errors (exit status 1): the manifest does not parse (schema, a missing
 language, a bad template or slot type, a command name that is not `/` and
-lower-case ASCII, a command slot the intent does not declare or declares
-internal); the id differs from the directory; a
+lower-case ASCII, a command slot the intent does not declare, a `guess` on
+an internal slot or with no cue words); the id differs from the directory; a
 manifest without a handler or the reverse; `names` or `help` missing in a
 language; a reply id the handler declares that the manifest lacks, or a
 manifest reply no handler declares; a pattern that does not compile, captures
@@ -151,12 +164,17 @@ pub enum SkillResult {
 clock (`now()`), the caller's place (`place()`), the turn's random source
 (`random()`, one draw per call, seeded so that turns replay), this
 conversation's state (`conversation()`: turn number, language, recent topic),
-the user's preferences (`preferences()`; empty until v0.3), the installed
-manifests (`skills()`, for generated answers such as help) and `report()` to
-put a slot on the outcome (a default the handler applied). A handler reads no
-system clock, environment, file or global state. The knowledge store, and an
-HTTP client when the `network` capability is granted, join the context as they
-are built.
+the user's preferences (`preferences()`: name, place, units; the remembered
+place is the reference place when a message names none, docs/spec/state.md),
+the installed manifests (`skills()`, for generated answers such as help),
+`report()` to put a slot on the outcome (a default the handler applied),
+`guessed()` (whether the classifier, not a rule, recognised the request) and
+`remember()` to ask the engine to store or forget a preference, applied only
+if the handler answers. A handler that changes something asks the user to
+confirm before acting on a guess; the engine drops a change made on a guess
+without a `confirm` slot answered yes. A handler reads no system clock,
+environment, file or global state. The knowledge store, and an HTTP client
+when the `network` capability is granted, join the context as they are built.
 
 `Ask(expectation, message)` asks the user one short question (the message)
 and says what answers it (the expectation, §3). The turn is `Answered`, the
@@ -183,7 +201,7 @@ independently of any skill (`talos_core::extract`):
 | `duration` | "hora y media", "45 min", "1h30", "a fortnight"; a vague quantity is not one | `Duration` (calendar months apart from seconds) |
 | `datetime` | a day, a time of day or both: "mañana por la tarde", "next Friday at 9 pm" | `Date` or `DateTime` |
 | `daterange` | "esta semana", "next month", "el finde" (weeks run Monday to Sunday) | `DateRange` |
-| `place` | a name kept as typed (no gazetteer yet), a zone or offset ("UTC+2", "CET"), or a reference: "aquí"/"here", "mi ciudad"/"home", "allí"/"there"; "somewhere warm" is not one | `Place` |
+| `place` | a name kept as typed (no gazetteer yet), a zone or offset ("UTC+2", "CET"), or a reference: "aquí"/"here", "mi ciudad"/"home" (the place in `cx.preferences()`), "allí"/"there"; "somewhere warm" is not one | `Place` |
 | `language` | "inglés", "in Spanish", "al español"; other languages by code for the skill to refuse | `Language` |
 | `choice` | one of the options the manifest lists, by position ("la segunda", "the last one") or by name | `Choice` (the option's id) |
 | `confirm` | yes or no (conversation.md 3.3) | `Confirm` |
@@ -215,9 +233,9 @@ acknowledgement ("vale", "ok", "olvídalo") is `answered · acknowledgement`.
 
 ## 4. Built-in skills
 
-Planned for the first major version; of these only `smalltalk` is built so far
-(its `smalltalk.greet` intent). Network skills are disabled until enabled in
-configuration.
+Planned for the first major version; built so far: `smalltalk`, `identity`,
+`help`, `clock`, `timezones`, `calc`, `random`, `fortune` and `preferences`.
+Network skills are disabled until enabled in configuration.
 
 | Skill | Does | Network |
 |---|---|---|
@@ -225,7 +243,7 @@ configuration.
 | `identity` | who Talos is, what it runs on | no |
 | `help` | what it can do, generated from manifests | no |
 | `clock` | time, date, weekday, "how long until" | no |
-| `timezones` | the time in another place | no |
+| `timezones` | the time in another place, the time difference between two | no |
 | `calc` | arithmetic, percentages, unit conversion | no |
 | `random` | dice, coin, pick one, random number | no |
 | `fortune` | a saying from a bundled list | no |

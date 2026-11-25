@@ -1,0 +1,205 @@
+# timezones.time_in (docs/spec/state.md). Each exchange is its own
+# conversation unless the turns follow one another with no blank line.
+#
+# Times are written `HH:MM` in both languages, as state.md writes them; a
+# place a day ahead or behind the reference date (the turn's own clock here,
+# nothing stored) gets "(ya es lunes)" / "(already Monday)". Several places
+# with the same time share one sentence. A country stands for its capital
+# and the reply names the city; Spain gives both its zones.
+#
+# Left out, with the reason:
+#   The remembered-place exchanges ("Given: stored place = Sevilla"): no
+#     preferences are stored yet (the `preferences` skill); "mi ciudad" with
+#     nothing stored asks back, as below.
+#   "¿y allí qué hora es?" after Tokio was named: the engine does not yet
+#     keep the last place named in a conversation, so "allí" asks back.
+#
+# Given: now defaults to 2027-03-14 18:42 Europe/Madrid (a Sunday).
+
+[es] U: ¿qué hora es en Tokio?
+     T: En Tokio son las 02:42 (ya es lunes).     → answered · timezones.time_in · place=Tokio
+
+[es] U: q hora es en nueva york
+     T: En Nueva York son las 13:42.              → answered · timezones.time_in · place=Nueva York
+
+[es] U: oye, dime la hora de Londres anda
+     T: En Londres son las 17:42.                 → answered · timezones.time_in · place=Londres
+
+[es] U: ¿Qué hora es ahora mismo en Buenos Aires?
+     T: En Buenos Aires son las 14:42.            → answered · timezones.time_in · place=Buenos Aires
+
+[es] U: hora en pekin
+     T: En Pekín es la 01:42 (ya es lunes).       → answered · timezones.time_in · place=Pekín
+
+[es] U: ¿me puedes decir qué hora es en Sidney?
+     T: En Sídney son las 04:42 (ya es lunes).    → answered · timezones.time_in · place=Sídney
+     (Sidney is accepted as a spelling of Sídney)
+
+[es] U: ¿qué hora es en Lima y en Bogotá?
+     T: En Lima y en Bogotá son las 12:42.        → answered · timezones.time_in · place=Lima|Bogotá
+
+[en] U: what's the time in Tokyo?
+     T: In Tokyo it's 02:42 (already Monday).     → answered · timezones.time_in · place=Tokyo
+
+[en] U: what time is it in New York right now
+     T: In New York it's 13:42.                   → answered · timezones.time_in · place=New York
+
+[en] U: time in london
+     T: In London it's 17:42.                     → answered · timezones.time_in · place=London
+
+[en] U: do you know what time it is in Sydney?
+     T: In Sydney it's 04:42 (already Monday).    → answered · timezones.time_in · place=Sydney
+
+[en] U: tell me the time in Los Angeles please
+     T: In Los Angeles it's 10:42.                → answered · timezones.time_in · place=Los Angeles
+
+[en] U: what time is it in Mexico City?
+     T: In Mexico City it's 11:42.                → answered · timezones.time_in · place=Mexico City
+
+[en] U: current time in Delhi and Dubai
+     T: In Delhi it's 23:12; in Dubai it's 21:42. → answered · timezones.time_in · place=Delhi|Dubai
+
+# A follow-up with only a place continues the previous question.
+[es] U: ¿qué hora es en Tokio?
+     T: En Tokio son las 02:42 (ya es lunes).     → answered · timezones.time_in · place=Tokio
+[es] U: ¿y en Londres?
+     T: En Londres son las 17:42.                 → answered · timezones.time_in · place=Londres
+
+[en] U: what time is it in Dubai?
+     T: In Dubai it's 21:42.                      → answered · timezones.time_in · place=Dubai
+[en] U: and in Lima?
+     T: In Lima it's 12:42.                       → answered · timezones.time_in · place=Lima
+
+# A missing place is asked back.
+[es] U: qué hora es en
+     T: ¿En qué ciudad?                           → asks · timezones.time_in · place
+[es] U: Tokio
+     T: En Tokio son las 02:42 (ya es lunes).     → answered · timezones.time_in · place=Tokio
+
+[en] U: what's the time over in
+     T: In which city?                            → asks · timezones.time_in · place
+[en] U: Sydney, thanks
+     T: In Sydney it's 04:42 (already Monday).    → answered · timezones.time_in · place=Sydney
+
+# The user's own place, with nothing stored (state.md, the longer exchange).
+[es] U: qué hora es en mi ciudad
+     T: ¿En qué ciudad estás?                     → asks · timezones.time_in · place
+[es] U: en Sevilla
+     T: En Sevilla son las 18:42.                 → answered · timezones.time_in · place=Sevilla
+
+[en] U: what time is it at home?
+     T: Which city are you in?                    → asks · timezones.time_in · place
+[en] U: Bristol
+     T: In Bristol it's 17:42.                    → answered · timezones.time_in · place=Bristol
+
+# Edge cases.
+[es] U: ¿qué hora es en Córdoba?
+     T: ¿Córdoba de España o de Argentina?        → asks · timezones.time_in · place
+[es] U: la de Argentina
+     T: En Córdoba (Argentina) son las 14:42.     → answered · timezones.time_in · place=Córdoba (AR)
+
+[en] U: what time is it in Cordoba
+     T: Cordoba in Spain or in Argentina?         → asks · timezones.time_in · place
+[en] U: the first one
+     T: In Córdoba (Spain) it's 18:42.            → answered · timezones.time_in · place=Córdoba (ES)
+
+[es] U: ¿qué hora es en Estados Unidos?
+     T: ¿En qué ciudad de Estados Unidos? Hay varios husos horarios.
+                                                  → asks · timezones.time_in · place
+
+[es] U: qué hora es en México
+     T: En Ciudad de México son las 11:42.        → answered · timezones.time_in · place=México
+
+[es] U: qué hora es en España
+     T: En la España peninsular son las 18:42; en Canarias, las 17:42.
+                                                  → answered · timezones.time_in · place=España
+
+[es] U: ¿qué hora es en Narnia?
+     T: No conozco ese lugar.                     → unhandled · timezones.time_in · place=Narnia
+
+[es] U: ¿qué hora es en UTC+2?
+     T: En UTC+2 son las 19:42.                   → answered · timezones.time_in · place=UTC+2
+
+[es] U: si en Madrid son las 9, ¿qué hora es en Tokio?
+     T: Eso no sé calcularlo; solo sé la hora actual de cada sitio.
+                                                  → unhandled · timezones.time_in
+
+[es] U: qué hora es aquí
+     T: Son las 18:42.                            → answered · clock.now
+
+[es] U: ¿qué día es en Tokio?
+     T: En Tokio ya es lunes, 15 de marzo (son las 02:42).
+                                                  → answered · timezones.time_in · place=Tokio
+
+[es] U: ¿qué hora es allí?
+     T: ¿En qué ciudad?                           → asks · timezones.time_in · place
+
+[en] U: what time is it in nyc
+     T: In New York it's 13:42.                   → answered · timezones.time_in · place=New York
+
+[en] U: what time is it in the US?
+     T: In which city? There are several time zones in the United States.
+                                                  → asks · timezones.time_in · place
+
+[en] U: what time is it in Neverland
+     T: I don't know that place.                  → unhandled · timezones.time_in · place=Neverland
+
+[en] U: what time is it in Spain?
+     T: Mainland Spain: 18:42. Canary Islands: 17:42.
+                                                  → answered · timezones.time_in · place=Spain
+
+[en] U: what time is it in madrid and tokyo and london and sydney
+     T: I can only tell you three places at a time. Which ones?
+                                                  → asks · timezones.time_in · place
+[en] U: madrid, tokyo and london
+     T: In Madrid it's 18:42; in Tokyo it's 02:42 (already Monday); in London it's 17:42.
+                                                  → answered · timezones.time_in · place=Madrid|Tokyo|London
+
+[en] U: what time is it in GMT?
+     T: In GMT it's 17:42.                        → answered · timezones.time_in · place=GMT
+
+[en] U: what time is it here?
+     T: It's 18:42.                               → answered · clock.now
+
+[en] U: what's the date in Sydney?
+     T: In Sydney it's already Monday 15 March (04:42).
+                                                  → answered · timezones.time_in · place=Sydney
+
+Given: place = Barcelona
+[en] U: what time is it here?
+     T: It's 18:42.                               → answered · clock.now
+
+Given: place = none
+[es] U: qué hora es in Tokyo
+     T: En Tokyo son las 02:42 (ya es lunes).     → answered · timezones.time_in · place=Tokyo
+     (Spanish grammar, English place name: the reply is Spanish)
+
+# The commands (ADR 0016).
+[es] U: /horaen Tokio
+     T: En Tokio son las 02:42 (ya es lunes).     → answered · timezones.time_in · place=Tokio
+
+Given: hint = en
+[en] U: /timein London
+     T: In London it's 17:42.                     → answered · timezones.time_in · place=London
+
+Given: hint = none
+
+# Summer time follows the turn's clock: in July New York is UTC-4, Madrid
+# UTC+2 and Sydney UTC+10 (its winter).
+Given: now = 2027-07-01 12:00 Europe/Madrid
+[es] U: qué hora es en Nueva York
+     T: En Nueva York son las 06:00.              → answered · timezones.time_in · place=Nueva York
+
+[en] U: what time is it in Sydney
+     T: In Sydney it's 20:00.                     → answered · timezones.time_in · place=Sydney
+
+# Just after Europe's change on 28 March: London is on summer time too.
+Given: now = 2027-03-28 03:30 Europe/Madrid
+[es] U: qué hora es en Londres
+     T: En Londres son las 02:30.                 → answered · timezones.time_in · place=Londres
+
+# The reference date is the turn's own: at 00:30 in Madrid, New York is
+# still on the day before.
+Given: now = 2027-03-15 00:30 Europe/Madrid
+[en] U: what time is it in New York
+     T: In New York it's 19:30 (still Sunday).    → answered · timezones.time_in · place=New York

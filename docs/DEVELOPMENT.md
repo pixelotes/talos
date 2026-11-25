@@ -90,7 +90,7 @@ taken, plus the small ones Slice A needed. Slice B may revisit any of them.
 | Accents in patterns | rules match a **match form**: the normalised text with diacritics removed from Latin letters (`qué` → `que`, `mañana` → `manana`); patterns are written without accents or capitals and `talos skills check` rejects any that has them | one consistent rule instead of `qu[eé]` everywhere; language detection still reads the accented text, so accents stay evidence. Captures are read back in the user's original spelling |
 | Slots | declared per intent (`[[intent.slot]]`: `name`, `type` = `term`/`number`/`date`/`duration`/`datetime`/`daterange`/`place`/`language`/`choice`/`confirm`, `required`, `repeated`, `internal`); named captures `(?P<name>…)` must be declared slots; extractors turn captures into typed `Value`s before the handler runs | `internal` slots (Slice A's `register`, `daypart`) are left out of `Outcome::slots` and of golden outcome lines unless `Given: slots = all`; a handler may `cx.report(…)` a default it applied ("tira un dado" → `count=1 sides=6`) |
 | Numbers | exact decimals (`Number`: `i128` units and a scale), never floats; `Number::format(lang)` writes them by the language's conventions | the separator rules of conversation.md 2.1 are tested as a table |
-| Dates | `civil::Date` in-tree (Hinnant's algorithms), no zone rules | the zone database is still Slice C's decision; the golden harness knows a handful of zones the spec uses, with their DST rules, until then |
+| Dates | `civil::Date` in-tree (Hinnant's algorithms), no zone rules | zone rules came with `timezones` (v0.2 Slice C, below); the golden harness still knows only a handful of zones for `Given: now` |
 | Random source | `SplitMix64` in-tree behind `RandomSource`; each turn is seeded from FNV-1a of (configured seed, conversation, turn number, normalised text), lazily, so a turn that draws nothing seeds nothing | handlers draw through `Random` in natural terms (`int`, `scaled`, `coin`, `pick`, `entry`), which is also what golden files script with `Given: draw = …` |
 | Conversation state | engine-owned map, one `Mutex` per conversation plus a short-held map lock; at most `Config::max_conversations` (1024), idle expiry `Config::idle_expiry_seconds` (30 min) measured with the injected `now` | holds the turn counter, the language and how firmly it is held, the recent topic (last intent), and the open question (at most one, with the request's slots; it expires three turns or five minutes after it was asked) |
 | Language stickiness | a settled conversation switches only on at least two marker words of the other language and more than of its own; a conversation that only defaulted takes the first evidence; a hint settles it | ADR 0015's classifier step waits for v0.2 |
@@ -115,6 +115,22 @@ Details in [MODEL.md](MODEL.md).
 | Slots of a guess | no captures; the fixed slots the intent's rules set most often on its examples, recorded per class by the trainer | `identity` needs a `topic` to answer; a handler that needs a capture gives its usage hint; one that fails sends the turn to the reflector |
 | Language, step 3 | the same machinery, two classes, no biases; asked only when markers decide nothing and the conversation has not settled; decides at ≥ 0.95 and only with a word of 3+ letters; holds like a default | "bye", "thx", "vale" now get their language; "hey", "ok", "d20", "2+2" keep the default, as the golden files require |
 | `talos eval` | two engines, rules only and with the classifier, side by side; built-skill accuracy; conversation catch-all rate | counts only, never phrases |
+
+## Decisions taken in v0.2 (preferences, corrections, guessed slots)
+
+| Question | Taken | Note |
+|---|---|---|
+| Where the user's data lives | `user.toml` in the data directory: `$TALOS_DATA_DIR`, else `$XDG_DATA_HOME/talos`, else `$HOME/.local/share/talos`; `TALOS_DATA_DIR=` (empty) keeps nothing between runs | the simplest durable form until `user.db` (v0.3, DESIGN.md §7): a versioned TOML file (`version = 1`) whose fields are the future tables' columns (`[preferences]` name, place, units; `[[correction]]` phrase, intent, slots), read with the `toml` the engine already has and written by hand, so no new dependency |
+| How it is written | the whole file, to `user.toml.tmp`, flushed (`sync_all`) and renamed over the old one; only on a turn whose changes differ from what is stored | a crash leaves the old file or the new one; an ordinary turn, or setting a value to what it already is, writes nothing (DESIGN.md §8, "Disk writes per ordinary turn: 0") |
+| Who "the user" is | the installation: one set of preferences and corrections shared by `talos ask`, `chat`, `explain` and `serve`, whatever conversation or API `user` a turn comes from | docs/spec/decisions.md ruling 10; `talos eval` and `skills` never read it, so a battery's score does not depend on who ran it |
+| A file that cannot be read | a warning on stderr; the engine keeps changes in memory for that run and never overwrites the file | "degrade cheaply" (DESIGN.md §1) |
+| Hermetic tests | the engine's default store is `talos_core::MemoryStore`: nothing is read or written unless a front end calls `Engine::use_user_store`; golden files set what is stored with `Given: stored …` and `Given: phrase …`, reset at each conversation; the server test that spawns the binary points `TALOS_DATA_DIR` at a temporary directory; `FileStore`'s own test writes only under the system temporary directory | no test reads or writes the real home directory |
+| How a skill changes a preference | `cx.remember(PreferenceChange::…)`; the engine applies the changes after the handler answers (`SkillResult::Answer`), and drops any made on a classifier's guess without a `confirm` slot answered yes (the turn fails instead) | handlers stay pure: no handler touches a store (SKILL_AUTHORING.md §3.3) |
+| Side-effecting guesses | `preferences.set` and `preferences.forget` stay in `classifier::SIDE_EFFECTS`: never accepted; when one passes the threshold and the margin it is offered to its handler with `cx.guessed()` set, which may only decline or ask a yes/no that restates the change | DESIGN.md §11: "a rule match or a confirmation" |
+| The user-correction table | phrase (the match form without end punctuation) → intent + slots as text, looked up before every pattern at the rule stage (also while a question is open); its slots are read by their extractors in either language; never an intent that deletes (`preferences.forget`, `teach.forget`, `teach.phrase`) | ADR 0008. The spec gives it no user-facing phrasing before `teach.phrase` (knowledge.md, v0.3): `Engine::set_user_data` and the file are the only ways in for now |
+| Slots of a guess | as before, plus: a public slot whose manifest declares `guess` cues (`before`, `after`, `words`) is looked for next to them and read by its extractor; a value found twice and different, or unreadable, gives nothing | conservative: a wrong capture is worse than a question ("lanza tres dados" rolls three; "para mí que…" is not a question about the user) |
+| A capture in the other language | a rule of the other language whose capture does not read in the turn's language is read in the rule's ("roll a twenty sided die" in a Spanish conversation) | — |
+| `/dado 2d6` | a command may fill an internal slot: `random.dice`'s `notation` takes the rest of the line (`2d6`, `d20`, `3d8+2`, `20` = sides), which the handler reads and reports as the sentence form's slots | ADR 0016: "one free-text argument its handler reads"; the outcome is the sentence form's |
 
 ## Footprint
 
@@ -221,6 +237,68 @@ CLI target of ≤ 8 MB resident holds for one-shot rule turns; a chat that
 reaches the classifier and the reflector exceeds it by about 1.5 MB, of which
 the models are under 0.7 MB.
 
+## Decisions taken in v0.2 Slice C (`timezones`)
+
+| Question | Taken | Note |
+|---|---|---|
+| Zone data | **no crate**: an in-tree table of 161 IANA zones, each with its POSIX TZ rule (`crates/talos-skills/src/timezones/zones.rs`), evaluated by ~150 lines of own code (`tz.rs`); never the host's zoneinfo | measured below; deterministic by construction; correct from 2027-03-14 for as long as the rules of IANA tzdata 2026f hold |
+| Places | an in-tree gazetteer (`timezones/places.rs`): 293 cities and 141 regions (countries, a few US states, island groups), 753 names in the match form, Spanish and English | compiled by hand from public facts (capitals, the largest cities, the places the specification names); no dataset was downloaded |
+| Place slots | `term`, read by the skill with its gazetteer and `extract::place` | the skill splits "Lima y Bogotá", tells same-named cities apart and reports the name it used |
+
+### Zone data
+
+**Candidates**, each a standalone program with the release profile above
+that prints a zone's offset now, against a 286 128 B baseline with no zone
+code; macOS arm64, max RSS and peak footprint the median of five runs
+looking up `Asia/Tokyo`:
+
+| | stripped binary | Δ | max RSS / peak footprint | deterministic |
+|---|---|---|---|---|
+| baseline | 286 128 B | — | 1.77 / 1.26 MB | — |
+| `jiff` 0.2.38, `tzdb-bundle-always` (all ~600 zones, compressed) | 683 328 B | +397 KB | 1.93 / 1.26 MB | yes |
+| `jiff` 0.2.38, `tzdb-zoneinfo` (the host's files) | 468 896 B | +183 KB | 2.26 / 1.56 MB | no: the answer follows the machine's tzdata |
+| `chrono` 0.4 + `chrono-tz` 0.10.4 (all zones, compiled in) | 1 491 952 B | +1 206 KB | 2.85 / 2.29 MB | yes |
+| in-tree rules (taken) | — | not measured apart: 7 KB of rule table source and ~150 lines of evaluator; the whole skill is measured below | — | yes |
+
+**The whole skill, in `talos`** (before: the tree at the start of C1; after:
+with `timezones`, its manifest, the retrained models and the gazetteer;
+max RSS / peak footprint, the range of the medians of three rounds of seven
+runs each, before and after measured alternately):
+
+| | before | after |
+|---|---|---|
+| stripped binary | 2 311 136 B | 2 478 800 B (+164 KB: +30 KB models, +30 KB manifest text, the rest gazetteer, rules and code) |
+| `talos ask "hola"` | 7.52–7.77 / 5.70–5.95 MB | 7.60–7.96 / 5.72–6.08 MB |
+| `talos ask "qué hora es en Tokio"` | 9.03–9.16 / 6.69–6.82 MB (reflector) | 7.83–8.19 / 5.90–6.26 MB |
+| the four-turn chat above | 9.50–9.96 / 7.18–7.64 MB | 9.85–10.21 / 7.46–7.78 MB |
+| the same plus two `timezones` turns | 9.57–9.91 / 7.21–7.55 MB | 9.85–10.29 / 7.39–7.83 MB |
+
+The rise at rest (about 0.1–0.2 MB, inside the run-to-run noise) is the 43
+new patterns' automata and the larger manifests, not the zone data: a
+`timezones` turn costs about 0.2 MB over a greeting.
+
+**Why it is exact.** The IANA database ends every compiled zone with a
+POSIX TZ rule for the years after its listed transitions ("the last Sunday
+of March at 02:00"). Today's rules of every zone in the table are such a
+rule; only one-off changes (a country that skips a change one year, or
+changes its law) are not, and those are dated. `generate.py`, beside the
+table, writes it from `/usr/share/zoneinfo` (the footers) and writes
+`transitions.txt`: every change of offset from 2027 to 2036 as Python's
+`zoneinfo` computes it from the full database. A test compares the two:
+from 2027-03-14 (Cuba's return to its rules, the latest one-off in tzdata
+2026f) to the end of 2036 they agree for all 161 zones. Measured over
+2000–2037, the latest disagreements before that are Morocco (permanent UTC+0
+from 2026-09-20), British Columbia and Alberta (permanent UTC-7 and UTC-6 from
+2026-03-08), Kazakhstan and Paraguay (2024): dates before 2027 may be wrong
+for the zones that changed since, which matters only for golden files that
+set such a `now`.
+
+**Updating.** When IANA publishes a change to a zone in the table, install
+the new tzdata, run `python3 -I crates/talos-skills/src/timezones/generate.py
+2027 2036` from the repository root (it reads the zones from `places.rs`)
+and review the diff of `zones.rs`; move the start of the test's span if a
+one-off change lands later than 14 March 2027.
+
 ## Server
 
 `talos serve` (docs/API.md §2, [ADR 0017](adr/0017-http-stack.md)) is in
@@ -323,8 +401,10 @@ Given: draw = 3, 5
   are notes (the spec's `(…)` explanations) and are ignored. `#` starts a
   comment line.
 - **Conversations.** Turns with no blank line between them are one
-  conversation; a blank line starts a new one (fresh state, turn 1). All
-  conversations use the id `golden`, so variants are reproducible.
+  conversation; a blank line starts a new one (fresh state, turn 1, and
+  what is stored about the user set back to the `Given: stored`/`phrase`
+  lines). All conversations use the id `golden`, so variants are
+  reproducible.
 - **Outcome line.** `→ status · intent · slot=value slot=value` when an
   intent was recognised, `→ status · reason` when none was. Slots are in
   name order, values canonical: numbers with a decimal point and no
@@ -346,6 +426,8 @@ Given: draw = 3, 5
   | `place` | a place name or zone, or `none`: the caller's place | `none` |
   | `draw` | comma-separated draws in the spec's natural terms: numbers (`4`, `-2`, `1.73`), `heads`/`tails`, `option N` (1-based), `entry "fragment"` | — |
   | `slots` | `all` (include internal slots), `public` | `public` |
+  | `stored` | `stored name = Raúl, place = Sevilla, units = metric` (any of the three), or `stored = none`: the preferences at the start of each conversation | `none` |
+  | `phrase` | `phrase = flip it -> random.coin` or `phrase = tira -> random.dice count=2 sides=20`, one per line, adding to the table; `phrase = none` empties it: the user-correction table at the start of each conversation | empty |
 
   Anything else after `Given:` is an error, so a spec line such as "Given:
   a conversation that has been in Spanish" must be expressed with turns.

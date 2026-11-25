@@ -1,0 +1,44 @@
+# Slots for a request the classifier recognised (docs/SKILLS.md section 3):
+# a guess has no captures, so the slots whose manifest declares cue words
+# are looked for next to them and read by the slot's own extractor. A value
+# that cannot be read, or two that disagree, give nothing, and the skill
+# asks or answers as after a rule.
+#
+# DEPENDS ON THE CLASSIFIER: these turns match no rule, so they reach the
+# model (models/intent.model); a retrained model may decide differently.
+
+Given: draw = 6, 2, 3
+[es] U: oye, lanza tres dados
+     T: 6, 2 y 3: total 11.                       → answered · random.dice · count=3 sides=6
+
+Given: draw = 6, 1
+[es] U: venga, échame dos dados de ocho caras
+     T: 6 y 1: total 7.                           → answered · random.dice · count=2 sides=8
+
+Given: hint = en
+Given: draw = 2, 2, 5
+[en] U: hey throw three dice for me
+     T: 2, 2 and 5: total 9.                      → answered · random.dice · count=3 sides=6
+
+# A guess that would change a preference only asks; a yes stores it, a no
+# stores nothing (DESIGN.md section 11).
+[en] U: I go by Liz
+     T: Do you want me to call you Liz?           → asks · preferences.set · confirm
+[en] U: yes
+     T: Nice to meet you, Liz. I'll remember that.
+                                                  → answered · preferences.set · confirm=yes key=name value=Liz
+[en] U: what's my name?
+     T: Your name is Liz.                         → answered · preferences.get · key=name
+
+[en] U: I go by Liz
+     T: Do you want me to call you Liz?           → asks · preferences.set · confirm
+[en] U: no
+     T: Okay, nothing stored.                     → answered · preferences.set · confirm=no key=name value=Liz
+[en] U: what's my name?
+     T: I don't know your name.                   → answered · preferences.get · key=name
+
+# A guess that names nothing the skill keeps is not the skill's: the
+# reflector answers.
+Given: hint = none
+[es] U: para mí que mi cuñado me tiene manía
+     T: Para ti que tu cuñado te tiene manía.     → deflected · opinion

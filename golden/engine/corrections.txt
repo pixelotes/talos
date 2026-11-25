@@ -1,0 +1,37 @@
+# The user-correction table (ADR 0008): a message that is a taught phrase,
+# after normalisation (case, accents, spaces, punctuation at the ends), is
+# that phrase's request, ahead of every rule, in either conversation
+# language. Only the whole message counts. Teaching a phrase belongs to
+# `teach.phrase` (docs/spec/knowledge.md, v0.3); here the table is given.
+
+Given: phrase = flip it -> random.coin
+Given: phrase = tira -> random.dice count=2 sides=20
+Given: draw = heads
+[en] U: flip it
+     T: It landed heads.                          → answered · random.coin · count=1
+
+# The reply stays in the conversation's language.
+Given: hint = es
+Given: draw = heads
+[es] U: Flip it!
+     T: Ha salido cara.                           → answered · random.coin · count=1
+
+# The table comes before the rules: "tira" alone is no rule's anyway, but
+# its slots come from the table, read by their extractors.
+Given: hint = none
+Given: draw = 7, 13
+[es] U: Tira.
+     T: 7 y 13: total 20.                         → answered · random.dice · count=2 sides=20
+
+# A message that merely contains the phrase is not affected.
+Given: draw = 4
+[es] U: tira un dado
+     T: Ha salido un 4.                           → answered · random.dice · count=1 sides=6
+
+# A phrase never stands for a request that deletes.
+Given: phrase = limpia -> preferences.forget key=all
+Given: stored name = Raúl
+[es] U: limpia
+     T: No te he entendido.                       → unhandled · catch-all
+[es] U: ¿cómo me llamo?
+     T: Te llamas Raúl.                           → answered · preferences.get · key=name

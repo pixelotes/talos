@@ -856,11 +856,18 @@ fn the_same_requests_give_the_same_bytes() {
     }
 }
 
+/// A data directory of the test's own, so the binary never reads or writes
+/// the user's real one (docs/DEVELOPMENT.md, "User data").
+fn scratch_data_dir() -> std::path::PathBuf {
+    std::env::temp_dir().join(format!("talos-server-test-{}", std::process::id()))
+}
+
 #[test]
 fn the_binary_serves_and_refuses_an_open_bind_without_a_token() {
     let mut child = Command::new(env!("CARGO_BIN_EXE_talos"))
         .args(["serve", "--port", "0"])
         .env_remove("TALOS_TOKEN")
+        .env("TALOS_DATA_DIR", scratch_data_dir())
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
@@ -883,6 +890,7 @@ fn the_binary_serves_and_refuses_an_open_bind_without_a_token() {
     let output = Command::new(env!("CARGO_BIN_EXE_talos"))
         .args(["serve", "--bind", "0.0.0.0", "--port", "0"])
         .env_remove("TALOS_TOKEN")
+        .env("TALOS_DATA_DIR", scratch_data_dir())
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(64));

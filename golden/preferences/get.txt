@@ -1,0 +1,113 @@
+# preferences.get (docs/spec/state.md). Written by hand from the spec.
+#
+# A place is answered as stored: "Sevilla" stays "Sevilla" in English (the
+# spec's "Seville" needs the place table of `timezones`).
+
+Given: stored name = Raúl, place = Sevilla, units = metric
+[es] U: ¿cómo me llamo?
+     T: Te llamas Raúl.                           → answered · preferences.get · key=name
+
+[es] U: ¿dónde vivo?
+     T: Vives en Sevilla.                         → answered · preferences.get · key=place
+
+[es] U: ¿qué unidades uso?
+     T: Unidades métricas.                        → answered · preferences.get · key=units
+
+[es] U: ¿qué sabes de mí?
+     T: Te llamas Raúl, vives en Sevilla y usas unidades métricas.
+                                                  → answered · preferences.get · key=all
+
+[es] U: oye ¿te acuerdas de cómo me llamo?
+     T: Sí, Raúl.                                 → answered · preferences.get · key=name
+
+[es] U: a ver, ¿dónde estoy según tú?
+     T: En Sevilla.                               → answered · preferences.get · key=place
+
+[es] U: ¿sabes mi nombre?
+     T: Sí: Raúl.                                 → answered · preferences.get · key=name
+
+[es] U: dime todo lo que recuerdas de mí
+     T: Te llamas Raúl, vives en Sevilla y usas unidades métricas.
+                                                  → answered · preferences.get · key=all
+
+Given: hint = en
+[en] U: what's my name?
+     T: Your name is Raúl.                        → answered · preferences.get · key=name
+
+[en] U: where do I live?
+     T: You live in Sevilla.                      → answered · preferences.get · key=place
+
+[en] U: which units do I use
+     T: Metric units.                             → answered · preferences.get · key=units
+
+[en] U: what do you know about me?
+     T: Your name is Raúl, you live in Sevilla and you use metric units.
+                                                  → answered · preferences.get · key=all
+
+[en] U: do you remember my name?
+     T: Yes, it's Raúl.                           → answered · preferences.get · key=name
+
+[en] U: what do you remember about me
+     T: Your name is Raúl, you live in Sevilla and you use metric units.
+                                                  → answered · preferences.get · key=all
+
+[en] U: where am I, according to you?
+     T: In Sevilla.                               → answered · preferences.get · key=place
+
+[en] U: remind me, what's my name again
+     T: Raúl.                                     → answered · preferences.get · key=name
+
+# Taken at face value: the only thing Talos knows is the name.
+[en] U: who am I?
+     T: Your name is Raúl.                        → answered · preferences.get · key=name
+
+# Nothing stored: "I don't know" is the true answer, and `answered`.
+Given: hint = none
+Given: stored = none
+[es] U: ¿cómo me llamo?
+     T: No sé cómo te llamas.                     → answered · preferences.get · key=name
+
+[es] U: ¿qué sabes de mí?
+     T: Todavía no sé nada de ti.                 → answered · preferences.get · key=all
+
+Given: hint = en
+[en] U: where do I live?
+     T: I don't know where you live.              → answered · preferences.get · key=place
+
+[en] U: what do you know about me?
+     T: I don't know anything about you yet.      → answered · preferences.get · key=all
+
+[en] U: who am I?
+     T: I don't know who you are.                 → answered · preferences.get · key=name
+
+# The stored place wins over the caller's; the caller's is not a
+# preference.
+Given: hint = none
+Given: stored place = Sevilla
+Given: place = Barcelona
+[es] U: ¿dónde estoy?
+     T: En Sevilla.                               → answered · preferences.get · key=place
+
+Given: stored = none
+[es] U: ¿dónde vivo?
+     T: No sé dónde vives.                        → answered · preferences.get · key=place
+
+Given: place = none
+Given: stored name = Raúl
+[es] U: ¿qué sabes de mí?
+     T: Solo sé que te llamas Raúl.               → answered · preferences.get · key=all
+
+Given: hint = en
+[en] U: what do you know about me?
+     T: Only that your name is Raúl.              → answered · preferences.get · key=all
+
+# Not about the user: Talos's own name.
+Given: hint = none
+[es] U: ¿cómo te llamas?
+     T: Talos.                                    → answered · identity.who
+
+# Something Talos does not keep.
+Given: stored = none
+[es] U: ¿cuál es mi color favorito?
+     T: No recuerdo eso: solo guardo tu nombre, tu lugar y tus unidades.
+                                                  → unhandled · preferences.get · key=other

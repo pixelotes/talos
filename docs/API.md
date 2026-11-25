@@ -224,6 +224,15 @@ continues the same conversation, whose state the first attempt has already
 advanced. This scheme is an open question to validate — see
 [DESIGN.md](DESIGN.md).
 
+What Talos remembers about its user (name, place, units; the correction
+table) is not dialog state and is not keyed by any of these: there is one set
+per installation, shared by every conversation of the server and by the CLI
+(docs/spec/decisions.md ruling 10). A preference set over the API is there
+for `talos chat`, and the reverse. It is kept in `user.toml` in the data
+directory (`$TALOS_DATA_DIR`, else `$XDG_DATA_HOME/talos`, else
+`~/.local/share/talos`; `TALOS_DATA_DIR=` empty keeps it for the run only),
+written only on a turn that changes it ([DESIGN.md](DESIGN.md) §7).
+
 In-memory dialog state is bounded (a maximum number of conversations, an idle
 expiry) so the server's memory cannot grow without limit. The bounds are the
 engine's (`max_conversations`, default 1024; `idle_expiry_seconds`, default

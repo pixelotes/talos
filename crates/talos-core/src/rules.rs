@@ -33,6 +33,21 @@ pub struct Candidate {
     pub fixed: BTreeMap<String, String>,
     /// Named captures, as byte ranges of the message's match form.
     pub captures: Vec<(String, Range<usize>)>,
+    /// What proposed it.
+    pub source: Source,
+}
+
+/// What proposed a [`Candidate`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Source {
+    /// A manifest pattern: certain.
+    Rule,
+    /// An entry of the user-correction table: certain.
+    Correction,
+    /// A command line: certain.
+    Command,
+    /// The classifier: a guess, with no captures.
+    Classifier,
 }
 
 /// One pattern's bookkeeping; the pattern has the same index in
@@ -179,6 +194,7 @@ impl Rules {
                     pattern: patterns.source(i).to_owned(),
                     fixed: r.fixed.clone(),
                     captures,
+                    source: Source::Rule,
                 }
             })
             .collect()

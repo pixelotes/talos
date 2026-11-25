@@ -178,16 +178,126 @@ pub struct Call<'a> {
     pub text: &'a str,
 }
 
-/// What Talos remembers about the user. Empty until the `preferences` skill
-/// and the knowledge store exist (v0.3); handlers receive it now so that
-/// adding it changes no signature.
+/// The unit system a user prefers (docs/spec/state.md, preferences).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Units {
+    /// Metres, kilograms, litres, degrees Celsius.
+    Metric,
+    /// Miles, pounds, gallons, degrees Fahrenheit.
+    Imperial,
+}
+
+impl Units {
+    /// The canonical id: `metric` or `imperial`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Units::Metric => "metric",
+            Units::Imperial => "imperial",
+        }
+    }
+
+    /// The units an id names.
+    #[must_use]
+    pub fn parse(id: &str) -> Option<Units> {
+        match id {
+            "metric" => Some(Units::Metric),
+            "imperial" => Some(Units::Imperial),
+            _ => None,
+        }
+    }
+}
+
+/// What Talos remembers about the user across turns and restarts
+/// (docs/spec/state.md, preferences): a name, a place and a unit system,
+/// each optional. One set per installation. Handlers read it through
+/// [`Context::preferences`] and change it only by asking the engine
+/// ([`Context::remember`]); the engine stores it.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Preferences {}
+pub struct Preferences {
+    name: Option<String>,
+    place: Option<String>,
+    units: Option<Units>,
+}
 
 impl Preferences {
     /// No preferences.
-    pub const NONE: Preferences = Preferences {};
+    pub const NONE: Preferences = Preferences {
+        name: None,
+        place: None,
+        units: None,
+    };
+
+    /// The user's name, as it was stored (leading capital added).
+    #[must_use]
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    /// The remembered place, as stored: the user's spelling with a leading
+    /// capital ("Sevilla", "New York"). Resolving it to a zone is the
+    /// reading skill's business.
+    #[must_use]
+    pub fn place(&self) -> Option<&str> {
+        self.place.as_deref()
+    }
+
+    /// The remembered unit system.
+    #[must_use]
+    pub const fn units(&self) -> Option<Units> {
+        self.units
+    }
+
+    /// Whether nothing is stored.
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.name.is_none() && self.place.is_none() && self.units.is_none()
+    }
+
+    /// The same preferences with a name.
+    #[must_use]
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// The same preferences with a place.
+    #[must_use]
+    pub fn with_place(mut self, place: impl Into<String>) -> Self {
+        self.place = Some(place.into());
+        self
+    }
+
+    /// The same preferences with a unit system.
+    #[must_use]
+    pub const fn with_units(mut self, units: Units) -> Self {
+        self.units = Some(units);
+        self
+    }
+
+    /// Applies one change; whether anything changed.
+    pub fn apply(&mut self, change: &PreferenceChange) -> bool {
+        let before = self.clone();
+        match change {
+            PreferenceChange::Name(name) => self.name.clone_from(name),
+            PreferenceChange::Place(place) => self.place.clone_from(place),
+            PreferenceChange::Units(units) => self.units = *units,
+        }
+        *self != before
+    }
+}
+
+/// A change to [`Preferences`] a handler asks for: `Some` stores the value,
+/// `None` forgets it. Applied by the engine after the handler answered.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PreferenceChange {
+    /// The user's name.
+    Name(Option<String>),
+    /// The remembered place.
+    Place(Option<String>),
+    /// The unit system.
+    Units(Option<Units>),
 }
 
 /// Everything a handler may use besides the request itself, and nothing
@@ -205,6 +315,10 @@ pub struct Context<'a> {
     skills: &'a [Manifest],
     /// Slots the handler reported for the outcome.
     reported: Slots,
+    /// Whether the request was recognised by the classifier, not a rule.
+    guessed: bool,
+    /// Preference changes the handler asked for.
+    changes: Vec<PreferenceChange>,
 }
 
 impl<'a> Context<'a> {
@@ -213,6 +327,7 @@ impl<'a> Context<'a> {
         place: Option<&'a Place>,
         random: Random,
         conversation: &'a ConversationState,
+        preferences: &'a Preferences,
         skills: &'a [Manifest],
     ) -> Self {
         Self {
@@ -220,9 +335,11 @@ impl<'a> Context<'a> {
             place,
             random,
             conversation,
-            preferences: &Preferences::NONE,
+            preferences,
             skills,
             reported: Slots::new(),
+            guessed: false,
+            changes: Vec::new(),
         }
     }
 
@@ -232,7 +349,22 @@ impl<'a> Context<'a> {
     #[must_use]
     pub fn standalone(now: Timestamp, random: Random) -> Context<'static> {
         static NEW: ConversationState = ConversationState::NEW;
-        Context::new(now, None, random, &NEW, &[])
+        Context::new(now, None, random, &NEW, &Preferences::NONE, &[])
+    }
+
+    /// The same context with these preferences, for a handler's unit tests.
+    #[must_use]
+    pub fn with_preferences(mut self, preferences: &'a Preferences) -> Self {
+        self.preferences = preferences;
+        self
+    }
+
+    /// The same context as for a request the classifier recognised, for a
+    /// handler's unit tests.
+    #[must_use]
+    pub fn as_guess(mut self) -> Self {
+        self.guessed = true;
+        self
     }
 
     /// The turn's instant, injected by the caller. With
@@ -261,10 +393,29 @@ impl<'a> Context<'a> {
         self.conversation
     }
 
-    /// What Talos remembers about the user (nothing yet).
+    /// What Talos remembers about the user: name, place, units. The
+    /// remembered place is the reference place when the message names none
+    /// (docs/spec/state.md, "Place memory").
     #[must_use]
     pub const fn preferences(&self) -> &Preferences {
         self.preferences
+    }
+
+    /// Whether this request was recognised by the classifier and not by a
+    /// rule, a command or a taught phrase (an answer to a question keeps
+    /// what the question's request was). A handler that changes something
+    /// asks the user to confirm before acting on a guess (DESIGN.md
+    /// section 11).
+    #[must_use]
+    pub const fn guessed(&self) -> bool {
+        self.guessed
+    }
+
+    /// Asks the engine to store or forget a preference. Applied, and saved,
+    /// only if the handler answers ([`SkillResult::Answer`]); a turn that
+    /// changes nothing writes nothing.
+    pub fn remember(&mut self, change: PreferenceChange) {
+        self.changes.push(change);
     }
 
     /// The installed skills' manifests, in catalogue order, for answers
@@ -291,6 +442,16 @@ impl<'a> Context<'a> {
     /// Takes the reported slots, leaving none (between candidates).
     pub(crate) fn take_reported(&mut self) -> Slots {
         std::mem::take(&mut self.reported)
+    }
+
+    /// Takes the preference changes asked for, leaving none.
+    pub(crate) fn take_changes(&mut self) -> Vec<PreferenceChange> {
+        std::mem::take(&mut self.changes)
+    }
+
+    /// Marks the next call as a guess, or not.
+    pub(crate) fn set_guessed(&mut self, guessed: bool) {
+        self.guessed = guessed;
     }
 }
 

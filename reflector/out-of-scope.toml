@@ -12,7 +12,7 @@
 # - requests to write or invent text (poems, letters, jokes, summaries);
 # - open questions about the world, opinions, advice;
 # - requests for skills not built yet: definitions, translations, what a
-#   thing is or has, teaching, preferences, the time in another place,
+#   thing is or has, teaching, the time in another place,
 #   weather, timers and reminders, devices;
 # - statements about the user or the world;
 # - near misses: phrases that share words with an intent and mean something
@@ -53,17 +53,14 @@ es = [
     "cuándo fue la revolución francesa", "por qué llueve", "cómo se aprende a programar", "qué estudio en la universidad",
 
     # Habilidades que aún no existen: definiciones, traducción, conocimiento,
-    # enseñar, preferencias, otras zonas horarias, el tiempo, avisos, aparatos.
+    # enseñar, otras zonas horarias, el tiempo, avisos, aparatos.
     "qué significa efímero", "qué quiere decir procrastinar", "define resiliencia", "significado de la palabra ubicuo",
     "qué es un ornitorrinco", "cómo se dice perro en inglés", "traduce casa al inglés", "qué significa dog en español",
     "cómo se dice gracias en francés", "cómo se dice hola en inglés", "un perro es un animal?", "qué tipos de árboles hay",
     "de qué partes se compone un coche", "qué sabes de los delfines", "una ballena es un pez?",
     "aprende que mi gato se llama bigotes", "recuerda que el agua hierve a 100 grados", "olvida lo que te dije del gato",
-    "qué te he enseñado", "cuando digo peli quiero decir película", "me llamo laura", "llámame pepe", "vivo en sevilla",
-    "cómo me llamo", "prefiero el sistema métrico", "olvida mi nombre", "dónde vivo", "sabes cómo me llamo",
-    "hola, me llamo raúl", "qué hora es en tokio", "qué hora es en londres", "hora en méxico",
-    "cuántas horas de diferencia hay entre madrid y lima", "qué hora es ahora en nueva york",
-    "qué diferencia horaria hay con japón", "qué día es en sídney", "qué tiempo hace hoy", "va a llover mañana",
+    "qué te he enseñado", "cuando digo peli quiero decir película",
+    "qué tiempo hace hoy", "va a llover mañana",
     "qué tiempo hará el sábado", "hace frío fuera?", "avísame en 10 minutos", "pon una alarma a las 7",
     "ponme un temporizador de 5 minutos", "recuérdame comprar leche", "despiértame a las 8", "pon música",
     "llama a mamá", "manda un whatsapp a juan", "apaga la luz", "busca en google recetas de pasta", "abre youtube",
@@ -103,12 +100,9 @@ es = [
     # en otro sitio, preguntas de saber con «quién» y «qué», definiciones,
     # «cuánto» que no es una cuenta, «sabes…» que no pregunta por una
     # habilidad, y frases hechas con hora, día, fecha, dado, moneda y número.
-    "qué hora es en parís", "qué hora es en berlín ahora mismo", "qué hora tienen en china", "hora en los ángeles",
-    "qué hora es en canarias", "qué hora será en sídney", "qué hora es allí en chile", "la hora de moscú",
-    "qué hora es en argentina", "me dices la hora en roma", "qué hora es ahora en tokio", "qué hora es en madrid",
-    "cuántas horas de diferencia hay con méxico", "qué diferencia horaria hay entre londres y madrid",
-    "cuántas horas vamos por delante de nueva york", "en qué zona horaria está lisboa", "qué fecha es en australia",
-    "qué día es hoy en japón", "quién inventó la bombilla", "quién descubrió américa", "quién pintó el guernica",
+    "qué hora será en sídney",
+    "en qué zona horaria está lisboa",
+    "quién inventó la bombilla", "quién descubrió américa", "quién pintó el guernica",
     "quién es el rey de españa", "quién canta esta canción", "quién es messi", "quién fue napoleón",
     "quién ganó la liga", "quién es tu cantante favorito", "quién te gusta más", "qué es la física cuántica",
     "qué es un agujero negro", "qué es el amor", "qué es la democracia", "qué es un sinónimo", "qué significa saudade",
@@ -116,7 +110,7 @@ es = [
     "cuánto cuesta un billete a parís", "cuánto gana un médico", "cuánto vive un perro", "cuánto tarda en hervir un huevo",
     "cuánto dura una película", "cuánto dura el vuelo a nueva york", "cuánta gente hay en el mundo",
     "cuántos idiomas se hablan en la india", "cuántas patas tiene una araña", "cuántos huesos tiene el cuerpo",
-    "sabes quién soy", "sabes dónde estoy", "sabes qué hora es en nueva york", "sabes nadar?", "sabes hablar chino?",
+    "sabes quién soy", "sabes dónde estoy", "sabes nadar?", "sabes hablar chino?",
     "sabes contar chistes?", "sabes hacer café?", "puedes hacer la compra por mí", "puedes enviar un correo",
     "puedes llamar a mi madre", "puedes reservar mesa", "puedes buscar vuelos baratos", "puedes leer mis mensajes",
     "puedes ver la tele conmigo", "tengo una hora libre", "media hora de cola", "la hora del té", "hora de comer",
@@ -139,8 +133,7 @@ es = [
     "me gustaría saber quién ganó el mundial", "no sé quién escribió cien años de soledad",
     "tengo curiosidad por saber por qué el mar es salado", "necesito saber cuál es la capital de canadá",
     "me pregunto qué significa la palabra melancolía", "quiero saber cómo se dice mariposa en inglés",
-    "me gustaría saber qué tiempo va a hacer mañana", "no sé qué hora es en nueva york ahora",
-    "necesito saber la hora en londres", "tengo curiosidad por saber qué hora es en japón",
+    "me gustaría saber qué tiempo va a hacer mañana",
     "me podrías escribir un poema sobre el otoño", "me gustaría que me contaras un chiste",
     "quiero que me hagas un resumen del libro", "me ayudas a escribir un correo para mi casero",
     "no sé qué hacer con mi vida", "me gustaría saber si debería cambiar de trabajo", "no sé qué regalarle a mi madre",
@@ -158,10 +151,6 @@ es = [
     "cuánto dinero tienes", "dónde naciste", "de qué color son tus ojos", "qué comes",
 
     # Familias de casi-intents, con varias formas cada una.
-    "qué hora es en lima", "qué hora es en bogotá", "qué hora es en miami", "qué hora es en pekín",
-    "qué hora es en dubái", "qué hora es en el cairo", "qué hora es en santiago de chile", "qué hora es en caracas",
-    "dime la hora de toronto", "la hora en india", "qué hora tienen ahora en australia", "hora actual en seúl",
-    "qué hora es en cuba ahora", "y en londres qué hora es", "hora de buenos aires", "qué hora marcan los relojes en corea",
     "hora de la siesta", "hora de levantarse", "la hora de la verdad", "hora de cenar", "ya va siendo hora",
     "a la hora de la verdad nadie ayuda", "llego a la hora", "media hora tarde", "horas y horas esperando",
     "me sobran horas", "las horas pasan lentas", "el horario de la tienda", "horario de verano", "fecha límite",
@@ -268,17 +257,13 @@ en = [
     "why does it rain", "how do i learn to code", "what should i study at university",
 
     # Skills not built yet: definitions, translation, knowledge, teaching,
-    # preferences, other time zones, weather, reminders, devices.
+    # other time zones, weather, reminders, devices.
     "what does ephemeral mean", "define resilience", "meaning of the word ubiquitous", "what is a platypus",
     "how do you say dog in spanish", "translate house into spanish", "what does perro mean in english",
     "how do you say thank you in french", "how do you say hello in spanish", "is a dog an animal",
     "what kinds of trees are there", "what are the parts of a car", "what do you know about dolphins",
     "is a whale a fish", "learn that my cat is called whiskers", "remember that water boils at 100 degrees",
     "forget what i told you about the cat", "what have i taught you", "when i say flick i mean film",
-    "my name is laura", "call me pete", "i live in seattle", "what's my name", "i prefer metric units",
-    "forget my name", "where do i live", "do you know my name", "hi, i'm sam", "what time is it in tokyo",
-    "what time is it in london", "time in mexico city", "what's the time difference between new york and lima",
-    "what time is it now in sydney", "how many hours ahead is japan", "what day is it in sydney",
     "what's the weather like today", "will it rain tomorrow", "what's the weather on saturday", "is it cold outside",
     "remind me in 10 minutes", "set an alarm for 7", "set a timer for 5 minutes", "remind me to buy milk",
     "wake me up at 8", "play some music", "call mom", "send a text to john", "turn off the lights",
@@ -304,12 +289,9 @@ en = [
     # who/what knowledge questions, definitions, "how much/many" that is not
     # a sum, "can you…" that is not about a skill, and set phrases with time,
     # day, date, dice, coin and number.
-    "what time is it in paris", "what's the time in berlin right now", "what time is it in china", "time in los angeles",
-    "what time is it in hawaii", "what time will it be in sydney", "what's the time over in chile", "moscow time",
-    "what time is it in new york", "tell me the time in rome", "current time in tokyo", "what time is it in madrid",
-    "how many hours behind is mexico", "what's the time difference between london and madrid",
-    "how far ahead of new york are we", "what time zone is lisbon in", "what's the date in australia",
-    "what day is it in japan right now", "who invented the light bulb", "who discovered america",
+    "what time will it be in sydney",
+    "what time zone is lisbon in",
+    "who invented the light bulb", "who discovered america",
     "who painted the mona lisa", "who is the king of england", "who sings this song", "who is messi", "who was napoleon",
     "who won the league", "who's your favourite singer", "who do you like more", "what is quantum physics",
     "what's a black hole", "what is love", "what is democracy", "what's a synonym", "what does saudade mean",
@@ -318,7 +300,7 @@ en = [
     "how long does it take to boil an egg", "how long is the movie", "how long is the flight to new york",
     "how many people are there in the world", "how many languages are spoken in india", "how many legs does a spider have",
     "how many bones are in the human body", "do you know who i am", "do you know where i am",
-    "do you know the time in new york", "can you swim?", "can you speak chinese?", "can you tell jokes?",
+    "can you swim?", "can you speak chinese?", "can you tell jokes?",
     "can you make coffee?", "can you do my shopping", "can you send an email", "can you call my mother",
     "can you book a table", "can you find cheap flights", "can you read my messages", "can you watch tv with me",
     "i have an hour free", "half an hour queue", "tea time", "lunch time", "overtime isn't paid", "what a day i've had",
@@ -341,8 +323,7 @@ en = [
     "i'd like to know who won the world cup", "i don't know who wrote the great gatsby",
     "i'm curious why the sea is salty", "i need to know the capital of canada", "i wonder what the word wistful means",
     "i want to know how to say butterfly in spanish", "i'd like to know what the weather will be tomorrow",
-    "i don't know what time it is in new york now", "i need to know the time in london",
-    "i'm curious what time it is in japan", "could you write me a poem about autumn", "i'd like you to tell me a joke",
+    "could you write me a poem about autumn", "i'd like you to tell me a joke",
     "i want you to summarise the book", "can you help me write an email to my landlord",
     "i don't know what to do with my life", "i'd like to know if i should change jobs",
     "i don't know what to get my mum for her birthday", "i need you to remind me to call the doctor",
@@ -359,10 +340,6 @@ en = [
     "how much money do you have", "where were you born", "what colour are your eyes", "what do you eat",
 
     # Near-intent families, several forms of each.
-    "what time is it in lima", "what time is it in bogota", "what time is it in miami", "what time is it in beijing",
-    "what time is it in dubai", "what time is it in cairo", "what's the time in toronto", "time in india",
-    "what time is it in australia right now", "current time in seoul", "what time is it in cuba now",
-    "and in london what time is it", "buenos aires time", "what time do clocks show in korea", "what's the time in denver",
     "what time is it on the west coast", "nap time", "time to get up", "the moment of truth", "dinner time",
     "it's about time", "in no time at all", "i'm on time", "half an hour late", "hours and hours of waiting",
     "i have hours to spare", "time goes slowly", "store opening hours", "daylight saving time", "deadline",

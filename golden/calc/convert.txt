@@ -225,5 +225,20 @@ Given: hint = en
      T: I don't know the unit "stone".            → unhandled · calc.convert · amount=1 from=stone to=kg
      (an unknown unit)
 
+# With remembered units and no target, the target is the counterpart in
+# that system (docs/spec/state.md); a unit already in it is asked about.
+Given: stored units = metric
+Given: hint = none
+[es] U: convierte 10 millas
+     T: 10 mi son ≈ 16,09 km.                     → answered · calc.convert · amount=10 from=mi to=km
+[es] U: convierte 10 km
+     T: ¿A qué unidad?                            → asks · calc.convert · to
+
+Given: stored units = imperial
+Given: hint = en
+[en] U: convert 10 kilometres
+     T: 10 km is ≈ 6.21 mi.                       → answered · calc.convert · amount=10 from=km to=mi
+Given: stored = none
+
 Given: hint = none
 

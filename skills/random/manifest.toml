@@ -32,7 +32,7 @@ help.en = ["roll two dice", "flip a coin", "pick between tea and coffee", "a num
 id = "random.dice"
 priority = 50
 courtesy = false
-command = { es = "/dado", en = "/roll" }
+command = { es = "/dado", en = "/roll", slot = "notation" }
 
   [intent.examples]
   es = ["tira un dado", "2d6", "3d8+2", "lanza dos dados", "tira 4 dados de 6 caras", "tírame un d20", "tira los dados", "tira un dado de 7 caras",
@@ -69,13 +69,17 @@ command = { es = "/dado", en = "/roll" }
     "for the game i need to roll 3d6", "let's see what a d6 gives", "roll a twenty-sided die for me",
     "you do the roll: 2d6", "give me a die result"]
 
+  # A guess (no rule matched) finds them next to these words:
+  # "oye, lanza tres dados", "échame uno de veinte caras".
   [[intent.slot]]
   name = "count"
   type = "number"
+  guess = { before = ["dados", "dice"] }
 
   [[intent.slot]]
   name = "sides"
   type = "number"
+  guess = { before = ["caras", "lados", "sided", "sides", "faces"] }
 
   [[intent.slot]]
   name = "modifier"
@@ -93,6 +97,13 @@ command = { es = "/dado", en = "/roll" }
 
   [[intent.slot]]
   name = "kind"
+  type = "term"
+  internal = true
+
+  # The rest of a `/dado` or `/roll` line, which the handler reads: `2d6`,
+  # `d20`, `3d8+2`, or a bare number of sides (`20`).
+  [[intent.slot]]
+  name = "notation"
   type = "term"
   internal = true
 
@@ -135,6 +146,20 @@ command = { es = "/dado", en = "/roll" }
   [[intent.pattern]]
   lang = "en"
   regex = '^[\s]*(?:please\s+)?(?:roll|throw|toss)\s+(?:a|an|one|1)\s+(?:(?<sides>\w+)[\s-]sided\s+)?(?:die|dice)(?:\s+please)?[\s?.!]*$'
+
+  # The sides said another way: "tira un dado con 20 caras", "lanza un
+  # dado de 20", "roll a die with twenty sides"; and without the verb.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:tira|tirame|lanza|lanzame|echa|echame)\s+)?(?:un|1)\s+dado\s+(?:de|con)\s+(?<sides>\w+)(?:\s+caras)?(?:\s+(?:por\s+favor|porfa))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:(?:roll|throw|toss)\s+)?(?:a|an|one|1)\s+(?:die|dice)\s+with\s+(?<sides>\w+)\s+(?:sides|faces)(?:\s+please)?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:a|an|one|1)\s+(?<sides>\w+)[\s-]sided\s+(?:die|dice)(?:\s+please)?[\s?.!]*$'
 
   # "los dados" / "the dice": two six-sided dice.
   [[intent.pattern]]
@@ -199,6 +224,7 @@ command = { es = "/moneda", en = "/coin", slot = "count" }
   [[intent.slot]]
   name = "count"
   type = "number"
+  guess = { before = ["monedas", "coins"] }
 
   # A call ("yo cara", "I call heads") before the request is ignored.
   [[intent.pattern]]
@@ -279,6 +305,7 @@ command = { es = "/elige", en = "/pick", slot = "options" }
   type = "term"
   required = true
   repeated = true
+  guess = { after = ["entre", "between"] }
 
   # A coin or a die used to decide between named options.
   [[intent.pattern]]

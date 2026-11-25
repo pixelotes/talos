@@ -14,12 +14,15 @@
 //! one a slot declaration names, for a rule capture, a command argument and
 //! the answer to an open question alike. [`time_of_day`],
 //! [`duration_minutes`] and [`date_since`] are for skills that read a
-//! capture themselves (`clock`).
+//! capture themselves (`clock`). [`guess`] finds a slot in a message the
+//! classifier recognised, next to the cue words its manifest declares.
 
 mod answer;
+mod guess;
 mod span;
 
 pub use answer::{choice, choice_value, confirm, language, place};
+pub use guess::guess;
 pub use span::{daterange, datetime, duration};
 
 use crate::civil::{Date, Weekday, days_in_month};

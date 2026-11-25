@@ -23,14 +23,14 @@
 
 # A missing topic is asked for; the next message names it.
 [es] U: cómo se usa
-     T: ¿El qué? Dime de cuál quieres saber, por ejemplo: saludos, identidad, ayuda, reloj, calculadora.
+     T: ¿El qué? Dime de cuál quieres saber, por ejemplo: saludos, identidad, ayuda, reloj, zonas horarias.
                                                   → asks · help.skill · skill
 [es] U: la ayuda
      T: ayuda: ayudarte a usar lo que sé hacer. Prueba: «qué sabes hacer», «cómo funciona la calculadora».
                                                   → answered · help.skill · skill=help
 
 [en] U: how do I use this
-     T: Which one? Tell me what you want to know about, for example: greetings, identity, help, clock, calculator.
+     T: Which one? Tell me what you want to know about, for example: greetings, identity, help, clock, time zones.
                                                   → asks · help.skill · skill
 [en] U: never mind
      T: Okay, dropped.                            → answered · cancelled

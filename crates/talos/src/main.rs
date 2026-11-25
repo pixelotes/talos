@@ -448,13 +448,23 @@ fn main() -> ExitCode {
         seed: options.seed,
         ..Config::default()
     };
-    let engine = match talos_skills::engine(config) {
+    let mut engine = match talos_skills::engine(config) {
         Ok(engine) => engine,
         Err(error) => {
             eprintln!("talos: {error}");
             return ExitCode::from(EXIT_SOFTWARE);
         }
     };
+    // What the user asked to be remembered: the turn commands read and
+    // write it; `eval` and `skills list` never touch it, so a battery's
+    // score does not depend on who ran it.
+    if matches!(
+        command,
+        Command::Ask(..) | Command::Explain(..) | Command::Chat(_) | Command::Serve(..)
+    ) && let Some(warning) = talos::data::attach_user_store(&mut engine)
+    {
+        eprintln!("talos: {warning}");
+    }
     match command {
         Command::Ask(options, text) => one_shot(&engine, options, text, false),
         Command::Explain(options, text) => one_shot(&engine, options, text, true),

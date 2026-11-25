@@ -219,8 +219,11 @@ marked `courtesy` (a greeting, a thanks) may also open or close a message that
 carries a request: when no rule matches the whole message, a courtesy of up to
 four words at either end is dropped if what remains is recognised ("hola, qué
 hora es" is answered as the clock question). A small
-table of user corrections ("when I say X, I mean Y") is consulted here too, so
-teaching Talos a phrase needs no retraining.
+table of user corrections ("when I say X, I mean Y") is consulted here too,
+ahead of the patterns: a message that *is* a taught phrase (after
+normalisation, punctuation at the ends dropped) is that phrase's intent with
+its slots, so teaching Talos a phrase needs no retraining. A phrase never
+stands for an intent that deletes.
 
 **4. Classifier.** Runs only when no rule matched. Character n-grams, words
 and word pairs of the match form, weighted by TF-IDF, into a multinomial
@@ -228,10 +231,14 @@ linear model trained offline from the manifests' examples and an
 out-of-scope corpus (`reflector/out-of-scope.toml`), which is a real class.
 It ranks every class; the top one is accepted only if it is an intent, above
 an absolute threshold (higher for a message of one word) *and* with a margin
-over the runner-up, and never if the intent has side effects (§11). An
-accepted intent is dispatched with no captures, carrying the slots its rules
-fix most often on its examples; a handler that fails without a capture sends
-the turn on to the reflector. The outcome's confidence is the
+over the runner-up, and never if the intent has side effects (§11): such an
+intent is offered to its handler only to ask a yes/no that restates the
+change, and the engine applies nothing changed on a guess without that yes.
+An accepted intent is dispatched with no captures, carrying the slots its
+rules fix most often on its examples, and the slots its manifest says where
+to look for (`guess` cues: the words before or after the value, or the words
+that name it), read by their extractors; a handler that fails without a
+capture sends the turn on to the reflector. The outcome's confidence is the
 accepted probability. Slots are extracted by typed extractors (term, number, date,
 duration, datetime, daterange, place, language, choice, confirm;
 docs/SKILLS.md §3). Model, trainer, file
@@ -301,7 +308,7 @@ and [ADR 0013](adr/0013-external-skills.md).
 |---|---|---|
 | NLU model, compiled rules, skill registry | memory, immutable after start | rebuilt |
 | Dialog state (turn count, language, recent topic, the open question) | memory, per conversation | no |
-| Preferences, taught claims, corrections | `user.db` | yes |
+| Preferences, taught claims, corrections | `user.db` (v0.3); until then preferences and corrections in `user.toml` | yes |
 | Packs | `*.talospack`, read-only | yes |
 | Turn log | off by default; batched when on | optional |
 
@@ -319,6 +326,18 @@ engine's `Config`, with the random seed (default 0).
 
 Nothing is written to disk on an ordinary turn. Writes happen only when the
 user teaches, corrects, or sets a preference.
+
+Until `user.db` exists, what is kept about the user is one small TOML file,
+`user.toml` in the data directory (§10), versioned, holding the
+preferences (name, place, units) and the correction table. The engine keeps
+it in memory and hands every change to a store (`talos_core::user`): the
+front ends' store replaces the file atomically (a temporary file, flushed,
+renamed) and only when a turn's changes differ from what is stored; the
+default store, used by tests, keeps nothing on disk. Handlers never write:
+they ask with `Context::remember`, and the engine applies the change after
+the handler answered. One set per installation: the CLI and every server
+conversation, whatever its API `user`, share it (docs/spec/decisions.md
+ruling 10). Moving to `user.db` is a one-time import of this file.
 
 ## 8. Budgets
 
@@ -348,7 +367,7 @@ candidate dependency:
 | Patterns | `regex` | in use (rules; `unicode-perl` only); `aho-corasick` undecided |
 | Serialisation | `serde`, `toml`, `serde_json` | in use: `serde` + `toml` for manifests, `serde_json` in the binary only |
 | Normalisation | `unicode-normalization` | in use (NFKC and diacritic folding) |
-| Dates and zones | `chrono`, `chrono-tz` | undecided: `Timestamp` and `Date` are own code; zones come with `timezones` |
+| Dates and zones | `chrono`, `chrono-tz`, `jiff` | not used: `Timestamp` and `Date` are own code, and `timezones` carries an in-tree table of IANA rules (measured in [DEVELOPMENT.md](DEVELOPMENT.md#zone-data)) |
 | Outbound HTTP | `ureq` | undecided; behind a `net` feature |
 | Arithmetic | own parser, or `fasteval` | undecided; exact decimals are own code (`Number`) |
 | Chess rules | permissively licensed crate + own search | undecided; no GPL in the binary |
@@ -366,7 +385,8 @@ numbers to show for each place.
 
 ```
 $XDG_CONFIG_HOME/talos/talos.toml
-$XDG_DATA_HOME/talos/
+$XDG_DATA_HOME/talos/             ($TALOS_DATA_DIR overrides it)
+    user.toml        preferences and corrections, until user.db
     user.db
     packs/
     skills/          user-installed manifests and external skills

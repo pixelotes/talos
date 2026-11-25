@@ -110,15 +110,19 @@ ranks every class by probability and accepts the first only if:
 3. it leads the runner-up by at least the **margin** (0.3);
 4. it is not an intent with side effects (`classifier::SIDE_EFFECTS`:
    `teach.assert`, `teach.forget`, `teach.phrase`, `preferences.set`,
-   `preferences.forget`; none is built yet). Those need a rule match or a
-   confirmation (DESIGN.md §11); when manifests can declare effects, the list
-   moves there.
+   `preferences.forget`). Those need a rule match or a confirmation
+   (DESIGN.md §11): a guess of one that passes 1–3 is offered to its handler
+   with `Context::guessed` set, only to ask a yes/no that restates the
+   change, and the engine applies no change made on a guess without that
+   yes. When manifests can declare effects, the list moves there.
 
 An accepted intent is dispatched like a rule's, with no captures. It carries
 the slots its rules fix most often on its own examples, which the trainer
 records per class (today `topic=intro` for `identity.who`, `topic=kind` for
 `identity.nature`, `shape=of` for `calc.percent`), so a handler that relies on
-a fixed slot can answer. A handler that needs a capture answers with its
+a fixed slot can answer, and the slots its manifest's `guess` cues find in
+the message, read by their extractors ("lanza tres dados" has `count=3`;
+SKILLS.md §1). A handler that needs a capture answers with its
 usage hint (`unhandled`, intent kept); one that *fails* without it sends the
 turn on to the reflector instead, as if nothing had been recognised. The outcome's `confidence` is the accepted
 probability (rules give 1.0). The thresholds live in the model file; they

@@ -49,8 +49,35 @@ Given: hint = en
                                                   → unhandled · unknown-command
 
 # A command that takes no argument says so instead of ignoring it.
+[en] U: /fortune please
+     T: The command /fortune takes nothing after it.
+                                                  → unhandled · fortune.tell
+
+# The dice command takes the rest of the line as one free-text argument its
+# handler reads (ADR 0016): notation, or a number of sides. The outcome is
+# the sentence form's ("roll 2d20").
+Given: draw = 3, 20
 [en] U: /roll 2d20
-     T: The command /roll takes nothing after it. → unhandled · random.dice
+     T: 3 and 20: total 23.                       → answered · random.dice · count=2 sides=20
+
+Given: draw = 17
+[en] U: /dado 20
+     T: It came up 17.                            → answered · random.dice · count=1 sides=20
+
+Given: draw = 5
+[en] U: /roll d20
+     T: It came up 5.                             → answered · random.dice · count=1 sides=20
+
+Given: draw = 8, 1, 4
+[en] U: /roll 3d8+2
+     T: 8, 1 and 4, plus 2: total 15.             → answered · random.dice · count=3 modifier=2 sides=8
+
+Given: draw = 6, 2
+[en] U: /roll 2d6-1
+     T: 6 and 2, minus 1: total 7.                → answered · random.dice · count=2 modifier=-1 sides=6
+
+[en] U: /roll three dice
+     T: Try: roll a die, 2d6 or 3d8+2.            → unhandled · random.dice
 
 # A command closes an open question, as an unrelated message would.
 Given: hint = none
@@ -67,7 +94,9 @@ Given: hint = en
         · say who and what I am
         · help you use what I can do (/help)
         · the time, the date and how long until something (/time, /date, /weekday, /until)
+        · the time in other places and time differences (/timein)
         · arithmetic, percentages and unit conversion (/calc)
         · roll dice, flip coins, pick among options and give random numbers (/roll, /coin, /pick, /number)
         · give a saying or a fortune (/fortune)
+        · remember your name, where you live and your units
                                                   → answered · help.capabilities

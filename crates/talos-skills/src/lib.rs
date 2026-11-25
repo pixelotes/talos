@@ -34,9 +34,11 @@ skills! {
     identity::Identity,
     help::Help,
     clock::Clock,
+    timezones::Timezones,
     calc::Calc,
     random::Random,
     fortune::Fortune,
+    preferences::Memory,
 }
 
 /// The embedded manifests as (directory name, TOML text), by directory name.

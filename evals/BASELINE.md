@@ -86,3 +86,23 @@ and 2.5 short of the Spanish one; the gap between languages is zero.
 A classified turn carries no captured values, so a request accepted by the
 classifier is answered with the intent's defaults ("lanza tres dados" rolls
 one die). Counted as correct here, because the battery scores the intent.
+
+## After Slice C (2026-11-25): nine skills
+
+`timezones` and `preferences` are built, so their rows count as built skills
+(250 rows per language, 25 intents). Model retrained; thresholds unchanged
+and still not tuned against the batteries.
+
+| | Spanish | English | Target |
+|---|---|---|---|
+| Intents of the built skills, rules only | 51.2 % | 50.4 % | |
+| The same, rules and classifier | **87.2 %** (218) | **86.8 %** (217) | es ≥ 92 %, en ≥ 95 % |
+| Wrong intent / no intent (of 380 rows) | 11 / 151 | 10 / 153 | |
+| False accepts on the rejection set (99 rows) | 3 (3.0 %) | 2 (2.0 %) | ≤ 3 % |
+| Conversation battery (66 turns): bare catch-all | 15.2 % | 12.1 % | ≤ 15 % by v0.5 |
+
+All false accepts are near misses. The two new skills are the weakest:
+`timezones.difference` 60 % in Spanish, `preferences.set` 70 % in Spanish,
+`preferences.forget` and `preferences.get` 70 % in English. The side-effect
+rule holds `preferences.set` and `preferences.forget` back on purpose: the
+classifier may only offer them for confirmation.

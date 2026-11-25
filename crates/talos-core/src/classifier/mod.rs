@@ -14,7 +14,8 @@
 //! accepted only if it is an intent (not out-of-scope), its probability is
 //! at least the model's threshold (a higher one for a message of very few
 //! words), and it leads the runner-up by at least the model's margin. An intent with side effects is never accepted on
-//! the classifier's word alone ([`SIDE_EFFECTS`]).
+//! the classifier's word alone ([`SIDE_EFFECTS`]): its handler may only ask
+//! the user to confirm.
 //!
 //! A model is refused when the hash of the corpus it was trained on is not
 //! the hash of the engine's own manifests and out-of-scope corpus: the
@@ -43,7 +44,10 @@ pub const OUT_OF_SCOPE: &str = "out-of-scope";
 
 /// Intents whose handlers change something (DESIGN.md section 11). The
 /// classifier never accepts them: they need a rule match or a confirmation.
-/// None is built yet; the list is kept here until manifests can say it.
+/// A guess of one that passes the threshold and the margin is offered to
+/// its handler only to ask the user ([`Verdict::to_confirm`]), and the
+/// engine applies no change made on a guess without a yes. The list is
+/// kept here until manifests can say it.
 pub const SIDE_EFFECTS: &[&str] = &[
     "teach.assert",
     "teach.forget",
@@ -400,16 +404,44 @@ impl Verdict {
     #[must_use]
     pub fn candidates(&self) -> Vec<Candidate> {
         self.accepted()
-            .map(|(intent, _)| Candidate {
-                intent,
-                priority: 0,
-                lang: self.lang,
-                pattern: "classifier".to_owned(),
-                fixed: self.fixed.clone(),
-                captures: Vec::new(),
-            })
+            .map(|(intent, _)| self.candidate(intent))
             .into_iter()
             .collect()
+    }
+
+    /// The top intent when it passed the threshold and the margin but has
+    /// side effects ([`Decision::SideEffects`]): a candidate whose handler
+    /// must ask the user to confirm before it changes anything (DESIGN.md
+    /// section 11). The engine drops any change made on it without a yes.
+    #[must_use]
+    pub fn to_confirm(&self) -> Vec<Candidate> {
+        if self.decision != Decision::SideEffects {
+            return Vec::new();
+        }
+        self.ranked
+            .first()
+            .map(|(top, _)| self.candidate(IntentId(top.clone())))
+            .into_iter()
+            .collect()
+    }
+
+    /// The probability of the top class, accepted or not.
+    #[must_use]
+    pub fn top_probability(&self) -> f32 {
+        #[allow(clippy::cast_possible_truncation, reason = "a probability")]
+        self.ranked.first().map_or(0.0, |(_, p)| *p as f32)
+    }
+
+    fn candidate(&self, intent: IntentId) -> Candidate {
+        Candidate {
+            intent,
+            priority: 0,
+            lang: self.lang,
+            pattern: "classifier".to_owned(),
+            fixed: self.fixed.clone(),
+            captures: Vec::new(),
+            source: crate::rules::Source::Classifier,
+        }
     }
 
     /// The confidence of the accepted intent, 0 when none was.

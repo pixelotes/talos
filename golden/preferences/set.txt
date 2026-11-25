@@ -1,0 +1,152 @@
+# preferences.set (docs/spec/state.md). Written by hand from the spec.
+#
+# Outcome lines list `key` and the value stored; the spec writes them as
+# "key=name, value=Raúl". A place is stored as typed (capitals added): there
+# is no gazetteer yet, so "Valencia, Venezuela" is not resolved to
+# "Valencia (VE)" and an unknown place is not refused.
+
+[es] U: me llamo Raúl
+     T: Mucho gusto, Raúl. Lo recordaré.          → answered · preferences.set · key=name value=Raúl
+
+[es] U: vivo en Sevilla
+     T: Vale, vives en Sevilla.                   → answered · preferences.set · key=place value=Sevilla
+
+[es] U: oye, llámame Rulo
+     T: Hecho, te llamaré Rulo.                   → answered · preferences.set · key=name value=Rulo
+
+[es] U: prefiero unidades métricas
+     T: Anotado: unidades métricas.               → answered · preferences.set · key=units value=metric
+
+[es] U: yo uso millas y fahrenheit, no kilómetros
+     T: Anotado: unidades imperiales.             → answered · preferences.set · key=units value=imperial
+
+# The capitals are added.
+[es] U: mi nombre es ana maría
+     T: Mucho gusto, Ana María. Lo recordaré.     → answered · preferences.set · key=name value=Ana María
+
+[es] U: recuerda que vivo en Madrid
+     T: Vale, vives en Madrid.                    → answered · preferences.set · key=place value=Madrid
+
+[es] U: estoy en Valencia
+     T: Vale, estás en Valencia.                  → answered · preferences.set · key=place value=Valencia
+
+# A greeting before a self-introduction is the dropped prefix
+# (docs/spec/basics.md, smalltalk.greet).
+[es] U: hola, me llamo Raúl
+     T: Mucho gusto, Raúl. Lo recordaré.          → answered · preferences.set · key=name value=Raúl
+
+[es] U: soy Raúl
+     T: Mucho gusto, Raúl. Lo recordaré.          → answered · preferences.set · key=name value=Raúl
+
+# Stored as asked; Talos does not comment on the coincidence.
+[es] U: me llamo Talos
+     T: Mucho gusto, Talos. Lo recordaré.         → answered · preferences.set · key=name value=Talos
+
+Given: hint = en
+[en] U: my name is Sam
+     T: Nice to meet you, Sam. I'll remember that.
+                                                  → answered · preferences.set · key=name value=Sam
+
+[en] U: call me Sammy
+     T: Okay, I'll call you Sammy.                → answered · preferences.set · key=name value=Sammy
+
+[en] U: I live in Bristol
+     T: Got it, you live in Bristol.              → answered · preferences.set · key=place value=Bristol
+
+[en] U: i'm in new york
+     T: Got it, you're in New York.               → answered · preferences.set · key=place value=New York
+
+[en] U: I prefer metric
+     T: Noted: metric units.                      → answered · preferences.set · key=units value=metric
+
+[en] U: use imperial units please
+     T: Noted: imperial units.                    → answered · preferences.set · key=units value=imperial
+
+[en] U: remember that I live in Leeds
+     T: Got it, you live in Leeds.                → answered · preferences.set · key=place value=Leeds
+
+[en] U: set my location to Bristol
+     T: Got it, you're in Bristol.                → answered · preferences.set · key=place value=Bristol
+
+# Quotes are removed; the capitals and punctuation are kept.
+[en] U: my name is "Dr. Sam O'Neil"
+     T: Nice to meet you, Dr. Sam O'Neil. I'll remember that.
+                                                  → answered · preferences.set · key=name value=Dr. Sam O'Neil
+
+# Replacing a value: the new one only.
+Given: hint = none
+Given: stored place = Sevilla
+[es] U: ahora vivo en Barcelona
+     T: Vale, vives en Barcelona.                 → answered · preferences.set · key=place value=Barcelona
+[es] U: ¿dónde vivo?
+     T: Vives en Barcelona.                       → answered · preferences.get · key=place
+
+Given: hint = en
+[en] U: I moved to Edinburgh
+     T: Got it, you're in Edinburgh.              → answered · preferences.set · key=place value=Edinburgh
+
+# With a missing value, Talos asks.
+Given: hint = none
+Given: stored = none
+[es] U: recuerda mi nombre
+     T: ¿Cómo te llamas?                          → asks · preferences.set · value
+[es] U: Raúl
+     T: Mucho gusto, Raúl. Lo recordaré.          → answered · preferences.set · key=name value=Raúl
+
+[es] U: apunta dónde vivo
+     T: ¿Dónde vives?                             → asks · preferences.set · value
+[es] U: en Sevilla
+     T: Vale, vives en Sevilla.                   → answered · preferences.set · key=place value=Sevilla
+
+[es] U: configura mis unidades
+     T: ¿Métricas o imperiales?                   → asks · preferences.set · value
+[es] U: las métricas
+     T: Anotado: unidades métricas.               → answered · preferences.set · key=units value=metric
+
+# Cancelled: nothing is stored.
+[es] U: recuerda mi ciudad
+     T: ¿En qué ciudad vives?                     → asks · preferences.set · value
+[es] U: déjalo
+     T: Vale, lo dejo.                            → answered · cancelled
+[es] U: ¿qué sabes de mí?
+     T: Todavía no sé nada de ti.                 → answered · preferences.get · key=all
+
+Given: hint = en
+[en] U: remember my name
+     T: What's your name?                         → asks · preferences.set · value
+[en] U: it's Sam
+     T: Nice to meet you, Sam. I'll remember that.
+                                                  → answered · preferences.set · key=name value=Sam
+
+[en] U: set my units
+     T: Metric or imperial?                       → asks · preferences.set · value
+[en] U: metric
+     T: Noted: metric units.                      → answered · preferences.set · key=units value=metric
+
+[en] U: my name is
+     T: What's your name?                         → asks · preferences.set · value
+[en] U: never mind
+     T: Okay, dropped.                            → answered · cancelled
+
+# A country with several time zones: which city (conversation.md 2.4).
+Given: hint = none
+[es] U: vivo en Estados Unidos
+     T: ¿En qué ciudad? Hay varios husos horarios.
+                                                  → asks · preferences.set · value
+[es] U: Chicago
+     T: Vale, vives en Chicago.                   → answered · preferences.set · key=place value=Chicago
+
+# Not a preference: an origin, or "soy" before something that is not a
+# name. Nothing is stored; the reflector's S5 takes them.
+[es] U: soy de Sevilla
+     T: De Sevilla, entonces.                     → deflected · self
+[es] U: ¿qué sabes de mí?
+     T: Todavía no sé nada de ti.                 → answered · preferences.get · key=all
+
+[es] U: soy muy pesado
+     T: Muy pesado, entonces.                     → deflected · self
+
+# Anything but name, place and units is refused, and not stored.
+[es] U: recuerda que mi color favorito es el rojo
+     T: Solo recuerdo tu nombre, tu lugar y tus unidades.
+                                                  → unhandled · preferences.set · key=other

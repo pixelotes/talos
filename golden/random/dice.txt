@@ -116,6 +116,37 @@ Given: draw = 1
 [en] U: please roll a six-sided die
      T: It came up 1.                             → answered · random.dice · count=1 sides=6
 
+# The sides in words or digits, said either way, by rules: the number of
+# sides must be captured.
+Given: draw = 17
+[en] U: roll a twenty sided die
+     T: It came up 17.                            → answered · random.dice · count=1 sides=20
+
+Given: draw = 3
+[en] U: roll a die with 20 sides
+     T: It came up 3.                             → answered · random.dice · count=1 sides=20
+
+Given: draw = 11
+[en] U: roll a die with twenty sides
+     T: It came up 11.                            → answered · random.dice · count=1 sides=20
+
+Given: draw = 9
+[en] U: a twelve-sided die
+     T: It came up 9.                             → answered · random.dice · count=1 sides=12
+
+Given: hint = none
+Given: draw = 20
+[es] U: tira un dado con veinte caras
+     T: Ha salido un 20.                          → answered · random.dice · count=1 sides=20
+
+Given: draw = 2
+[es] U: lanza un dado de 20
+     T: Ha salido un 2.                           → answered · random.dice · count=1 sides=20
+
+Given: draw = 5
+[es] U: un dado de doce caras
+     T: Ha salido un 5.                           → answered · random.dice · count=1 sides=12
+
 # Not a roll: a game, not specified yet.
 
 Given: hint = none

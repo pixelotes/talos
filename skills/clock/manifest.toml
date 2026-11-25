@@ -95,7 +95,7 @@ command = { es = "/hora", en = "/time" }
   # formato…" is never read as a duration.
   [[intent.pattern]]
   lang = "es"
-  regex = '^[¿¡\s]*(?:y )?(?:que|k|q) hora (?:es|sera|seria)(?: (?:aqui|ahora|ahora mismo|ya))?(?: en formato de (?<format>12|24) horas)?(?: (?<offset>dentro de .+?|en \d.*?))?(?:,? por favor| porfa| porfi)?[\s?.!]*$'
+  regex = '^[¿¡\s]*(?:y )?(?:que|k|q) hora (?:es|sera|seria)(?: (?:aqui|ahora|ahora mismo|ya|en este momento|en este instante))?(?: en formato de (?<format>12|24) horas)?(?: (?<offset>dentro de .+?|en \d.*?))?(?:,? por favor| porfa| porfi)?[\s?.!]*$'
 
   # "me dices la hora", "tienes hora", "dime la hora porfa", "hora".
   [[intent.pattern]]

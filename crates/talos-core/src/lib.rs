@@ -33,6 +33,7 @@ mod safety;
 pub mod skill;
 mod state;
 mod turn;
+pub mod user;
 mod value;
 
 pub use civil::{Date, Weekday};
@@ -44,9 +45,10 @@ pub use outcome::{IntentId, Outcome, Reason, Status, Trace, TraceStep};
 pub use random::{Coin, Draw, Random};
 pub use safety::{DEFAULT_EMERGENCY, Emergency, SPAIN};
 pub use skill::{
-    Call, Choice, Context, Expectation, Expects, Message, Preferences, Registration, Skill,
-    SkillError, SkillResult,
+    Call, Choice, Context, Expectation, Expects, Message, PreferenceChange, Preferences,
+    Registration, Skill, SkillError, SkillResult, Units,
 };
 pub use state::ConversationState;
 pub use turn::{ConvId, Place, Timestamp, Turn};
+pub use user::{Correction, FileStore, MemoryStore, UserData, UserStore};
 pub use value::{Number, PlaceRef, Problem, SlotType, Slots, Value};

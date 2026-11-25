@@ -14,9 +14,11 @@
         · decir quién y qué soy
         · ayudarte a usar lo que sé hacer (/ayuda)
         · la hora, la fecha y cuánto falta para algo (/hora, /fecha, /diasemana, /falta)
+        · la hora en otros lugares y la diferencia horaria (/horaen)
         · cuentas, porcentajes y conversiones de unidades (/calc)
         · tirar dados y monedas, elegir entre opciones y dar números al azar (/dado, /moneda, /elige, /numero)
         · decir un refrán o una frase de la suerte (/refran)
+        · recordar tu nombre, dónde vives y tus unidades
                                                   → answered · help.capabilities
 
 [en] U: what can you do?
@@ -25,9 +27,11 @@
         · say who and what I am
         · help you use what I can do (/help)
         · the time, the date and how long until something (/time, /date, /weekday, /until)
+        · the time in other places and time differences (/timein)
         · arithmetic, percentages and unit conversion (/calc)
         · roll dice, flip coins, pick among options and give random numbers (/roll, /coin, /pick, /number)
         · give a saying or a fortune (/fortune)
+        · remember your name, where you live and your units
                                                   → answered · help.capabilities
 
 # Not a help request: generation is always unhandled.
