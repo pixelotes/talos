@@ -26,8 +26,47 @@ courtesy = false
 command = { es = "/calc", en = "/calc", slot = "expression" }
 
   [intent.examples]
-  es = ["cuánto es 2+2", "(3 + 4) * 5", "tres por cuatro", "calcula 2 + 3 * 4", "raíz cuadrada de 144", "2 elevado a 10", "cuánto da 10 entre 4"]
-  en = ["what's 12 times 12", "7 + 8 * 2", "three times four", "100 divided by 8", "sqrt(81)", "2 to the power of 8", "what is 9 squared"]
+  es = ["cuánto es 2+2", "(3 + 4) * 5", "tres por cuatro", "calcula 2 + 3 * 4", "raíz cuadrada de 144", "2 elevado a 10", "cuánto da 10 entre 4",
+    "cuánto son 3 más 5", "cuánto es siete por ocho", "suma 12 y 30", "resta 100 menos 37",
+    "multiplica 6 por 7", "divide 144 entre 12", "cuánto da 15 por 4", "calcula 25 al cuadrado",
+    "la raíz cuadrada de 81", "raíz cúbica de 27", "2 elevado al cubo", "cuánto es 3 elevado a 4",
+    "(12 + 8) / 4", "45*3", "100/7", "1000 - 1", "suma 15 más 20 más 35", "qué resultado da 9 por 9",
+    "me calculas 123 por 456", "hazme la cuenta de 300 entre 6", "opera 2+2*2", "cuánto da 50 menos 8",
+    "dime cuánto es 17 por 3", "cuánto es 10 dividido entre 3", "8 por 8", "cuanto es 2 mas 2",
+    "doce por doce", "mil entre cuatro", "cuánto es cien menos uno", "cinco más cinco", "calcula (5+3)*2",
+    "resultado de 7*6", "3^5", "9 al cubo", "cuánto suman 40 y 60", "réstale 15 a 90", "cuánto es 2,5 por 4",
+    "cuánto es 6 por 9?", "cuánto son 25 más 17", "dime cuánto es 81 entre 9", "cuánto da 1000 menos 250",
+    "calcula 15 + 27", "calcula 3 por 14", "suma 8 y 13", "multiplica 12 por 11", "resta 9 a 50",
+    "divide 90 entre 3", "cuánto es la raíz de 49", "cuánto es 4 al cuadrado", "cuánto es 2 a la décima",
+    "operación: 5 * (3 + 2)", "cuánto es 7 + 8 * 2", "cuánto da 64 dividido por 8", "dos más dos",
+    "tres por siete", "veinte entre cinco", "cien más cincuenta", "cuántas son 12 por 12",
+    "cuánto es 0,5 por 8", "hazme esta cuenta: 45 + 55", "me sumas 300 y 450", "y 5 por 5?",
+    "cuánto es 1/3 + 1/6",
+    "me gustaría saber cuánto es 12 por 15", "no sé cuánto da 345 más 678", "cuanto es 8 x 7",
+    "cuanto es 9 por 6", "kuanto es 3 mas 4", "necesito saber cuánto son 250 entre 5",
+    "me ayudas con una cuenta: 17 por 23", "a ver, ¿cuánto suman 125 y 375?",
+    "si multiplico 13 por 4, ¿qué sale?", "tengo que dividir 1200 entre 8, ¿cuánto es?",
+    "me haces una resta: 500 menos 123", "cuánto es 2 elevado a 5"]
+  en = ["what's 12 times 12", "7 + 8 * 2", "three times four", "100 divided by 8", "sqrt(81)", "2 to the power of 8", "what is 9 squared",
+    "what's 3 plus 5", "how much is seven times eight", "add 12 and 30", "subtract 37 from 100",
+    "multiply 6 by 7", "divide 144 by 12", "what is 15 times 4", "calculate 25 squared", "square root of 81",
+    "cube root of 27", "2 cubed", "3 to the 4th power", "(12 + 8) / 4", "45*3", "100/7", "1000 - 1",
+    "what do you get if you add 15 and 20", "compute 123 times 456", "work out 300 divided by 6",
+    "evaluate 2+2*2", "how much is 50 minus 8", "tell me what 17 times 3 is", "10 divided by 3",
+    "eight times eight", "twelve times twelve", "a thousand divided by four", "what's a hundred minus one",
+    "five plus five", "calc (5+3)*2", "result of 7*6", "3^5", "9 cubed", "what is 2 plus 2",
+    "sum of 40 and 60", "what's 2.5 times 4", "15 minus 4 plus 2",
+    "what's 6 times 9?", "what's 25 plus 17", "what's 81 divided by 9", "1000 minus 250",
+    "calculate 15 + 27", "calculate 3 times 14", "add 8 and 13", "multiply 12 by 11", "take 9 away from 50",
+    "divide 90 by 3", "what's the square root of 49", "what's 4 squared", "what's 2 to the 10th",
+    "5 * (3 + 2)", "what is 7 + 8 * 2", "64 divided by 8", "two plus two", "three times seven",
+    "twenty divided by five", "a hundred plus fifty", "what does 12 times 12 make", "what's 0.5 times 8",
+    "do this sum: 45 + 55", "can you add 300 and 450", "and 5 times 5?", "what's 1/3 + 1/6",
+    "i'd like to know what 12 times 15 is", "i'm not sure what 345 plus 678 is", "wats 8 x 7",
+    "what is 9 times 6", "whats 3 plus 4", "i need to know what 250 divided by 5 is",
+    "help me with a sum: 17 times 23", "so what do 125 and 375 add up to?",
+    "if i multiply 13 by 4, what do i get?", "i need to divide 1200 by 8, what is it?",
+    "can you do a subtraction: 500 minus 123", "what's 2 to the power of 5"]
 
   [[intent.slot]]
   name = "expression"
@@ -63,8 +102,53 @@ priority = 70
 courtesy = false
 
   [intent.examples]
-  es = ["el 15% de 80", "qué porcentaje es 20 de 50", "80 más un 15%", "50 euros con un 20% de descuento", "de 50 a 65 cuánto ha subido en porcentaje", "20 es el 40% de qué número", "la propina del 10% de 45"]
-  en = ["what is 15% of 80", "what percent is 20 of 50", "increase 80 by 15%", "$50 with 20% off", "percent change from 50 to 65", "20 is 40% of what", "20% tip on 45"]
+  es = ["el 15% de 80", "qué porcentaje es 20 de 50", "80 más un 15%", "50 euros con un 20% de descuento", "de 50 a 65 cuánto ha subido en porcentaje", "20 es el 40% de qué número", "la propina del 10% de 45",
+    "cuánto es el 20% de 150", "el 10 por ciento de 300", "qué porcentaje de 80 es 20",
+    "cuánto es un 7% de 1200", "calcula el 15% de 60", "50 con un 10% de descuento",
+    "precio de 80 euros con 25% de rebaja", "súmale el 21% de iva a 100", "200 menos un 15%",
+    "sube 50 un 10%", "baja 90 un 20%", "cuánto ha subido en porcentaje de 40 a 50",
+    "cuál es el aumento porcentual de 200 a 250", "de 80 a 60 cuánto baja en porcentaje",
+    "30 es el 20% de qué número", "si 15 es el 30%, cuál es el total", "propina del 15% sobre 60",
+    "cuánto dejo de propina si es el 10% de 35", "qué tanto por ciento es 45 de 180", "el 3% de 2000",
+    "cuánto es el 50 por ciento de 75", "porcentaje de 12 sobre 48", "descuento del 30% sobre 120 euros",
+    "un 5% de interés sobre 1000", "cuánto es el iva del 21% de 50", "qué porcentaje representa 25 de 200",
+    "el 12,5% de 80", "incrementa 300 un 8%", "rebaja del 40% en 70 euros", "cuál es el 75% de 40",
+    "a cuánto se queda 60 con un 15% menos", "qué % es 9 de 36",
+    "cuánto es el 15 por ciento de 200", "el 25% de 80?", "qué es el 40% de 60", "cuánto es un 10% de 45",
+    "precio con descuento: 120 menos el 20%", "cuánto me queda si a 500 le quito un 30%", "50 + 10%",
+    "añade un 15% a 200", "cuánto es 1000 más el 4%", "qué porcentaje es 30 sobre 120",
+    "qué porcentaje de 50 es 10", "cuánto ha bajado en porcentaje de 100 a 75",
+    "variación porcentual de 30 a 45", "40 es el 80% de cuánto", "propina del 20% de 30 euros",
+    "cuánto es la propina del 12% sobre 80", "el 7,5% de 400", "dos por ciento de 1500",
+    "cuánto es el iva de 200 al 21%",
+    "me gustaría saber cuánto es el 15% de 300", "no sé cuánto es un 20% de 85", "cuanto es el 10% de 50",
+    "kuanto es el 30 por ciento de 90", "necesito saber cuánto me descuentan si es un 25% de 60",
+    "me haces un porcentaje: el 8% de 250", "si algo cuesta 40 y le quitan un 10%, ¿cuánto se queda?",
+    "quiero saber qué porcentaje es 18 de 72", "cuánto he ahorrado en porcentaje si pasé de 100 a 80",
+    "cuánta propina dejo si quiero dar un 10% de 52", "cuánto es el 20 por cien de 45",
+    "el 6 por ciento de 350?"]
+  en = ["what is 15% of 80", "what percent is 20 of 50", "increase 80 by 15%", "$50 with 20% off", "percent change from 50 to 65", "20 is 40% of what", "20% tip on 45",
+    "what's 20% of 150", "10 percent of 300", "what percentage of 80 is 20", "how much is 7% of 1200",
+    "calculate 15% of 60", "50 with 10% off", "$80 at 25% discount", "add 21% vat to 100", "100 plus 8% tax",
+    "200 minus 15%", "raise 50 by 10%", "decrease 90 by 20%", "percentage increase from 40 to 50",
+    "what's the percent change from 200 to 250", "from 80 to 60 what percent decrease",
+    "30 is 20% of what number", "if 15 is 30%, what's the total", "15% tip on 60",
+    "tip of 18 percent on $45", "what percent is 45 of 180", "3% of 2000", "0.5% of 1000",
+    "12 out of 48 as a percentage", "30% discount on 120", "5% interest on 1000",
+    "what is 12.5 percent of 80", "increase 300 by 8 percent", "40% off 70 dollars",
+    "what's 75 percent of 40", "how much is 20% off of 60", "what percentage is 3 of 4",
+    "take 15 percent off 200",
+    "what's 15 percent of 200", "25% of 80?", "what is 40% of 60", "how much is 10% of 45",
+    "price after discount: 120 minus 20%", "what's left if i take 30% off 500", "50 + 10%", "add 15% to 200",
+    "what's 1000 plus 4%", "what percentage is 30 of 120", "what percent of 50 is 10",
+    "how much did it drop in percent from 100 to 75", "percent change from 30 to 45", "40 is 80% of what",
+    "20% tip on 30 dollars", "what's a 12% tip on 80", "7.5% of 400", "two percent of 1500",
+    "what's the tax on 200 at 21%",
+    "i'd like to know what 15% of 300 is", "i'm not sure what 20% of 85 is", "whats 10% of 50",
+    "what's 30 percent of 90", "i need to know how much i save with 25% off 60",
+    "can you do a percentage: 8% of 250", "if something costs 40 and it's 10% off, how much is it?",
+    "i want to know what percent 18 is of 72", "how much did i save in percent going from 100 to 80",
+    "how much should i tip if i want to leave 10% of 52", "what's 20 per cent of 45", "6 percent of 350?"]
 
   [[intent.slot]]
   name = "percent"
@@ -266,8 +350,56 @@ priority = 60
 courtesy = false
 
   [intent.examples]
-  es = ["5 km a millas", "convierte 100 grados fahrenheit a celsius", "cuántos litros son 3 galones", "pasa 2 GB a MB", "cuántos segundos hay en una hora", "una libra en gramos", "100 km/h en mph"]
-  en = ["convert 10 miles to km", "72 F to C", "how many ounces in a pound", "5 feet in cm", "3 gallons in liters", "how many seconds in a day", "60 mph to km/h"]
+  es = ["5 km a millas", "convierte 100 grados fahrenheit a celsius", "cuántos litros son 3 galones", "pasa 2 GB a MB", "cuántos segundos hay en una hora", "una libra en gramos", "100 km/h en mph",
+    "convierte 10 km a millas", "cuántos metros son 3 millas", "cuántas libras son 5 kilos",
+    "pasa 30 grados a fahrenheit", "cuántos grados celsius son 100 fahrenheit",
+    "cuántos centímetros tiene un pie", "cuántas pulgadas son 30 cm", "cuántos gramos tiene una onza",
+    "convierte 2 litros a galones", "cuántos mililitros son 3 onzas líquidas", "cuántos minutos son 3 horas",
+    "cuántas horas tiene una semana", "cuántos días son 6 semanas", "cuántos megas son 3 gigas",
+    "1 tb en gb", "500 mb a gb", "cuántos kb son 2 mb", "100 mph a km/h",
+    "60 km por hora en metros por segundo", "cuántos nudos son 50 km/h", "5 toneladas en kilos",
+    "200 gramos a onzas", "1,80 metros en pies", "cuánto es una milla en kilómetros",
+    "10 grados bajo cero en fahrenheit", "cuántos kelvin son 25 grados", "3 yardas a metros",
+    "cuántos segundos tiene un día", "100 euros en dólares", "cuántos metros cuadrados son 2 hectáreas",
+    "pásame 5 kilómetros a metros", "6 pies a centímetros", "cuántos litros son 2 galones",
+    "70 kilos en libras", "de celsius a fahrenheit 37 grados",
+    "cuántos km son 10 millas", "convierte 5 millas a kilómetros", "cuánto son 20 grados en fahrenheit",
+    "68 fahrenheit cuántos grados son", "cuántos centímetros son 5 pulgadas", "cuántos metros son 100 pies",
+    "cuántos kilos son 150 libras", "cuántos gramos son 3 onzas", "cuántos litros son 64 onzas",
+    "cuántos segundos son 2 horas", "cuántos minutos tiene un día", "cuántas semanas son 100 días",
+    "cuántos bytes tiene un kilobyte", "cuántos gigas son 2 teras", "cuántos mb son 1,5 gb",
+    "pasa 120 km/h a millas por hora", "cuántos metros por segundo son 36 km/h", "convierte 1 kg a libras",
+    "a cuántas libras equivalen 10 kilos", "en kilómetros, ¿cuánto es una milla náutica?",
+    "pásame 3 tazas a mililitros", "un año en días", "cuántos meses son 3 años", "de libras a kilos: 200",
+    "me gustaría saber cuántos kilómetros son 26 millas", "no sé cuántas libras son 3 kilos",
+    "cuantos centimetros son 12 pulgadas", "cuantos grados fahrenheit son 40 celsius",
+    "kuantos metros son 10 pies", "necesito pasar 5 galones a litros", "me conviertes 180 libras a kilos?",
+    "a cuánto equivalen 2 millas en metros", "si son 25 grados, ¿cuántos fahrenheit son?",
+    "quiero saber cuántos minutos son 4 horas y media", "cuántos gigas son 4096 megas",
+    "a cuántos km/h van 60 millas por hora"]
+  en = ["convert 10 miles to km", "72 F to C", "how many ounces in a pound", "5 feet in cm", "3 gallons in liters", "how many seconds in a day", "60 mph to km/h",
+    "convert 10 km to miles", "how many meters in 3 miles", "how many pounds is 5 kg",
+    "30 celsius in fahrenheit", "100 fahrenheit to celsius", "how many centimeters in a foot",
+    "30 cm in inches", "how many grams in an ounce", "2 liters to gallons", "how many ml in 3 fl oz",
+    "how many minutes in 3 hours", "how many hours are in a week", "6 weeks in days", "3 gb to mb",
+    "1 tb in gb", "500 mb to gb", "2 mb in kb", "100 mph to km/h", "60 kmh in m/s", "50 km/h in knots",
+    "5 tonnes in kg", "200 g to oz", "6 feet in meters", "what's a mile in kilometers", "minus 10 c in f",
+    "25 degrees celsius in kelvin", "3 yards to meters", "how many seconds are there in a week",
+    "100 euros in dollars", "2 acres in square meters", "turn 5 kilometers into meters",
+    "how many liters in 2 gallons", "convert 70 kilos to pounds", "what is 98.6 f in celsius",
+    "how many km is 10 miles", "convert 5 miles to kilometers", "what's 20 degrees in fahrenheit",
+    "68 fahrenheit in celsius", "how many centimeters is 5 inches", "how many meters is 100 feet",
+    "how many kilos is 150 pounds", "how many grams is 3 ounces", "how many liters is 64 ounces",
+    "how many seconds in 2 hours", "how many minutes in a day", "how many weeks is 100 days",
+    "how many bytes in a kilobyte", "how many gigabytes in 2 terabytes", "1.5 gb in mb", "120 km/h in mph",
+    "36 km/h in meters per second", "convert 1 kg to pounds", "10 kilos in lbs", "a nautical mile in km",
+    "3 cups in ml", "a year in days", "how many months in 3 years", "pounds to kilos: 200",
+    "i'd like to know how many kilometers 26 miles is", "i'm not sure how many pounds 3 kilos is",
+    "how many centimetres is 12 inches", "wat is 40 c in f", "how many metres is 10 feet",
+    "i need to turn 5 gallons into liters", "can you convert 180 pounds to kilos?",
+    "what's 2 miles in meters", "if it's 25 degrees celsius, what is that in fahrenheit?",
+    "i want to know how many minutes are in 4.5 hours", "how many gb is 4096 mb",
+    "how fast is 60 mph in km/h"]
 
   [[intent.slot]]
   name = "amount"

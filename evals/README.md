@@ -146,6 +146,14 @@ the phrase *is*, never by whether the store happens to know the word.
   whose status (`deflected` / `unhandled` / `answered`) matches, in addition to
   the false-accept rate.
 
+`talos eval` (`--json` for the machine form) reports these per language twice,
+with rules only and with rules plus the classifier: intent accuracy over all
+rows and over the rows of built skills, wrong intents apart from missed ones,
+false accepts by kind, status accuracy on the rejection set, the conversation
+battery's catch-all and unexpected-unhandled rates, and accuracy per intent.
+It prints counts only, never a phrase. Tags and conversation pass rate are not
+reported yet.
+
 Do not tune thresholds on one file and report on the same file only; keep a
 record of what was tuned against, and prefer reporting after any tuning on
 fresh additions.

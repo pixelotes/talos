@@ -188,6 +188,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "talos-train"
+version = "0.0.0"
+dependencies = [
+ "talos-core",
+ "talos-skills",
+]
+
+[[package]]
 name = "tinyvec"
 version = "1.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -20,7 +20,7 @@ decision that changes gets a new record that supersedes the old one.
 | [0010](0010-one-binary-three-front-ends.md) | One binary, three front ends, an OpenAI-compatible server | Accepted |
 | [0011](0011-bilingual-by-construction.md) | Bilingual by construction | Accepted |
 | [0012](0012-no-language-model.md) | No language model in the answer path | Accepted |
-| [0013](0013-external-skills.md) | External skills, out of process | Accepted |
+| [0013](0013-external-skills.md) | External skills, out of process | Accepted; deferred until after 1.0 |
 | [0014](0014-mit-licence.md) | MIT licence | Accepted |
 | [0015](0015-language-detection.md) | Language detection: unambiguous words first, a two-class classifier second | Accepted |
 | [0016](0016-command-shortcuts.md) | Command shortcuts are part of the engine | Accepted |

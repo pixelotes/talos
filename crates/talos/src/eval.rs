@@ -1,19 +1,23 @@
-//! `talos eval`: runs the intent batteries of `evals/` (format in
-//! `evals/README.md`) through the engine as it is, rules only, and reports
-//! per language the intent accuracy and the false-accept rate of the
-//! rejection set. A baseline, not a gate: the command exits 0 whatever the
-//! scores.
+//! `talos eval`: runs the batteries of `evals/` (format in
+//! `evals/README.md`) through two engines, rules only and rules plus the
+//! classifier, and reports per language: intent accuracy over all rows and
+//! over the rows of built skills, wrong intents apart from missed ones, the
+//! false-accept rate of the rejection set by kind, the catch-all rate of
+//! the conversation battery, and accuracy per intent. A report, not a
+//! gate: the command exits 0 whatever the scores.
 //!
-//! Every row is a fresh single-turn conversation, with the row's language
-//! as the caller's hint. The phrases are a test set: never copy them into a
-//! manifest or a script (evals/README.md, independence rule).
+//! Every intent and reject row is a fresh single-turn conversation with the
+//! row's language as the caller's hint; a conversation runs its turns in
+//! one conversation, also with the hint. Only counts are printed, never a
+//! phrase: the batteries are a test set (evals/README.md, independence
+//! rule), and nothing here may help copy them into a manifest.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::Path;
 
 use serde_json::{Value as Json, json};
-use talos_core::{ConvId, Engine, Lang, Status, Timestamp, Turn};
+use talos_core::{ConvId, Engine, Lang, Reason, Status, Timestamp, Turn};
 
 /// The languages of the batteries, in report order.
 const LANGS: [Lang; 2] = [Lang::Es, Lang::En];
@@ -50,7 +54,25 @@ pub(crate) struct Count {
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct IntentScore {
     pub(crate) total: Count,
+    /// Rows recognised as another intent.
+    pub(crate) confused: usize,
+    /// Rows recognised as no intent.
+    pub(crate) missed: usize,
     pub(crate) per_intent: BTreeMap<String, Count>,
+}
+
+impl IntentScore {
+    /// The rows whose label belongs to one of `skills`.
+    pub(crate) fn built(&self, skills: &BTreeSet<String>) -> Count {
+        let mut count = Count::default();
+        for (intent, c) in &self.per_intent {
+            if skills.contains(intent.split('.').next().unwrap_or_default()) {
+                count.rows += c.rows;
+                count.hits += c.hits;
+            }
+        }
+        count
+    }
 }
 
 /// The rejection set of one language.
@@ -65,12 +87,45 @@ pub(crate) struct RejectScore {
     pub(crate) by_kind: BTreeMap<String, Count>,
 }
 
-/// Both batteries of one language.
+/// The conversation battery of one language.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ConversationScore {
+    /// Conversations run (those with a `given` are skipped).
+    pub(crate) conversations: usize,
+    pub(crate) turns: usize,
+    /// Turns ending in the bare catch-all (`unhandled · catch-all`).
+    pub(crate) catch_all: usize,
+    /// Turns ending `unhandled` that the battery did not expect to.
+    pub(crate) unexpected_unhandled: usize,
+    /// Turns whose status is the one the battery expects.
+    pub(crate) status_correct: usize,
+}
+
+/// What one engine scored on one language.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct Scores {
+    pub(crate) intents: IntentScore,
+    pub(crate) reject: RejectScore,
+    /// `None` when the language has no conversation battery.
+    pub(crate) conversations: Option<ConversationScore>,
+}
+
+/// One language: rules only, and rules with the classifier.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct LangReport {
     pub(crate) lang: Lang,
-    pub(crate) intents: IntentScore,
-    pub(crate) reject: RejectScore,
+    pub(crate) rules: Scores,
+    pub(crate) classifier: Scores,
+}
+
+/// The whole report.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct Report {
+    /// The installed skills, whose intents are "built".
+    pub(crate) skills: BTreeSet<String>,
+    /// The intent model, or why there is none.
+    pub(crate) model: String,
+    pub(crate) languages: Vec<LangReport>,
 }
 
 fn field<'a>(object: &'a Json, name: &str) -> Option<&'a str> {
@@ -113,13 +168,18 @@ pub(crate) fn score_intents(rows: &[Row], mut run: impl FnMut(&Row) -> Observed)
     let mut score = IntentScore::default();
     for row in rows {
         let label = row.intent.clone().unwrap_or_default();
-        let hit = run(row).intent.as_deref() == Some(label.as_str());
+        let observed = run(row).intent;
+        let hit = observed.as_deref() == Some(label.as_str());
         score.total.rows += 1;
         let entry = score.per_intent.entry(label).or_default();
         entry.rows += 1;
         if hit {
             score.total.hits += 1;
             entry.hits += 1;
+        } else if observed.is_some() {
+            score.confused += 1;
+        } else {
+            score.missed += 1;
         }
     }
     score
@@ -149,25 +209,56 @@ pub(crate) fn score_reject(rows: &[Row], mut run: impl FnMut(&Row) -> Observed) 
     score
 }
 
-/// Reads `intents.<lang>.jsonl` and `reject.<lang>.jsonl` from `dir`.
-///
-/// # Errors
-///
-/// A file that cannot be read or parsed.
-pub(crate) fn load(dir: &Path, lang: Lang) -> Result<(Vec<Row>, Vec<Row>), String> {
-    let read = |name: &str| -> Result<Vec<Row>, String> {
-        let path = dir.join(format!("{name}.{lang}.jsonl"));
-        let text =
-            std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        parse_rows(&text, &path.display().to_string())
-    };
-    Ok((read("intents")?, read("reject")?))
-}
-
 /// The fixed instant of every row: 2027-03-14 18:42 in UTC+1, as the golden
 /// files', so that a run does not depend on the clock.
 fn fixed_now() -> Timestamp {
     Timestamp::from_unix(1_805_046_120).with_utc_offset(3_600)
+}
+
+/// Runs the conversation battery's text through an engine. Conversations
+/// with a `given` (knowledge in the store) are skipped, as in
+/// `tests/conversations.rs`.
+///
+/// # Errors
+///
+/// A line that is not a conversation.
+pub(crate) fn score_conversations(
+    engine: &Engine,
+    text: &str,
+    lang: Lang,
+) -> Result<ConversationScore, String> {
+    let mut score = ConversationScore::default();
+    for (n, line) in text.lines().filter(|l| !l.trim().is_empty()).enumerate() {
+        let conversation: Json = serde_json::from_str(line)
+            .map_err(|e| format!("conversations.{lang}.jsonl:{}: {e}", n + 1))?;
+        if conversation.get("given").is_some() {
+            continue;
+        }
+        score.conversations += 1;
+        let id = ConvId::new(format!("eval-{lang}-c{n}"));
+        let turns = conversation
+            .get("turns")
+            .and_then(Json::as_array)
+            .ok_or_else(|| format!("conversations.{lang}.jsonl:{}: no `turns`", n + 1))?;
+        for t in turns {
+            let user = field(t, "user").unwrap_or_default();
+            let expected = t.get("expect").and_then(|e| field(e, "status"));
+            let outcome =
+                engine.respond(Turn::new(user, id.clone(), fixed_now()).with_lang(Some(lang)));
+            score.turns += 1;
+            if outcome.intent.is_none() && outcome.reason == Some(Reason::CATCH_ALL) {
+                score.catch_all += 1;
+            }
+            if outcome.status == Status::Unhandled && expected != Some("unhandled") {
+                score.unexpected_unhandled += 1;
+            }
+            if expected == Some(outcome.status.as_str()) {
+                score.status_correct += 1;
+            }
+        }
+        engine.end(&id);
+    }
+    Ok(score)
 }
 
 /// One row as a fresh single-turn conversation with the row's language as
@@ -184,23 +275,75 @@ fn observe(engine: &Engine, row: &Row) -> Observed {
     }
 }
 
-/// Runs the batteries of `dir` for both languages.
+fn read(dir: &Path, name: &str, lang: Lang) -> Result<Option<String>, String> {
+    let path = dir.join(format!("{name}.{lang}.jsonl"));
+    match std::fs::read_to_string(&path) {
+        Ok(text) => Ok(Some(text)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound && name == "conversations" => Ok(None),
+        Err(e) => Err(format!("{}: {e}", path.display())),
+    }
+}
+
+fn scores(
+    engine: &Engine,
+    intents: &[Row],
+    reject: &[Row],
+    conversations: Option<&str>,
+    lang: Lang,
+) -> Result<Scores, String> {
+    Ok(Scores {
+        intents: score_intents(intents, |r| observe(engine, r)),
+        reject: score_reject(reject, |r| observe(engine, r)),
+        conversations: conversations
+            .map(|text| score_conversations(engine, text, lang))
+            .transpose()?,
+    })
+}
+
+/// Runs the batteries of `dir` for both languages through both engines:
+/// `classified` (rules and classifier) and `rules` (rules only).
 ///
 /// # Errors
 ///
 /// A battery that cannot be read or parsed.
-pub(crate) fn run(engine: &Engine, dir: &Path) -> Result<Vec<LangReport>, String> {
-    LANGS
+pub(crate) fn run(classified: &Engine, rules: &Engine, dir: &Path) -> Result<Report, String> {
+    let languages = LANGS
         .iter()
         .map(|&lang| {
-            let (intents, reject) = load(dir, lang)?;
+            let parse = |name: &str| -> Result<Vec<Row>, String> {
+                let text = read(dir, name, lang)?.unwrap_or_default();
+                parse_rows(&text, &format!("{name}.{lang}.jsonl"))
+            };
+            let (intents, reject) = (parse("intents")?, parse("reject")?);
+            let conversations = read(dir, "conversations", lang)?;
             Ok(LangReport {
                 lang,
-                intents: score_intents(&intents, |r| observe(engine, r)),
-                reject: score_reject(&reject, |r| observe(engine, r)),
+                rules: scores(rules, &intents, &reject, conversations.as_deref(), lang)?,
+                classifier: scores(
+                    classified,
+                    &intents,
+                    &reject,
+                    conversations.as_deref(),
+                    lang,
+                )?,
             })
         })
-        .collect()
+        .collect::<Result<Vec<_>, String>>()?;
+    let model = match classified.classifiers().intent_model() {
+        Ok(model) => format!(
+            "intent model with {} classes and {} features, threshold {}, margin {}",
+            model.classes().len(),
+            model.vocabulary_len(),
+            model.threshold(),
+            model.margin()
+        ),
+        Err(why) => format!("no classifier ({why})"),
+    };
+    Ok(Report {
+        skills: classified.skills().iter().map(|m| m.id.clone()).collect(),
+        model,
+        languages,
+    })
 }
 
 #[allow(clippy::cast_precision_loss, reason = "row counts are far below 2^52")]
@@ -230,96 +373,207 @@ pub(crate) fn worst_first(score: &IntentScore) -> Vec<(&str, Count)> {
     list
 }
 
+fn ratio(c: Count) -> String {
+    format!("{:>4} {:>5.1}%", c.hits, percent(c.hits, c.rows))
+}
+
+/// The conversation lines of the text report: rules only, then with the
+/// classifier.
+fn render_conversations(out: &mut String, l: Lang, ca: ConversationScore, cb: ConversationScore) {
+    let count = |hits| Count {
+        rows: ca.turns,
+        hits,
+    };
+    let _ = writeln!(
+        out,
+        "[{l}] conversations ({} turns): catch-all    {} {}",
+        ca.turns,
+        ratio(count(ca.catch_all)),
+        ratio(count(cb.catch_all))
+    );
+    let _ = writeln!(
+        out,
+        "[{l}]   unhandled, not expected          {} {}",
+        ratio(count(ca.unexpected_unhandled)),
+        ratio(count(cb.unexpected_unhandled))
+    );
+    let _ = writeln!(
+        out,
+        "[{l}]   status as expected               {} {}",
+        ratio(count(ca.status_correct)),
+        ratio(count(cb.status_correct))
+    );
+}
+
 /// The plain-text report.
 #[must_use]
-pub(crate) fn render_text(reports: &[LangReport]) -> String {
-    let mut out = String::from("talos eval: rules only, no classifier; a baseline, not a gate\n");
-    for r in reports {
-        let t = r.intents.total;
+pub(crate) fn render_text(report: &Report) -> String {
+    let mut out = format!(
+        "talos eval: rules only, then rules + classifier ({}); a report, not a gate\n",
+        report.model
+    );
+    for r in &report.languages {
+        let (a, b) = (&r.rules, &r.classifier);
+        let l = r.lang;
         let _ = writeln!(
             out,
-            "\n[{}] intents: {} rows, {} correct, accuracy {:.1}%",
-            r.lang,
-            t.rows,
-            t.hits,
-            percent(t.hits, t.rows)
+            "\n[{l}] {:<34} {:>11} {:>11}",
+            "", "rules", "+classifier"
         );
-        let j = &r.reject;
         let _ = writeln!(
             out,
-            "[{}] reject:  {} rows, {} false accepts ({:.1}%), status as expected {} ({:.1}%)",
-            r.lang,
-            j.rows,
-            j.false_accepts,
-            percent(j.false_accepts, j.rows),
-            j.status_correct,
-            percent(j.status_correct, j.rows)
+            "[{l}] intents, all ({} rows)            {} {}",
+            a.intents.total.rows,
+            ratio(a.intents.total),
+            ratio(b.intents.total)
         );
-        for (kind, c) in &j.by_kind {
+        let (ba, bb) = (
+            a.intents.built(&report.skills),
+            b.intents.built(&report.skills),
+        );
+        let _ = writeln!(
+            out,
+            "[{l}] intents, built skills ({} rows)   {} {}",
+            ba.rows,
+            ratio(ba),
+            ratio(bb)
+        );
+        let _ = writeln!(
+            out,
+            "[{l}]   wrong intent / no intent           {:>4} / {:<4}  {:>4} / {:<4}",
+            a.intents.confused, a.intents.missed, b.intents.confused, b.intents.missed
+        );
+        let fa = |s: &Scores| Count {
+            rows: s.reject.rows,
+            hits: s.reject.false_accepts,
+        };
+        let _ = writeln!(
+            out,
+            "[{l}] reject ({} rows): false accepts    {} {}",
+            a.reject.rows,
+            ratio(fa(a)),
+            ratio(fa(b))
+        );
+        let st = |s: &Scores| Count {
+            rows: s.reject.rows,
+            hits: s.reject.status_correct,
+        };
+        let _ = writeln!(
+            out,
+            "[{l}] reject: status as expected         {} {}",
+            ratio(st(a)),
+            ratio(st(b))
+        );
+        for (kind, c) in &b.reject.by_kind {
+            let before = a.reject.by_kind.get(kind).map_or(0, |c| c.hits);
             let _ = writeln!(
                 out,
-                "      {kind:<16} {:>4} rows {:>4} false accepts",
-                c.rows, c.hits
+                "      {kind:<16} {:>4} rows, false accepts {:>4} {:>11}",
+                c.rows, before, c.hits
             );
+        }
+        if let (Some(ca), Some(cb)) = (a.conversations, b.conversations) {
+            render_conversations(&mut out, l, ca, cb);
         }
         let _ = writeln!(
             out,
-            "[{}] per intent, worst first:\n      {:<28} {:>5} {:>8} {:>7}",
-            r.lang, "intent", "rows", "correct", "acc"
+            "[{l}] per intent, worst first (with the classifier):\n      {:<28} {:>5} {:>11} {:>11}",
+            "intent", "rows", "rules", "+classifier"
         );
-        for (intent, c) in worst_first(&r.intents) {
+        for (intent, c) in worst_first(&b.intents) {
+            let before = a
+                .intents
+                .per_intent
+                .get(intent)
+                .copied()
+                .unwrap_or_default();
             let _ = writeln!(
                 out,
-                "      {intent:<28} {:>5} {:>8} {:>6.1}%",
+                "      {intent:<28} {:>5} {} {}",
                 c.rows,
-                c.hits,
-                percent(c.hits, c.rows)
+                ratio(before),
+                ratio(c)
             );
         }
     }
     out
 }
 
-/// The JSON report.
-#[must_use]
-pub(crate) fn render_json(reports: &[LangReport]) -> Json {
-    let languages: Vec<Json> = reports
+fn scores_json(s: &Scores, skills: &BTreeSet<String>) -> Json {
+    let per_intent: Vec<Json> = worst_first(&s.intents)
+        .into_iter()
+        .map(|(intent, c)| json!({ "intent": intent, "rows": c.rows, "correct": c.hits }))
+        .collect();
+    let by_kind: serde_json::Map<String, Json> = s
+        .reject
+        .by_kind
         .iter()
-        .map(|r| {
-            let per_intent: Vec<Json> = worst_first(&r.intents)
-                .into_iter()
-                .map(|(intent, c)| json!({ "intent": intent, "rows": c.rows, "correct": c.hits }))
-                .collect();
-            let by_kind: serde_json::Map<String, Json> = r
-                .reject
-                .by_kind
-                .iter()
-                .map(|(k, c)| {
-                    (
-                        k.clone(),
-                        json!({ "rows": c.rows, "false_accepts": c.hits }),
-                    )
-                })
-                .collect();
-            json!({
-                "lang": r.lang.code(),
-                "intents": {
-                    "rows": r.intents.total.rows,
-                    "correct": r.intents.total.hits,
-                    "accuracy": percent(r.intents.total.hits, r.intents.total.rows) / 100.0,
-                    "per_intent": per_intent,
-                },
-                "reject": {
-                    "rows": r.reject.rows,
-                    "false_accepts": r.reject.false_accepts,
-                    "false_accept_rate": percent(r.reject.false_accepts, r.reject.rows) / 100.0,
-                    "status_correct": r.reject.status_correct,
-                    "by_kind": by_kind,
-                },
-            })
+        .map(|(k, c)| {
+            (
+                k.clone(),
+                json!({ "rows": c.rows, "false_accepts": c.hits }),
+            )
         })
         .collect();
-    json!({ "classifier": false, "languages": languages })
+    let built = s.intents.built(skills);
+    let conversations = s.conversations.map_or(Json::Null, |c| {
+        json!({
+            "conversations": c.conversations,
+            "turns": c.turns,
+            "catch_all": c.catch_all,
+            "catch_all_rate": percent(c.catch_all, c.turns) / 100.0,
+            "unexpected_unhandled": c.unexpected_unhandled,
+            "status_correct": c.status_correct,
+        })
+    });
+    json!({
+        "intents": {
+            "rows": s.intents.total.rows,
+            "correct": s.intents.total.hits,
+            "accuracy": percent(s.intents.total.hits, s.intents.total.rows) / 100.0,
+            "confused": s.intents.confused,
+            "missed": s.intents.missed,
+            "built_rows": built.rows,
+            "built_correct": built.hits,
+            "built_accuracy": percent(built.hits, built.rows) / 100.0,
+            "per_intent": per_intent,
+        },
+        "reject": {
+            "rows": s.reject.rows,
+            "false_accepts": s.reject.false_accepts,
+            "false_accept_rate": percent(s.reject.false_accepts, s.reject.rows) / 100.0,
+            "status_correct": s.reject.status_correct,
+            "by_kind": by_kind,
+        },
+        "conversations": conversations,
+    })
+}
+
+/// The JSON report: per language, the figures with the classifier at the
+/// top level and the rules-only ones under `rules_only`.
+#[must_use]
+pub(crate) fn render_json(report: &Report) -> Json {
+    let languages: Vec<Json> = report
+        .languages
+        .iter()
+        .map(|r| {
+            let mut entry = scores_json(&r.classifier, &report.skills);
+            if let Json::Object(map) = &mut entry {
+                map.insert("lang".to_owned(), json!(r.lang.code()));
+                map.insert(
+                    "rules_only".to_owned(),
+                    scores_json(&r.rules, &report.skills),
+                );
+            }
+            entry
+        })
+        .collect();
+    json!({
+        "classifier": !report.model.starts_with("no classifier"),
+        "model": report.model,
+        "skills": report.skills,
+        "languages": languages,
+    })
 }
 
 #[cfg(test)]
@@ -373,7 +627,7 @@ mod tests {
     }
 
     #[test]
-    fn intent_accuracy_overall_and_per_intent() {
+    fn intent_accuracy_overall_per_intent_and_for_built_skills() {
         let rows = [
             intent_row("1", "a", "x.one"),
             intent_row("2", "b", "x.one"),
@@ -391,11 +645,15 @@ mod tests {
             _ => seen(Status::Unhandled, None),
         });
         assert_eq!(score.total, Count { rows: 5, hits: 2 });
+        assert_eq!(score.confused, 1);
+        assert_eq!(score.missed, 2);
         assert_eq!(score.per_intent["x.one"], Count { rows: 2, hits: 1 });
         assert_eq!(score.per_intent["y.two"], Count { rows: 2, hits: 1 });
         assert_eq!(score.per_intent["z.three"], Count { rows: 1, hits: 0 });
         let order: Vec<&str> = worst_first(&score).iter().map(|(i, _)| *i).collect();
         assert_eq!(order, ["z.three", "x.one", "y.two"]);
+        let built: BTreeSet<String> = ["x".to_owned(), "z".to_owned()].into();
+        assert_eq!(score.built(&built), Count { rows: 3, hits: 1 });
     }
 
     #[test]
@@ -421,18 +679,47 @@ mod tests {
     }
 
     #[test]
+    fn conversations_count_catch_alls_and_unexpected_unhandled() {
+        let engine = talos_skills::rules_only_engine(talos_core::Config::default()).unwrap();
+        let text = r#"{"id":"c1","lang":"es","turns":[{"user":"hola","expect":{"status":"answered"}},{"user":"zzkx qqw","expect":{"status":"answered"}}]}
+{"id":"c2","lang":"es","given":"x","turns":[{"user":"hola","expect":{"status":"answered"}}]}"#;
+        let score = score_conversations(&engine, text, Lang::Es).unwrap();
+        assert_eq!(score.conversations, 1);
+        assert_eq!(score.turns, 2);
+        assert_eq!(score.status_correct, 1);
+        assert_eq!(
+            score.unexpected_unhandled,
+            score.turns - score.status_correct
+        );
+        assert!(score_conversations(&engine, "nope", Lang::Es).is_err());
+    }
+
+    #[test]
     fn reports_render_both_ways() {
         let rows = [intent_row("1", "a", "x.one")];
-        let report = LangReport {
-            lang: Lang::En,
-            intents: score_intents(&rows, |_| seen(Status::Answered, Some("x.one"))),
+        let scores = |hit: bool| Scores {
+            intents: score_intents(&rows, |_| seen(Status::Answered, hit.then_some("x.one"))),
             reject: score_reject(&[], |_| seen(Status::Unhandled, None)),
+            conversations: None,
         };
-        let text = render_text(std::slice::from_ref(&report));
-        assert!(text.contains("[en] intents: 1 rows, 1 correct, accuracy 100.0%"));
+        let report = Report {
+            skills: ["x".to_owned()].into(),
+            model: "test model".to_owned(),
+            languages: vec![LangReport {
+                lang: Lang::En,
+                rules: scores(false),
+                classifier: scores(true),
+            }],
+        };
+        let text = render_text(&report);
+        assert!(text.contains("intents, all (1 rows)"), "{text}");
+        assert!(text.contains("100.0%"), "{text}");
         assert!(text.contains("x.one"));
-        let json = render_json(std::slice::from_ref(&report));
+        let json = render_json(&report);
+        assert_eq!(json["classifier"], true);
         assert_eq!(json["languages"][0]["intents"]["rows"], 1);
+        assert_eq!(json["languages"][0]["intents"]["built_correct"], 1);
+        assert_eq!(json["languages"][0]["rules_only"]["intents"]["correct"], 0);
         assert_eq!(json["languages"][0]["reject"]["false_accept_rate"], 0.0);
     }
 }

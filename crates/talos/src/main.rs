@@ -21,7 +21,7 @@ usage: talos [options] ask <text>        answer one message, then exit
        talos [options] chat              a conversation on stdin/stdout
        talos [options] explain <text>    show how a message is answered, stage by stage
        talos skills list | check         inspect and validate the skill manifests
-       talos eval                        score the intent batteries, rules only
+       talos eval                        score the batteries, rules only and with the classifier
        talos [options] serve             the OpenAI-compatible HTTP server
        talos --version
 
@@ -264,14 +264,42 @@ fn skills_list(engine: &Engine) {
     }
 }
 
-/// `talos skills check`.
+/// `talos skills check`. A classifier model that is missing, damaged or
+/// trained on other manifests is a warning: the engine runs on rules alone.
 fn skills_check() -> ExitCode {
     let report = talos_skills::check();
     for finding in &report.findings {
         println!("{finding}");
     }
     let errors = report.count(Severity::Error);
-    let warnings = report.count(Severity::Warning);
+    let mut warnings = report.count(Severity::Warning);
+    match talos_skills::engine(Config::default()) {
+        Ok(engine) => {
+            let c = engine.classifiers();
+            for (name, model) in [
+                ("intent", c.intent_model()),
+                ("language", c.language_model()),
+            ] {
+                match model.map(|m| (m, m.verify())) {
+                    Ok((m, Ok(()))) => println!(
+                        "{name} model: {} classes, {} features, {} bytes",
+                        m.classes().len(),
+                        m.vocabulary_len(),
+                        m.file_len()
+                    ),
+                    Ok((_, Err(error))) => {
+                        warnings += 1;
+                        println!("warning: {name} model damaged: {error}");
+                    }
+                    Err(why) => {
+                        warnings += 1;
+                        println!("warning: {name} model off: {why}");
+                    }
+                }
+            }
+        }
+        Err(error) => println!("warning: engine not built: {error}"),
+    }
     println!(
         "{} checked: {}, {}",
         plural(report.skills, "skill"),
@@ -318,13 +346,21 @@ fn chat(
 }
 
 /// `talos eval`: exits 0 whatever the scores, as long as the batteries ran.
+/// Compares the engine with a rules-only one built with the same settings.
 fn run_eval(engine: &Engine, options: Options, dir: &std::path::Path) -> ExitCode {
-    match eval::run(engine, dir) {
-        Ok(reports) => {
+    let rules = match talos_skills::rules_only_engine(engine.config()) {
+        Ok(rules) => rules,
+        Err(error) => {
+            eprintln!("talos: {error}");
+            return ExitCode::from(EXIT_SOFTWARE);
+        }
+    };
+    match eval::run(engine, &rules, dir) {
+        Ok(report) => {
             if options.json {
-                println!("{:#}", eval::render_json(&reports));
+                println!("{:#}", eval::render_json(&report));
             } else {
-                print!("{}", eval::render_text(&reports));
+                print!("{}", eval::render_text(&report));
             }
             ExitCode::SUCCESS
         }

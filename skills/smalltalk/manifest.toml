@@ -38,8 +38,35 @@ courtesy = true
   internal = true
 
   [intent.examples]
-  es = ["hola", "buenas", "buenos días", "buenas tardes", "ey", "muy buenas", "hola talos"]
-  en = ["hi", "hello", "hey", "good morning", "good evening", "hiya", "hello talos"]
+  es = ["hola", "buenas", "buenos días", "buenas tardes", "ey", "muy buenas", "hola talos",
+    "holi", "hola hola", "buenas buenas", "hey talos", "saludos", "hola de nuevo", "holaaa", "buen día",
+    "buenos días talos", "muy buenos días", "buenas tardes a todos", "hola, buenas", "ey, hola", "wenas",
+    "ola", "hola amigo", "hola buenas tardes", "saludos cordiales", "un saludo", "hola otra vez",
+    "buenas, talos", "eh, hola", "aló", "buenas, ¿se puede?", "muy buenas a todos", "holis", "holaa talos",
+    "buenas tardes, talos", "ei", "epa", "ey tú", "hola hola hola", "buenos dias",
+    "hola de nuevo, talos", "muy buenas tardes", "hola, ya estoy aquí", "buenas a todos",
+    "hola, talos", "buenos días a ti", "hola muy buenas", "buenas tardes, ¿qué hay?", "ey talos", "hola!!",
+    "holaaa talos", "buenas de nuevo", "hola, buenos días", "buenas noches no, buenas tardes",
+    "saludos, talos", "hola, otra vez yo", "hey, hola", "hola caracola",
+    "muy buenas, talos", "qué hay, hola", "hola, soy yo", "buenas tardes de nuevo", "hola, buen día",
+    "holaa", "hola a todos", "buenos días, buenos días",
+    "hola, solo pasaba a saludar", "te saludo, talos", "buenas, aquí ando otra vez", "holaa, buenas tardes",
+    "ola k ase", "buenos diass", "wenas tardes", "hola de nuevo, qué alegría", "vengo a saludarte",
+    "muy buenas, aquí estoy de vuelta", "holaaaa a todos", "hola hola, buenos días",
+    "hey, buenas", "hey, buenos días", "hey hola", "hey, buenas tardes"]
+  en = ["hi", "hello", "hey", "good morning", "good evening", "hiya", "hello talos",
+    "hey there", "hi there", "hello there", "howdy", "yo", "heya", "hey hey", "hello again", "hi again",
+    "good afternoon", "morning", "evening", "good morning talos", "hiii", "helloooo", "greetings",
+    "hey talos", "hi talos", "hello hello", "well hello", "oh hi", "hey buddy", "hi friend", "hello friend",
+    "g'day", "hullo", "hey you", "good day", "afternoon", "hi, it's me again",
+    "hey, i'm back", "hiya talos", "ahoy", "good morning to you", "hi hi", "hey hey hey", "morning talos",
+    "hey, hello", "hello talos!", "good evening talos", "hi, good morning", "heyyy", "hi talos!",
+    "hello hello hello", "hey there talos", "good morning everyone", "hi there friend",
+    "hello, good afternoon", "hiya!", "oh hello there", "hey hi", "hello hi", "hey, it's me", "yo talos",
+    "greetings, talos", "hellooo there", "hi, hello", "good evening to you", "well hi there", "morning!",
+    "hello, just popping in to say hi", "just wanted to say hello", "hiya, back again", "helo", "hii there",
+    "goood morning", "hey hey, i'm back", "hi, nice to see you again", "well hello there talos",
+    "hey all", "hello hello, good evening"]
 
   # Spanish. Leading "¡"/"¿", trailing "!", "?", "." and the name are optional;
   # stretched letters ("holaaa") are accepted.
@@ -99,8 +126,38 @@ courtesy = false
   internal = true
 
   [intent.examples]
-  es = ["adiós", "hasta luego", "chao", "nos vemos", "me voy", "hasta mañana", "buenas noches"]
-  en = ["bye", "goodbye", "see you later", "gotta go", "cya", "good night", "talk to you later"]
+  es = ["adiós", "hasta luego", "chao", "nos vemos", "me voy", "hasta mañana", "buenas noches",
+    "adiós talos", "hasta pronto", "hasta la próxima", "chau", "me piro", "nos vemos luego", "hasta otra",
+    "venga, hasta luego", "bueno, me voy", "que descanses", "hasta el lunes", "luego hablamos",
+    "gracias, adiós", "me tengo que ir", "tengo que irme", "ya me voy", "hasta ahora", "chao chao",
+    "adiosito", "nos vemos mañana", "buenas noches, talos", "que pases buena noche", "ciao", "me despido",
+    "hasta luego, talos", "dulces sueños", "hasta más tarde", "un abrazo, adiós", "me marcho",
+    "lo dejamos aquí, adiós", "hala, hasta luego", "venga, chao", "nos hablamos", "me voy a dormir, adiós",
+    "hasta otro día", "adios", "bye, hasta luego", "nos vemos pronto",
+    "adiós, hasta mañana", "me voy ya, chao", "bueno, hasta luego", "adiós adiós", "chao, talos",
+    "nos vemos, talos", "hasta luego y gracias", "me voy, que tengo prisa", "hasta pronto, talos",
+    "buenas noches a todos", "que vaya bien, adiós", "cuídate", "cuídate mucho", "hasta otra, talos",
+    "hablamos mañana", "me piro, chao", "nada, me voy", "adiós, buenas noches", "ya hablamos",
+    "hasta la próxima vez", "me voy a la cama, buenas noches", "adeu", "agur",
+    "bueno, me tengo que ir ya, hasta luego", "ya me despido, hasta mañana", "me voy que se hace tarde",
+    "hasta luegoo", "chaooo", "adios adios", "nos vemos otro dia", "bueno pues nada, hasta otra",
+    "me voy a dormir ya, buenas noches", "tengo que dejarte, chao", "venga, que me voy", "hasta lueguito"]
+  en = ["bye", "goodbye", "see you later", "gotta go", "cya", "good night", "talk to you later",
+    "bye bye", "see ya", "see you", "later", "catch you later", "farewell", "take care", "i'm off",
+    "i have to go", "gotta run", "night night", "good night talos", "see you tomorrow", "talk soon",
+    "until next time", "i'm out", "bye talos", "ok bye", "goodbye for now", "so long", "peace out",
+    "i'm leaving now", "cheerio", "ttyl", "see you around", "logging off", "that's all, bye",
+    "time for me to go", "have a good one", "i'll be going", "signing off", "bye for now",
+    "see you next time", "nighty night", "thanks, bye", "later talos", "i must be going", "goodnight",
+    "bye now", "goodbye talos", "see you soon", "ok see you", "gotta go, bye", "night", "night talos",
+    "catch you later talos", "see ya later", "i'm heading off", "bye, thanks", "take care, bye",
+    "until tomorrow", "talk to you tomorrow", "i'm going to bed, good night", "see you later alligator",
+    "adios", "ciao", "that's me done, bye", "i'll talk to you later", "goodbye and thanks",
+    "i'm off now, bye", "laters",
+    "well, i have to go now, see you later", "i'm signing off for today, bye",
+    "i'd better go, it's getting late", "byeee", "goodbyee", "see ya laterrr",
+    "ok i'm done for today, goodbye", "gotta head out now, take care", "time to log off, bye",
+    "i'll leave you now, good night", "alright, i'm off", "cya later"]
 
   # A farewell, optionally behind filler and a thanks ("gracias, adiós":
   # one intent per turn, the farewell wins) and followed by more farewells
@@ -129,8 +186,41 @@ priority = 100
 courtesy = true
 
   [intent.examples]
-  es = ["gracias", "muchas gracias", "mil gracias", "grax", "vale, gracias", "te lo agradezco", "gracias por la ayuda"]
-  en = ["thanks", "thank you", "thanks a lot", "thx", "ty", "much appreciated", "thank you so much"]
+  es = ["gracias", "muchas gracias", "mil gracias", "grax", "vale, gracias", "te lo agradezco", "gracias por la ayuda",
+    "gracias talos", "muchísimas gracias", "gracias de verdad", "te lo agradezco mucho",
+    "mil gracias, de verdad", "muchas gracias por todo", "gracias!!", "grasias", "genial, gracias",
+    "perfecto, gracias", "gracias por responder", "se agradece", "muy amable", "qué amable, gracias",
+    "estupendo, muchas gracias", "gracias otra vez", "gracias de nuevo", "graciass", "gracias por tu ayuda",
+    "te debo una", "eres un crack, gracias", "mil grax", "gracias, me sirve", "gracias por la info",
+    "agradecido", "muchas gracias talos", "ok gracias", "bueno, gracias", "gracias, muy útil",
+    "un millón de gracias", "infinitas gracias", "te agradezco la ayuda", "muy agradecida",
+    "gracias, de lujo", "mil gracias talos", "gracias guapo",
+    "gracias por todo, talos", "muchas gracias, de verdad", "mil gracias por la ayuda",
+    "gracias, eres un sol", "vale, muchas gracias", "gracias, perfecto", "gracias, muy amable",
+    "te lo agradezco, talos", "muchas grax", "graciaaas", "gracias, me has ayudado mucho", "gracias, crack",
+    "gracias mil", "muy agradecido, gracias", "ah, gracias", "uy, gracias",
+    "gracias por contestar tan rápido", "estupendo, gracias", "gracias por la respuesta",
+    "te agradezco mucho", "chachi, gracias", "gracias por el dato",
+    "muchas gracias por tu ayuda, de verdad", "te quería dar las gracias", "graciaas", "grax talos",
+    "gracias x la ayuda", "gracias, me has salvado", "vale perfecto, mil gracias",
+    "solo quería agradecértelo", "gracias por ser tan rápido", "muchisimas gracias", "gracias, eh",
+    "te lo agradezco de corazón"]
+  en = ["thanks", "thank you", "thanks a lot", "thx", "ty", "much appreciated", "thank you so much",
+    "thanks talos", "thank you very much", "thanks so much", "many thanks", "thanks a bunch", "cheers",
+    "appreciate it", "i appreciate that", "thank u", "tysm", "thanks!!", "great, thanks",
+    "perfect, thank you", "awesome thanks", "thanks for the help", "thank you kindly", "much obliged",
+    "thanks again", "ok thanks", "cool, thanks", "you're a star, thanks", "thanks for that",
+    "that's helpful, thanks", "nice one, thanks", "big thanks", "thanks heaps", "really appreciate it",
+    "grateful", "thx a lot", "ta", "cheers mate", "thanks for answering", "thank you talos",
+    "many many thanks", "i owe you one", "thankyou",
+    "thank you so much talos", "thanks a million", "thanks a ton", "much appreciated, thanks",
+    "ok, thank you", "thanks, that helps", "thanks, perfect", "cheers for that", "thank you for the help",
+    "thanks loads", "thanks very much", "thx!", "ty!", "thanks, you're the best", "oh thanks",
+    "ah, thank you", "thank you for answering so fast", "great, thank you", "thanks for the answer",
+    "i really appreciate it", "thanks buddy", "thanks for the info",
+    "thank you so much for your help, really", "i just wanted to say thanks", "thanx", "thnx talos",
+    "thanks 4 the help", "thanks, you saved me", "ok perfect, thanks a lot", "just wanted to thank you",
+    "thanks for being so quick", "thank youuu", "thanks, mate", "thank you from the bottom of my heart"]
 
   # "no, gracias" is a refusal and deliberately has no pattern.
   [[intent.pattern]]
@@ -157,8 +247,41 @@ courtesy = false
   internal = true
 
   [intent.examples]
-  es = ["¿qué tal estás?", "cómo estás", "cómo andas", "¿todo bien?", "cómo te encuentras", "¿cómo va todo?", "qué tal"]
-  en = ["how are you", "how's it going", "how are you doing", "you good?", "what's up", "you ok?", "how are things with you"]
+  es = ["¿qué tal estás?", "cómo estás", "cómo andas", "¿todo bien?", "cómo te encuentras", "¿cómo va todo?", "qué tal",
+    "¿cómo estás hoy?", "cómo va", "qué tal te va", "cómo vas", "todo bien por ahí?", "qué tal andas",
+    "cómo te va la vida", "estás bien?", "cómo te sientes", "cómo te encuentras hoy", "qué tal el día",
+    "qué tal todo", "y tú qué tal", "y tú cómo estás", "cómo lo llevas", "qué hay de nuevo", "qué cuentas",
+    "cómo andamos", "va todo bien?", "estás bien, talos?", "hola, qué tal", "buenas, cómo estás",
+    "¿qué tal, talos?", "cómo te trata la vida", "qué tal va la cosa", "cómo estás tú", "todo en orden?",
+    "cómo te ha ido el día", "qué tal llevas el día", "como estas", "k tal", "qué onda", "qué tal estamos",
+    "cómo sigues", "qué tal vas", "cómo estás, talos",
+    "cómo estás?", "qué tal estás hoy", "cómo te va", "qué tal te encuentras", "cómo llevas el día",
+    "todo bien contigo?", "estás bien hoy?", "cómo va todo por ahí", "qué tal sigues", "cómo andas hoy",
+    "qué tal, cómo estás", "oye, cómo estás", "y tú, qué tal estás", "cómo estás de ánimo",
+    "va todo bien, talos?", "qué tal has dormido", "todo bien, talos?", "qué es de tu vida",
+    "cómo te sientes hoy", "cómo vas tú", "qué tal la mañana", "cómo te va todo",
+    "oye, y tú cómo estás", "me pregunto qué tal estás", "qué tal estás, todo bien?", "komo estas",
+    "q tal todo", "como te va todo", "cómo estás llevando el día", "quería saber cómo estás",
+    "qué tal andas tú, talos", "cómo te va hoy, todo en orden", "qe tal", "todo bien por tu lado?",
+    "hey, qué tal", "hey, cómo estás", "hey, cómo va"]
+  en = ["how are you", "how's it going", "how are you doing", "you good?", "what's up", "you ok?", "how are things with you",
+    "how are you today", "how you doing", "how're you", "how have you been", "how's everything",
+    "how's your day", "how's your day going", "are you ok", "are you doing well", "all good?",
+    "everything ok with you?", "how are things", "what's new", "sup", "wassup", "how's life", "how goes it",
+    "how are you feeling", "how do you feel today", "you alright?", "you doing okay?", "hey, how are you",
+    "hi, how's it going", "how are ya", "how ya doin", "what's going on with you", "how's talos doing",
+    "are you well", "how is everything going", "is everything good with you", "u ok?", "how r u",
+    "how are you holding up", "how's it been", "how's your evening", "doing ok, talos?",
+    "how are you?", "how are you doing today", "how's it going talos", "how are things with you today",
+    "you all right?", "how've you been", "how's your morning", "everything alright?", "are you alright",
+    "how are you doing, talos", "what's up talos", "hey, what's up", "how's your week been",
+    "how are things going", "how's life treating you", "how's everything with you", "you good, talos?",
+    "how are you this evening", "how's your day been", "are you feeling ok", "how do you do",
+    "how are you feeling today",
+    "so how are you", "i was wondering how you are", "how are you, all good?", "hows it going",
+    "how r u doing", "how u doing", "how's your day been going", "just wanted to know how you are",
+    "how are you doing, talos?", "how's everything going today", "hw are you",
+    "everything good on your end?"]
 
   # "hola, ¿qué tal?" arrives here with the greeting dropped.
   [[intent.pattern]]

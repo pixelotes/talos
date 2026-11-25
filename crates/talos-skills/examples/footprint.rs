@@ -7,20 +7,31 @@
 //! target/release/examples/footprint 5000                  # and p50/p99 over 5000 each
 //! ```
 //!
-//! It builds the engine, then serves one rule-matched and one reflector
-//! turn in each language, printing the time of each and the resident set
-//! size after it (read with `ps`, so Unix only); with a number, it then
-//! times that many turns of each kind in the same process.
+//! It builds the engine, then serves one rule-matched, one classifier and
+//! one reflector turn in each language, printing the time of each and the
+//! resident set size after it (read with `ps`, so Unix only); with a
+//! number, it then times that many turns of each kind in the same process,
+//! and the classifier stage alone (stage 4, on the match form) over the
+//! same messages.
 
 use std::process::Command;
 use std::time::{Duration, Instant};
 
-use talos_core::{Config, ConvId, Engine, Timestamp, Turn};
+use talos_core::normalise::normalise;
+use talos_core::{Config, ConvId, Engine, Lang, Timestamp, Turn};
 
 /// The turns, by kind: (label, message).
 const TURNS: &[(&str, &str)] = &[
     ("rule es", "hola"),
     ("rule en", "hello"),
+    (
+        "classifier es",
+        "oye, me podrías decir qué hora tienes por ahí",
+    ),
+    (
+        "classifier en",
+        "would you mind telling me what the date is",
+    ),
     ("reflector es", "creo que el cine es aburrido"),
     ("reflector en", "i think movies are boring"),
 ];
@@ -72,5 +83,24 @@ fn main() {
         let at = |q: usize| times[(times.len() - 1) * q / 100];
         println!("{label}: p50 {:?}, p99 {:?}", at(50), at(99));
     }
+    // Stage 4 alone: every message above, each a fresh measurement.
+    let mut stage: Vec<Duration> = Vec::with_capacity(iterations * TURNS.len());
+    for (label, text) in TURNS {
+        let lang = if label.ends_with("es") {
+            Lang::Es
+        } else {
+            Lang::En
+        };
+        let folded = normalise(text).folded;
+        for _ in 0..iterations {
+            let start = Instant::now();
+            let verdict = engine.classifiers().recognise(lang, &folded);
+            stage.push(start.elapsed());
+            std::hint::black_box(verdict);
+        }
+    }
+    stage.sort_unstable();
+    let at = |q: usize| stage[(stage.len() - 1) * q / 100];
+    println!("classifier stage: p50 {:?}, p99 {:?}", at(50), at(99));
     println!("end: rss {}", rss());
 }

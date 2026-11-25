@@ -5,7 +5,10 @@
 //! embedded at build time, paired here with its compiled handler in
 //! `src/<id>.rs`. How to add one: `docs/SKILL_AUTHORING.md`.
 
+use std::borrow::Cow;
+
 use talos_core::check::Report;
+use talos_core::classifier::ModelFiles;
 use talos_core::{Config, Engine, Error, Manifest, Registration, Skill};
 
 include!(concat!(env!("OUT_DIR"), "/manifests.rs"));
@@ -76,12 +79,34 @@ pub fn builtin() -> Result<Vec<Registration>, Error> {
     Ok(skills)
 }
 
-/// An engine with every built-in skill.
+/// The classifier models embedded at build time (`models/`, written by
+/// `cargo run --release -p talos-train`). Read in place: the binary's own
+/// pages, touched only where a turn reads them.
+#[must_use]
+pub fn models() -> ModelFiles {
+    ModelFiles {
+        intent: INTENT_MODEL.map(Cow::Borrowed),
+        language: LANGUAGE_MODEL.map(Cow::Borrowed),
+    }
+}
+
+/// An engine with every built-in skill and the embedded classifiers (a
+/// model that does not match the manifests is refused: rules only).
 ///
 /// # Errors
 ///
 /// As [`builtin`] and [`Engine::new`].
 pub fn engine(config: Config) -> Result<Engine, Error> {
+    Ok(Engine::new(config, builtin()?)?.with_models(models()))
+}
+
+/// An engine with every built-in skill and no classifier: rules only, as
+/// in v0.1. For comparisons (`talos eval`).
+///
+/// # Errors
+///
+/// As [`builtin`] and [`Engine::new`].
+pub fn rules_only_engine(config: Config) -> Result<Engine, Error> {
     Engine::new(config, builtin()?)
 }
 
@@ -105,6 +130,20 @@ mod tests {
             "catalogue order starts with smalltalk"
         );
         assert!(engine(Config::default()).is_ok());
+    }
+
+    #[test]
+    fn the_embedded_models_match_the_manifests() {
+        // Fails when a manifest's examples or the out-of-scope corpus changed
+        // and the models were not retrained: `cargo run --release -p talos-train`.
+        let engine = engine(Config::default()).unwrap();
+        let classifiers = engine.classifiers();
+        let intent = classifiers.intent_model().unwrap();
+        let language = classifiers.language_model().unwrap();
+        intent.verify().unwrap();
+        language.verify().unwrap();
+        // DESIGN.md section 8: the model file is at most 2 MB.
+        assert!(intent.file_len() + language.file_len() <= 2_000_000);
     }
 
     #[test]

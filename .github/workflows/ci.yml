@@ -23,6 +23,8 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
+      # The committed models are exactly what training on the manifests gives.
+      - run: cargo run --release -p talos-train -- --check
 
   deny:
     name: cargo-deny

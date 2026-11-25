@@ -30,8 +30,44 @@ command = { es = "/refran", en = "/fortune" }
   internal = true
 
   [intent.examples]
-  es = ["dime un refrán", "una frase", "dime un dicho", "un proverbio", "galleta de la fortuna", "dime algo sabio", "dime la suerte", "fortune", "otro"]
-  en = ["tell me a fortune", "give me a proverb", "fortune cookie", "say something wise", "give me a saying", "tell me my fortune", "fortune", "another one"]
+  es = ["dime un refrán", "una frase", "dime un dicho", "un proverbio", "galleta de la fortuna", "dime algo sabio", "dime la suerte", "fortune", "otro",
+    "dime un refrán español", "cuéntame un refrán", "un dicho popular", "dime un proverbio",
+    "un refrán, porfa", "léeme la fortuna", "qué dice mi galleta de la fortuna",
+    "abre una galleta de la fortuna", "dame una frase de sabiduría", "algo de sabiduría popular",
+    "suelta un refrán", "dime algo profundo", "comparte un proverbio", "otro refrán", "otro dicho",
+    "quiero un refrán", "me dices un dicho", "una frase sabia", "dime la buenaventura", "un refrán al azar",
+    "un dicho cualquiera", "regálame una frase", "frase del día", "pensamiento del día",
+    "dime algo para reflexionar", "inspírame con una frase", "un refrán de los de la abuela",
+    "galletita de la suerte", "mi fortuna", "sabiduría del día", "dime un refran", "algún refrán que sepas",
+    "un refrán", "dime un refrán, porfa", "otro refrán, porfa", "dame un dicho", "dime un dicho popular",
+    "quiero una galleta de la fortuna", "dame mi galleta de la fortuna", "qué me dice la fortuna",
+    "dime algo sabio, porfa", "una frase para pensar", "una frase bonita", "sabiduría popular, porfa",
+    "dame un proverbio", "suelta una frase sabia", "comparte un refrán", "un dicho, venga",
+    "cuéntame un dicho", "dime un refrán de los antiguos", "una de refranes", "dime otra frase",
+    "me gustaría escuchar un refrán", "no me sé ningún refrán, dime uno", "dime un refran porfa",
+    "kiero un refran", "me apetece un refrán", "necesito algo de sabiduría popular hoy",
+    "me dices algún dicho de los de siempre?", "cuéntame algún refrán de esos antiguos",
+    "dame una frase de galleta de la fortuna", "a ver qué dice hoy mi fortuna", "regálame un proverbio",
+    "un dicho para hoy"]
+  en = ["tell me a fortune", "give me a proverb", "fortune cookie", "say something wise", "give me a saying", "tell me my fortune", "fortune", "another one",
+    "tell me a proverb", "give me a fortune", "open a fortune cookie", "what does my fortune cookie say",
+    "share some wisdom", "say something deep", "a saying please", "give me an old saying",
+    "tell me a wise saying", "drop some wisdom", "words of wisdom", "a bit of wisdom please",
+    "another proverb", "another saying", "give me another fortune", "i want a fortune", "read my fortune",
+    "fortune please", "quote of the day", "thought of the day", "inspire me",
+    "give me something to think about", "random proverb", "any proverb", "a proverb, please",
+    "crack open a fortune cookie", "my fortune", "wisdom of the day", "an adage", "tell me an old adage",
+    "a maxim please", "fortune time",
+    "a proverb", "tell me a saying please", "another proverb please", "tell me a popular saying",
+    "i want a fortune cookie", "give me my fortune cookie", "what does fortune say",
+    "say something wise please", "a nice saying", "folk wisdom please",
+    "give me a proverb please", "drop a wise saying", "share a proverb", "a saying, go on",
+    "tell me a saying", "tell me an old proverb", "one of your sayings", "tell me another one",
+    "i'd like to hear a proverb", "i don't know any proverbs, tell me one", "tell me a proverb pls",
+    "i want a saying", "i feel like hearing a proverb", "i need some folk wisdom today",
+    "can you tell me one of those old sayings?", "tell me one of those old proverbs",
+    "give me a fortune cookie message", "let's see what my fortune says today", "gimme a proverb",
+    "a saying for today"]
 
   [[intent.pattern]]
   lang = "es"

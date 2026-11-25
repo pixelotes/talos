@@ -63,7 +63,7 @@ priority = 50                                 # higher wins among rule matches
 courtesy = false                              # see §2.4; only greetings and thanks
 command = { es = "/diasemana", en = "/weekday", slot = "date" }  # optional, §2.5
 
-  [intent.examples]                           # training data for v0.2's classifier
+  [intent.examples]                           # the classifier's training data
   es = ["qué día de la semana es", "qué día cae el 3 de mayo"]
   en = ["what day of the week is it", "what day is May 3"]
 
@@ -109,7 +109,14 @@ and `ü`→`u` follow the same rule: `ñ` never appears in a pattern.
   back-references.
 - Anchor them (`^…$`) and allow the usual edges: leading `¿¡`, trailing
   `[\s?.!]*`. Keep to the obvious phrasings; paraphrase is the classifier's
-  job in v0.2.
+  job (docs/MODEL.md).
+- Examples are what the classifier learns from: give each intent dozens per
+  language, written natively (questions and orders, indirect requests,
+  informal spellings, missing accents), never translated and never taken
+  from `evals/`. After changing any, retrain with
+  `cargo run --release -p talos-train`; a test fails until the models match
+  the manifests. Phrases that look like your intent but are not belong in
+  `reflector/out-of-scope.toml`.
 - The turn's language rules are tried first, then the other language's, so
   a Spanish pattern still catches "qué hora es" in an English turn.
 - Among matches, higher `priority` wins; ties go by intent id, then pattern
@@ -450,5 +457,7 @@ reply      ¡Hola!
       touched.
 - [ ] `golden/<id>/`: every reachable example and edge case of your spec
       section, both languages.
+- [ ] Models retrained (`cargo run --release -p talos-train`) after any
+      change to examples.
 - [ ] `talos skills check` clean; `cargo test`, `clippy -D warnings`, `fmt`
       clean.

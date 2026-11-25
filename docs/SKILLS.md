@@ -63,6 +63,11 @@ Rules that follow from the format:
   help or reply in only one language fails validation. (Explicitly marking an
   intent single-language, when that is genuinely the case, is not built yet.)
 - **Unknown keys are errors**, so a typo cannot pass silently.
+- **Examples are training data.** The classifier ([MODEL.md](MODEL.md)) learns
+  from every intent's examples, together with the out-of-scope corpus in
+  `reflector/out-of-scope.toml`. After changing either, retrain with
+  `cargo run --release -p talos-train`: the engine refuses a model trained on
+  other examples and runs on rules alone.
 - **Patterns match the match form** of the message: lower case, accents and
   diacritics removed (`¿Qué día es MAÑANA?` is matched as
   `¿que dia es manana?`). Write them lower-case and unaccented; `talos skills
@@ -113,8 +118,9 @@ an undeclared slot or is written with accents or capitals; two intents of equal
 priority whose rules in one language match the same example; one command name
 declared by two intents. Warnings: an
 example taken by a rule of an intent with higher priority; an intent with no
-pattern (unreachable until the classifier exists); variants of one reply that
-use different variables.
+pattern (only the classifier can reach it); variants of one reply that
+use different variables. It also reports the classifier models, and warns when
+one is missing or was trained on other manifests.
 
 ## 2. Handler
 
@@ -231,6 +237,8 @@ configuration.
 | `games` | chess; small games (hangman, guess the number) | no |
 | `weather` | current and forecast for a place | yes |
 | `search` | a short factual summary from a configured source | yes |
+| `news` | today's headlines from a configured source | yes |
+| `wikipedia` | an article's opening and an extractive summary, with its link | yes |
 
 Notes:
 
@@ -241,12 +249,18 @@ Notes:
 - **Chess** keeps its game state in the conversation and uses a permissively
   licensed rules library with a small search of its own; an external UCI
   engine can be configured for stronger play.
-- **Timers and reminders** are not listed: they require Talos to speak first.
-  See the open questions in [DESIGN.md](DESIGN.md).
+- **Timers, alarms and reminders** require Talos to speak first, which needs
+  a scheduler and a way to reach the user; they are deferred until after 1.0
+  ([ROADMAP.md](ROADMAP.md)).
+- **Translation of whole sentences** stays out: `translate` covers words and
+  a table of stock phrases, and anything else is `unhandled` for a host to
+  pass on.
 
 ## 5. External skills
 
-Not built yet: the manifest parser does not accept `[handler]` or
+Deferred until after 1.0 ([ADR 0013](adr/0013-external-skills.md), amended):
+Talos stands on its own and every planned skill is built in. What follows is
+the design kept for later. The manifest parser does not accept `[handler]` or
 `generated` today.
 
 A manifest may point at a program or a URL instead of a compiled handler:

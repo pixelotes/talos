@@ -100,7 +100,7 @@ impl Report {
 /// command whose slot its intent does not declare (ADR 0016).
 ///
 /// Warnings: an example matched by a rule of another intent with higher
-/// priority; an intent with no pattern (unreachable until the classifier);
+/// priority; an intent with no pattern (reached only by the classifier);
 /// variants of one reply that use different variables.
 #[must_use]
 pub fn check(sources: &[(&str, &str)], handlers: &[Box<dyn Skill>]) -> Report {
@@ -254,7 +254,7 @@ fn patterns(report: &mut Report, manifest: &Manifest) {
             report.warning(
                 id,
                 format!(
-                    "intent `{}` has no pattern: unreachable until the classifier (v0.2)",
+                    "intent `{}` has no pattern: only the classifier can reach it",
                     intent.id
                 ),
             );

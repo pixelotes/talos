@@ -35,8 +35,39 @@ courtesy = false
 command = { es = "/dado", en = "/roll" }
 
   [intent.examples]
-  es = ["tira un dado", "2d6", "3d8+2", "lanza dos dados", "tira 4 dados de 6 caras", "tírame un d20", "tira los dados", "tira un dado de 7 caras"]
-  en = ["roll a die", "roll 2d6", "roll two dice", "d20", "throw 3d8+2", "roll 4 six-sided dice", "roll the dice", "roll a six-sided die"]
+  es = ["tira un dado", "2d6", "3d8+2", "lanza dos dados", "tira 4 dados de 6 caras", "tírame un d20", "tira los dados", "tira un dado de 7 caras",
+    "tira un dado de 20", "lanza un d6", "tira 2 dados", "echa los dados", "lanza tres dados",
+    "tira un dado por mí", "2d10", "1d100", "4d6", "d12", "d8+1", "tira 2d6+3",
+    "lanza un dado de diez caras", "un dado de 12 caras, porfa", "tira un d4", "dados", "un dado",
+    "tira un dado de 100", "echa un dado", "lanza 5 dados de 6", "tira dos dados de veinte caras",
+    "tirada de dados", "haz una tirada de 3d6", "lanza el dado", "quiero tirar un dado", "dado de 6",
+    "lánzame un par de dados", "tira 1d20 con +5", "un d20 por favor", "tira dados", "rueda un dado",
+    "tírame dos dados", "lanza un dado, a ver qué sale", "venga, tira el dado",
+    "tira un dado!", "lanza un dado de seis caras", "tira 3d6", "tira un d10", "lanza 2d20",
+    "tírame un dado de 8", "tira dos dados de seis", "echa dos dados", "lanza un dado de 4 caras",
+    "tira 10 dados", "1d6", "3d4+2", "2d8-1", "tira un dado de veinte", "lanza los dados, porfa",
+    "tira el dado", "una tirada de d20", "tira 4 dados", "haz una tirada de dados", "dado de 20 caras",
+    "tira 1d12", "lanza un dado y dime qué sale",
+    "me gustaría que tiraras un dado", "no tengo dados, ¿me tiras uno?", "tira un dao", "tirame un dado",
+    "lanza un dado porfa", "necesito una tirada de 1d20 para mi partida",
+    "me tiras dos dados para el parchís?", "para el juego necesito tirar 3d6",
+    "a ver qué sale en un dado de 6", "tira un dado de veinte caras para mí", "haz tú la tirada: 2d6",
+    "dame un resultado de dado"]
+  en = ["roll a die", "roll 2d6", "roll two dice", "d20", "throw 3d8+2", "roll 4 six-sided dice", "roll the dice", "roll a six-sided die",
+    "roll a d20", "throw a d6", "roll 2 dice", "toss the dice", "roll three dice", "roll a die for me",
+    "2d10", "1d100", "4d6", "d12", "d8+1", "roll 2d6+3", "roll a ten-sided die", "a twelve-sided die please",
+    "roll a d4", "dice", "a die", "roll a hundred-sided die", "chuck a die", "roll 5 six-sided dice",
+    "roll two twenty-sided dice", "dice roll", "do a 3d6 roll", "roll the die", "i want to roll a die",
+    "six-sided die", "roll a pair of dice", "roll 1d20+5", "a d20 please", "throw some dice", "roll d20",
+    "can you roll a die", "give me a dice roll",
+    "roll a die!", "roll 3d6", "roll a d10", "roll 2d20", "roll me an 8-sided die",
+    "roll two six-sided dice", "throw two dice", "roll a four-sided die", "roll 10 dice", "1d6", "3d4+2",
+    "2d8-1", "roll a twenty-sided die", "roll the dice please", "roll it", "a d20 roll", "roll 4 dice",
+    "do a dice roll", "twenty-sided die", "roll 1d12", "roll a die and tell me the result",
+    "i'd like you to roll a die", "i don't have dice, can you roll one?", "rol a die", "roll a dice",
+    "roll a die pls", "i need a 1d20 roll for my game", "can you roll two dice for monopoly?",
+    "for the game i need to roll 3d6", "let's see what a d6 gives", "roll a twenty-sided die for me",
+    "you do the roll: 2d6", "give me a die result"]
 
   [[intent.slot]]
   name = "count"
@@ -132,8 +163,38 @@ courtesy = false
 command = { es = "/moneda", en = "/coin", slot = "count" }
 
   [intent.examples]
-  es = ["tira una moneda", "cara o cruz", "echa una moneda al aire", "lanza una moneda", "tira 3 monedas", "moneda"]
-  en = ["flip a coin", "heads or tails", "toss a coin", "coin flip", "flip 3 coins"]
+  es = ["tira una moneda", "cara o cruz", "echa una moneda al aire", "lanza una moneda", "tira 3 monedas", "moneda",
+    "lanza una moneda al aire", "tira la moneda", "echa una moneda", "cara o cruz?", "cara o sello",
+    "moneda al aire", "tírame una moneda", "lanza 2 monedas", "tira dos monedas", "lanza una moneda por mí",
+    "a cara o cruz", "echemos una moneda", "juguémoslo a cara o cruz", "haz un cara o cruz",
+    "lanzamiento de moneda", "tira 5 monedas", "una moneda, porfa", "quiero lanzar una moneda",
+    "yo pido cara, tira la moneda", "cara o cruz, venga", "echa una moneda al aire por favor", "tira moneda",
+    "lanza moneda", "voltea una moneda", "tira una moneda a ver qué sale", "lanza diez monedas",
+    "a ver, cara o cruz", "puedes tirar una moneda", "échalo a cara o cruz",
+    "lanza una moneda!", "tira una moneda al aire", "cara o cruz, porfa", "tírame una moneda al aire",
+    "echa una moneda a ver", "lanza tres monedas", "tira 4 monedas", "cara o cruz? tira", "haz cara o cruz",
+    "lanza la moneda", "a cara o cruz, venga", "tira una moneda, rápido", "moneda: cara o cruz",
+    "voltea la moneda", "lanza una moneda, que no me decido", "cara o cruz por favor",
+    "tira una moneda otra vez", "echa otra moneda",
+    "me gustaría que lanzaras una moneda", "no tengo monedas, ¿me tiras una?", "tira una moneda porfa",
+    "lanza una moneda xfa", "kara o cruz", "necesito echarlo a cara o cruz", "me lanzas una moneda al aire?",
+    "vamos a echarlo a suertes con una moneda", "a ver qué sale, cara o cruz",
+    "tira una moneda que no me decido", "hazme un cara o cruz rápido", "lanzame una moneda"]
+  en = ["flip a coin", "heads or tails", "toss a coin", "coin flip", "flip 3 coins",
+    "flip a coin for me", "toss a coin please", "heads or tails?", "coin toss", "flip the coin",
+    "throw a coin", "flip two coins", "toss 3 coins", "flip 5 coins", "do a coin flip",
+    "can you flip a coin", "let's flip a coin", "i call heads, flip it", "coin", "heads or tails, go",
+    "toss a coin in the air", "flip ten coins", "give me a coin flip", "spin a coin", "flip a quarter",
+    "flip a penny", "one coin flip please", "i want to toss a coin", "flip another coin", "coin flip please",
+    "quick coin flip", "heads or tails please", "flip coin", "toss a coin for me",
+    "flip a coin!", "toss a coin in the air for me", "flip me a coin", "toss a coin and see",
+    "flip three coins", "toss 4 coins", "heads or tails? flip", "do heads or tails", "flip the coin please",
+    "heads or tails, come on", "flip a coin, quick", "coin: heads or tails", "flip it",
+    "flip a coin, i can't decide", "toss another coin", "flip a coin again",
+    "i'd like you to flip a coin", "i don't have a coin, can you flip one?", "flip a coin pls",
+    "toss a coin plz", "heads or tails lol", "i need to settle this with heads or tails",
+    "can you toss a coin for me?", "let's leave it to a coin toss", "let's see, heads or tails",
+    "flip a coin, i can't make up my mind", "do a quick heads or tails for me", "flipa coin"]
 
   [[intent.slot]]
   name = "count"
@@ -157,8 +218,61 @@ courtesy = false
 command = { es = "/elige", en = "/pick", slot = "options" }
 
   [intent.examples]
-  es = ["elige entre pizza, sushi y tacos", "escoge uno: rojo, verde, azul", "decide por mí: cine o casa", "sortea a Ana, Luis y Marta", "ayúdame a elegir entre pizza o sushi", "tira una moneda para decidir entre pizza o sushi"]
-  en = ["pick one: red, green, blue", "choose between tea and coffee", "decide for me: stay in or go out", "pick a name from Ana, Luis and Marta", "help me choose: pizza or sushi", "flip a coin to choose between tea and coffee"]
+  es = ["elige entre pizza, sushi y tacos", "escoge uno: rojo, verde, azul", "decide por mí: cine o casa", "sortea a Ana, Luis y Marta", "ayúdame a elegir entre pizza o sushi", "tira una moneda para decidir entre pizza o sushi",
+    "elige entre rojo y azul", "escoge: té o café", "decide tú: playa o montaña",
+    "elige uno: perro, gato o pez", "ayúdame a decidir entre leer o ver una peli",
+    "sortea entre Juan, Pedro y Luis", "elige al azar entre lunes, martes y miércoles",
+    "elige por mí: sí o no", "escoge un color: verde, amarillo, naranja", "decide entre pasta y arroz",
+    "échalo a suertes: yo o mi hermano", "selecciona uno entre manzana, pera y plátano",
+    "elige entre ir al cine o quedarme en casa", "sortea quién friega: Ana o Pablo",
+    "tú eliges: pizza, hamburguesa o ensalada", "escoge entre estos: lápiz, boli, rotulador",
+    "decide por mí entre correr o nadar", "elige uno al azar: norte, sur, este, oeste",
+    "haz un sorteo entre María, Lucía y Carmen", "escoge cualquiera: uno, dos o tres",
+    "elige: python o rust", "escógeme uno: tacos o burritos",
+    "elige ganador entre equipo rojo y equipo azul", "decide aleatoriamente entre a, b y c",
+    "tira una moneda para elegir entre ir o quedarme",
+    "elige entre los siguientes: madrid, barcelona, sevilla", "elige una carta: as, rey o reina",
+    "escoge por mí: pollo o pescado", "sortea entre estos tres: Leo, Max y Sara",
+    "elige entre café, té o agua", "escoge entre estas: rojo, negro", "decide por mí entre a y b",
+    "elige uno de estos: lunes o martes", "sortea entre tú y yo", "escoge una: sí, no, quizás",
+    "elige un nombre: luna, sol o estrella", "ayúdame a elegir: verde o azul", "dime cuál: pizza o pasta",
+    "selecciona al azar entre ana, eva y ruth", "decide tú entre playa o piscina",
+    "elige: cine, teatro o concierto", "elígeme uno entre 3 restaurantes: el pino, la marina, casa paco",
+    "haz un sorteo: pedro, juan", "escoge al azar: madrid o barcelona",
+    "elige qué película: alien, matrix o tiburón", "elige entre correr y andar",
+    "no sé si pedir pizza o sushi, elige tú", "me ayudas a elegir entre el rojo y el negro?",
+    "elige entre estas opciones: a, b, c", "escoje entre cine y teatro", "elije: playa o montaña",
+    "necesito que elijas por mí entre ir andando o en bus", "no me decido, escoge tú: té o café",
+    "haz un sorteo entre mis amigos: ana, luis, marta y jorge", "decide tú por mí, ¿lunes o miércoles?",
+    "sortea quién paga hoy entre pablo y yo", "elige uno al azar de estos: azul, verde, rojo",
+    "escoge una peli: titanic o avatar"]
+  en = ["pick one: red, green, blue", "choose between tea and coffee", "decide for me: stay in or go out", "pick a name from Ana, Luis and Marta", "help me choose: pizza or sushi", "flip a coin to choose between tea and coffee",
+    "pick between red and blue", "choose: tea or coffee", "you decide: beach or mountains",
+    "pick one: dog, cat or fish", "help me decide between reading and watching a movie",
+    "draw a name from john, peter and luke", "randomly choose between monday, tuesday and wednesday",
+    "choose for me: yes or no", "pick a color: green, yellow, orange", "decide between pasta and rice",
+    "pick one at random: north, south, east, west", "select one of apple, pear, banana",
+    "pick between going out or staying home", "choose who does the dishes: anna or paul",
+    "you pick: pizza, burger or salad", "choose from these: pencil, pen, marker",
+    "decide for me between running and swimming", "raffle between mary, lucy and carmen",
+    "pick any: one, two or three", "choose: python or rust", "pick one for me: tacos or burritos",
+    "pick a winner between team red and team blue", "randomly pick a, b or c",
+    "flip a coin to decide between going or staying", "choose from the following: london, paris, rome",
+    "pick a card: ace, king, queen", "make a choice for me: chicken or fish",
+    "eeny meeny between sam, alex and jo", "choose one: left or right",
+    "pick between coffee, tea or water", "choose between these: red, black", "decide for me between a and b",
+    "pick one of these: monday or tuesday", "pick between you and me", "choose one: yes, no, maybe",
+    "pick a name: luna, sol or star", "help me pick: green or blue", "tell me which: pizza or pasta",
+    "randomly select between ann, eve and ruth", "you decide between beach or pool",
+    "choose: cinema, theatre or concert", "pick one of 3 restaurants: the pine, the marina, joe's",
+    "draw between peter and john", "pick at random: london or paris", "pick a movie: alien, matrix or jaws",
+    "choose between running and walking",
+    "i can't decide between pizza and sushi, you choose", "can you help me pick between red and black?",
+    "pick from these options: a, b, c", "chose between cinema and theatre", "choos: beach or mountains",
+    "i need you to choose for me between walking or taking the bus",
+    "i can't decide, you pick: tea or coffee", "draw a name among my friends: ann, lou, martha and george",
+    "you decide for me, monday or wednesday?", "pick who pays today, paul or me",
+    "pick one of these at random: blue, green, red", "choose a movie: titanic or avatar"]
 
   [[intent.slot]]
   name = "options"
@@ -206,8 +320,50 @@ courtesy = false
 command = { es = "/numero", en = "/number" }
 
   [intent.examples]
-  es = ["dame un número del 1 al 10", "número aleatorio entre 1 y 100", "un número al azar", "dime un número entre -5 y 5", "5 números del 1 al 49 sin repetir", "del uno al seis", "un número aleatorio hasta 50"]
-  en = ["give me a random number between 1 and 10", "random number", "pick a number from 1 to 6", "a number between -5 and 5", "5 numbers from 1 to 49 without repeating", "a random number up to 50"]
+  es = ["dame un número del 1 al 10", "número aleatorio entre 1 y 100", "un número al azar", "dime un número entre -5 y 5", "5 números del 1 al 49 sin repetir", "del uno al seis", "un número aleatorio hasta 50",
+    "dime un número del 1 al 100", "número al azar del 1 al 6", "un número aleatorio entre 10 y 20",
+    "genera un número aleatorio", "dame un número aleatorio", "piensa un número del 1 al 10",
+    "elige un número entre 1 y 50", "número random", "saca un número del 1 al 1000", "un número entre 0 y 1",
+    "un número decimal entre 0 y 1", "3 números aleatorios del 1 al 10", "6 números del 1 al 49 sin repetir",
+    "dame 2 números al azar entre 1 y 100", "un número hasta 20", "número aleatorio hasta 500",
+    "un número cualquiera", "di un número", "escoge un número del uno al diez",
+    "dime un número entre menos 10 y 10", "genera 5 números sin repetir entre 1 y 50", "un número de 1 a 6",
+    "número de la suerte entre 1 y 99", "qué número sale del 1 al 20", "un aleatorio entre 100 y 200",
+    "sácame un número al azar", "número entre 5 y 15", "random del 1 al 3", "un número aleatorio, porfa",
+    "elige un número del 1 al 100", "dame un número",
+    "dame un número entre 1 y 10", "un número del 1 al 20, porfa", "número aleatorio del 1 al 100",
+    "piensa un número entre 1 y 100", "dime un número al azar", "genera un número entre 50 y 60",
+    "saca 3 números del 1 al 90", "un número del 0 al 9", "dame un número aleatorio hasta 1000",
+    "un número entre 1 y 1000000", "elige un número al azar del 1 al 6", "número del 1 al 50",
+    "dame 10 números aleatorios", "un número aleatorio con decimales entre 1 y 2", "número al azar, porfa",
+    "escoge un número cualquiera", "otro número del 1 al 10", "genera 4 números distintos del 1 al 20",
+    "me gustaría un número al azar del 1 al 10", "no se me ocurre ningún número, dame uno del 1 al 100",
+    "dame un numero del 1 al 10", "numero aleatorio entre 1 y 20", "dime un nº del 1 al 50",
+    "necesito un número aleatorio para un sorteo, del 1 al 200", "me das un número entre 1 y 6?",
+    "piensa en un número del 1 al 100 y dímelo", "quiero un número al azar entre 10 y 99",
+    "sácame tres números al azar del 1 al 30", "genera un número aleatorio del 1 al 365",
+    "un nº random del 1 al 5"]
+  en = ["give me a random number between 1 and 10", "random number", "pick a number from 1 to 6", "a number between -5 and 5", "5 numbers from 1 to 49 without repeating", "a random number up to 50",
+    "give me a number from 1 to 100", "random number between 1 and 6", "a random number between 10 and 20",
+    "generate a random number", "pick a random number", "think of a number between 1 and 10",
+    "choose a number from 1 to 50", "rng", "random number from 1 to 1000", "a number between 0 and 1",
+    "a decimal between 0 and 1", "3 random numbers from 1 to 10", "6 numbers from 1 to 49 no repeats",
+    "give me 2 random numbers between 1 and 100", "a number up to 20", "random number up to 500",
+    "any number", "say a number", "pick a number one to ten", "give me a number between minus 10 and 10",
+    "generate 5 distinct numbers between 1 and 50", "number from 1 to 6", "lucky number between 1 and 99",
+    "random integer between 100 and 200", "draw a number from 1 to 20", "number between 5 and 15",
+    "random 1-3", "a random number please", "pick a number 1-100", "give me a number",
+    "give me a number between 1 and 10", "a number from 1 to 20 please", "random number from 1 to 100",
+    "think of a number between 1 and 100", "tell me a random number", "generate a number between 50 and 60",
+    "draw 3 numbers from 1 to 90", "a number from 0 to 9", "give me a random number up to 1000",
+    "a number between 1 and 1000000", "pick a random number from 1 to 6", "number from 1 to 50",
+    "give me 10 random numbers", "a random decimal between 1 and 2", "random number please",
+    "pick any number", "another number from 1 to 10", "generate 4 different numbers from 1 to 20",
+    "i'd like a random number from 1 to 10", "i can't think of a number, give me one from 1 to 100",
+    "give me a numbr from 1 to 10", "random numer between 1 and 20", "tell me a # from 1 to 50",
+    "i need a random number for a raffle, 1 to 200", "can you give me a number between 1 and 6?",
+    "think of a number from 1 to 100 and tell me", "i want a random number between 10 and 99",
+    "draw three random numbers from 1 to 30", "generate a random number from 1 to 365", "rand number 1 to 5"]
 
   [[intent.slot]]
   name = "low"

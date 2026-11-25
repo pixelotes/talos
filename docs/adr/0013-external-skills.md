@@ -1,6 +1,6 @@
 # 0013. External skills, out of process
 
-- Status: Accepted
+- Status: Accepted; deferred until after 1.0 (see the amendment below)
 - Date: 2026-11-24
 
 ## Context
@@ -76,3 +76,22 @@ Whatever the transport:
   choose from; it carries no training examples, patterns or reply templates.
   The manifest stays in Talos either way. MCP is a candidate for the
   *transport* only, as described above.
+
+## Amendment (2026-11-25): deferred until after 1.0
+
+The owner's ruling: Talos is a bounded assistant that stands on its own, not
+a platform. It should do its job without depending on other programs.
+
+- The capabilities planned for the first major version — including weather,
+  search and news — are **built-in skills**. Those that need data make their
+  own HTTP request to a public source, behind the `network` capability, which
+  is off until enabled in configuration. They depend on the network, not on
+  another process.
+- External skills leave the roadmap of 1.0. The design above stands as the
+  way to add them later, and the choice of transport stays open; nothing is
+  built and no interface is frozen for them in 1.0.
+- A general "plug in an MCP server and use its tools" capability was never on
+  offer and is not planned: choosing a tool from its description, and turning
+  its free-text result into an answer, is what a language model does
+  ([0012](0012-no-language-model.md)). With or without MCP, every external
+  tool would still need a hand-written manifest.

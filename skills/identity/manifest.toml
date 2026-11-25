@@ -23,8 +23,45 @@ priority = 50
 courtesy = false
 
   [intent.examples]
-  es = ["quién eres", "cómo te llamas", "qué eres exactamente", "preséntate", "cuál es tu nombre", "tú quién eres", "quién te creó", "quién te ha hecho"]
-  en = ["who are you", "what's your name", "what are you", "introduce yourself", "tell me about yourself", "and you are", "who made you", "who created you"]
+  es = ["quién eres", "cómo te llamas", "qué eres exactamente", "preséntate", "cuál es tu nombre", "tú quién eres", "quién te creó", "quién te ha hecho",
+    "quién eres tú", "dime quién eres", "cómo te llamas tú", "tienes nombre", "cuál es tu nombre, por favor",
+    "qué nombre tienes", "con quién hablo", "con quién estoy hablando", "qué eres tú",
+    "preséntate, por favor", "háblame de ti", "cuéntame sobre ti", "cuéntame algo de ti",
+    "quién te programó", "quién te ha creado", "quién te desarrolló", "quién es tu creador",
+    "quién te fabricó", "de dónde vienes", "por qué te llamas talos", "cuántos años tienes",
+    "qué edad tienes", "cuándo te crearon", "eres talos?", "tú eres talos", "cómo se llama este asistente",
+    "quién eres exactamente", "y tú quién eres", "a quién tengo delante", "quién te hizo",
+    "quién está detrás de ti", "de quién eres", "cómo debo llamarte", "puedo saber tu nombre", "quien eres",
+    "como te llamas", "dime tu nombre", "quién te ha programado",
+    "oye, ¿tú quién eres?", "cómo te llaman", "me dices tu nombre", "eres alguien?",
+    "con quién tengo el gusto", "y tu nombre es", "preséntate tú", "quién te inventó",
+    "quién te ha diseñado", "quién es tu dueño", "quién te escribió", "de qué empresa eres",
+    "qué significa tu nombre", "por qué te pusieron talos", "desde cuándo existes", "cuántos años tienes ya",
+    "cuéntame quién eres", "a ver, quién eres", "tienes un nombre?", "qué nombre te pusieron",
+    "quién te puso el nombre", "dime algo sobre ti", "quién te ha hecho a ti",
+    "me gustaría saber quién eres", "no sé con quién estoy hablando", "kien eres", "quien eres tu",
+    "como te llamas tu", "perdona, ¿cómo te llamas?", "tengo curiosidad por saber tu nombre",
+    "me dices cómo te llamas", "quiero saber quién te creó", "quién eres y qué haces aquí",
+    "oye, ¿tú eres talos o qué?", "y a ti quién te ha hecho"]
+  en = ["who are you", "what's your name", "what are you", "introduce yourself", "tell me about yourself", "and you are", "who made you", "who created you",
+    "who r u", "who are you exactly", "and who are you", "what should i call you", "do you have a name",
+    "what is your name", "what are you called", "may i ask your name", "who am i talking to", "who is this",
+    "who's this", "tell me who you are", "say who you are", "introduce yourself please",
+    "tell me a bit about yourself", "describe yourself", "who built you", "who programmed you",
+    "who developed you", "who's your creator", "who designed you", "where do you come from",
+    "why are you called talos", "how old are you", "what's your age", "when were you made", "are you talos",
+    "is your name talos", "what do people call you", "who wrote you", "who owns you", "who's behind you",
+    "what's your name again", "name?", "whats ur name", "tell me your name",
+    "who are you?", "what's your name?", "what are you?", "who exactly are you", "what name do you go by",
+    "do you go by a name", "who invented you", "who made this assistant", "who's your maker",
+    "who coded you", "what company made you", "what does your name mean", "why the name talos",
+    "how long have you existed", "how old are you exactly", "tell me something about yourself",
+    "so who are you", "who am i speaking with", "who is talos", "what's your full name",
+    "who gave you your name", "who created this bot",
+    "i'd like to know who you are", "i'm not sure who i'm talking to", "hu are you", "who r you",
+    "whats your name", "sorry, what's your name?", "i'm curious what your name is",
+    "can you tell me your name", "i want to know who created you", "who are you and what are you doing here",
+    "so are you talos or what?", "and who made you"]
 
   [[intent.slot]]
   name = "topic"
@@ -81,8 +118,54 @@ priority = 50
 courtesy = false
 
   [intent.examples]
-  es = ["eres una ia", "eres humano o robot", "tienes sentimientos", "eres chatgpt", "cómo funcionas por dentro", "tienes conciencia", "me quieres", "eres más listo que chatgpt"]
-  en = ["are you an AI", "are you human", "do you have feelings", "are you a language model", "are you ChatGPT or Siri", "how do you work", "do you understand me", "what model are you running"]
+  es = ["eres una ia", "eres humano o robot", "tienes sentimientos", "eres chatgpt", "cómo funcionas por dentro", "tienes conciencia", "me quieres", "eres más listo que chatgpt",
+    "eres un robot", "eres una persona", "eres una máquina", "eres real", "hay alguien detrás",
+    "eres una inteligencia artificial", "eres un bot", "eres un programa", "eres un modelo de lenguaje",
+    "usas chatgpt", "eres siri", "eres alexa", "eres como chatgpt", "eres un humano de verdad",
+    "tienes emociones", "sientes algo", "tienes alma", "piensas", "puedes pensar", "tienes mente propia",
+    "eres consciente", "entiendes lo que te digo", "me entiendes de verdad", "cómo funcionas",
+    "cómo estás hecho", "en qué lenguaje estás escrito", "qué tecnología usas",
+    "usas inteligencia artificial", "funcionas con gpt", "estás vivo", "eres inteligente", "me amas",
+    "te caigo bien", "eres mejor que siri", "eres más inteligente que alexa", "aprendes de mí",
+    "eres un chatbot", "hablo con una persona o con una máquina", "eres de verdad o un programa",
+    "eres una ia o qué",
+    "eres humano?", "eres una ia?", "eres una persona real", "eres un robot o una persona",
+    "tienes sentimientos?", "sientes cosas", "puedes sentir", "tienes conciencia propia",
+    "eres consciente de ti mismo", "estás vivo o qué", "eres un programa de ordenador",
+    "qué clase de programa eres", "eres un modelo como gpt", "usas un modelo de lenguaje",
+    "eres chatgpt o qué", "eres el asistente de google", "eres cortana", "cómo es que entiendes lo que digo",
+    "entiendes de verdad lo que escribo", "tienes cerebro", "puedes razonar", "sabes pensar",
+    "eres más listo que yo", "te gusto", "me quieres de verdad", "tienes corazón",
+    "eres una máquina pensante", "eres una red neuronal", "aprendes solo", "tienes memoria",
+    "hay una persona escribiendo esto",
+    "me pregunto si eres una persona o una máquina", "quiero saber si eres una ia", "eres una ia de verdad?",
+    "eres un robot o que", "eres humano o maquina", "tienes sentimientos de verdad o no",
+    "sientes algo cuando hablamos", "eres un programa o hay alguien ahí",
+    "funcionas con inteligencia artificial?", "me pregunto cómo funcionas", "tienes consciencia o no",
+    "en serio, eres una máquina?"]
+  en = ["are you an AI", "are you human", "do you have feelings", "are you a language model", "are you ChatGPT or Siri", "how do you work", "do you understand me", "what model are you running",
+    "are you a robot", "are you a bot", "are you real", "are you a person", "is this a human",
+    "am i talking to a human", "are you a machine", "are you artificial intelligence", "are you an llm",
+    "are you gpt", "are you chatgpt", "are you alexa", "are you like siri", "do you have emotions",
+    "can you feel", "can you think", "do you think", "are you conscious", "are you self-aware",
+    "are you alive", "do you have a soul", "do you really understand", "how were you built",
+    "what are you made of", "what language are you written in", "what tech do you use",
+    "do you use machine learning", "are you smart", "are you intelligent", "do you love me",
+    "do you like me", "are you smarter than chatgpt", "are you better than alexa", "do you learn from me",
+    "are you a chatbot", "is there a person behind this", "are you sentient", "r u a bot",
+    "are you human?", "are you an ai?", "are you a real person", "are you a robot or a person",
+    "do you have feelings?", "can you feel things", "do you have consciousness", "are you aware of yourself",
+    "are you a computer program", "what kind of program are you", "are you a model like gpt",
+    "do you use a language model", "are you chatgpt or what", "are you google assistant", "are you cortana",
+    "how do you work inside", "how do you understand what i say", "do you actually understand what i write",
+    "do you have a brain", "can you reason", "are you smarter than me", "are you smarter than siri",
+    "do you have a heart", "are you a neural network", "do you learn by yourself", "do you have memory",
+    "is a person typing this", "are you a real ai", "are you just a script",
+    "do you have a mind of your own",
+    "i wonder if you're a person or a machine", "i want to know if you're an ai", "are you an actual ai?",
+    "r u a robot", "are u human", "do you really have feelings or not", "do you feel anything when we talk",
+    "are you a program or is someone there", "do you run on artificial intelligence?",
+    "i wonder how you work", "are you conscious or not", "seriously, are you a machine?"]
 
   [[intent.slot]]
   name = "topic"

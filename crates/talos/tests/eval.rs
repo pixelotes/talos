@@ -61,5 +61,6 @@ fn the_text_report_is_printed() {
         .unwrap();
     assert!(output.status.success());
     let text = String::from_utf8(output.stdout).unwrap();
-    assert!(text.contains("[es] intents:") && text.contains("[en] reject:"));
+    assert!(text.contains("[es] intents, built skills") && text.contains("[en] reject ("));
+    assert!(text.contains("+classifier"));
 }

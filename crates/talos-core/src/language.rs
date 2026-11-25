@@ -1,10 +1,11 @@
 //! Stage 1: which language a turn is in (ADR 0015,
 //! docs/spec/conversation.md section 1).
 //!
-//! Steps 1, 2 and 4 of ADR 0015: the caller's hint, then words and
-//! characters that belong to only one language, then the conversation's
-//! language (or the configured default on a fresh conversation). The
-//! classifier (step 3) arrives in v0.2.
+//! The four steps of ADR 0015: the caller's hint, then words and
+//! characters that belong to only one language, then the two-class language
+//! model ([`decide_with`]; trained with the intent model, see
+//! `classifier`), then the conversation's language (or the configured
+//! default on a fresh conversation).
 //!
 //! The result is sticky per conversation, with hysteresis:
 //!
@@ -76,14 +77,28 @@ pub enum Decided {
     /// No evidence either way and nothing settled: the default (or the
     /// earlier default) applies.
     Default(Evidence),
+    /// No decisive marker words and nothing settled: the language model
+    /// was confident (step 3).
+    Classified(Evidence, Guess),
+}
+
+/// A confident guess of the language model (ADR 0015, step 3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Guess {
+    /// The language.
+    pub lang: Lang,
+    /// Its probability, in thousandths.
+    pub permille: u16,
 }
 
 impl Decided {
-    /// How firmly the conversation holds the language afterwards.
+    /// How firmly the conversation holds the language afterwards. A
+    /// classified language holds no more than a default: the next marker
+    /// word decides.
     #[must_use]
     pub const fn hold(self) -> Hold {
         match self {
-            Decided::Default(_) => Hold::Defaulted,
+            Decided::Default(_) | Decided::Classified(..) => Hold::Defaulted,
             Decided::Hint | Decided::Evidence(_) | Decided::Switched(_) | Decided::Kept(_) => {
                 Hold::Settled
             }
@@ -262,6 +277,21 @@ pub fn decide(
     current: Option<(Lang, Hold)>,
     default: Lang,
 ) -> (Lang, Decided) {
+    decide_with(hint, text, current, default, |_| None)
+}
+
+/// [`decide`] with step 3: when the marker words decide nothing and the
+/// conversation has not settled its language, `classify` (the language
+/// model) is asked, and a confident answer is taken. A settled
+/// conversation is never switched by the model, only by marker words.
+#[must_use]
+pub fn decide_with(
+    hint: Option<Lang>,
+    text: &str,
+    current: Option<(Lang, Hold)>,
+    default: Lang,
+    classify: impl FnOnce(&str) -> Option<Guess>,
+) -> (Lang, Decided) {
     if let Some(lang) = hint {
         return (lang, Decided::Hint);
     }
@@ -278,6 +308,8 @@ pub fn decide(
         Some((_, Hold::Defaulted)) | None => {
             if let Some(lang) = found.leader() {
                 (lang, Decided::Evidence(found))
+            } else if let Some(guess) = classify(text) {
+                (guess.lang, Decided::Classified(found, guess))
             } else {
                 let lang = current.map_or(default, |(lang, _)| lang);
                 (lang, Decided::Default(found))
@@ -368,6 +400,39 @@ mod tests {
             after(Lang::En, "y en berlín, por favor"),
             (Lang::Es, Decided::Switched(_))
         ));
+    }
+
+    #[test]
+    fn the_model_decides_only_what_markers_and_settling_leave_open() {
+        let guess = |lang| {
+            move |_: &str| {
+                Some(Guess {
+                    lang,
+                    permille: 900,
+                })
+            }
+        };
+        // No markers, fresh: the model's guess.
+        let (lang, decided) = decide_with(None, "bye", None, Lang::Es, guess(Lang::En));
+        assert_eq!(lang, Lang::En);
+        assert!(matches!(decided, Decided::Classified(..)));
+        assert_eq!(decided.hold(), Hold::Defaulted);
+        // Markers win over the model.
+        assert_eq!(
+            decide_with(None, "hola", None, Lang::Es, guess(Lang::En)).0,
+            Lang::Es
+        );
+        // A settled conversation is not switched by the model.
+        let settled = Some((Lang::Es, Hold::Settled));
+        assert_eq!(
+            decide_with(None, "bye", settled, Lang::Es, guess(Lang::En)).0,
+            Lang::Es
+        );
+        // No confident guess: the default.
+        assert_eq!(
+            decide_with(None, "ok", None, Lang::Es, |_| None).0,
+            Lang::Es
+        );
     }
 
     #[test]

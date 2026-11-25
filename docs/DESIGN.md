@@ -21,6 +21,15 @@ choice links to the decision record that justifies it.
    was handled.
 7. **Be teachable and explainable.** What Talos knows has a source, and a
    derived answer can show the path that produced it.
+8. **Degrade cheaply.** A skill that has a better source and a cheap one
+   answers from the cheap one when the better is missing, and says so: a
+   sentence translated word by word from the lexicon when no translator is
+   reachable, an article's opening when there is no local definition. The
+   cheap answer is local, small and deterministic. Where no honest cheap
+   answer exists — the weather cannot be guessed — the skill says it cannot.
+   (Owner's ruling, 2026-11-25. How an outcome marks a fallback answer, so
+   that a host can choose to do better, is to be designed with the first
+   skill that needs it.)
 
 ### Non-goals
 
@@ -64,10 +73,12 @@ crates/
   talos-skills/      built-in skills
   talos/             the binary: CLI and HTTP server
 skills/              skill manifests (TOML), one directory per skill
-reflector/           fallback scripts, one per language
+reflector/           fallback scripts, one per language; the out-of-scope corpus
+models/              the trained classifier models, embedded in the binary
 evals/               held-out evaluation batteries
 tools/
-  train/             offline classifier trainer (Python, dev-time only)
+  train/             offline classifier trainer (Rust, dev-time only, never
+                     linked into the binary; docs/MODEL.md)
   import/            pack builders (WordNet family first)
 docs/
 ```
@@ -211,12 +222,20 @@ hora es" is answered as the clock question). A small
 table of user corrections ("when I say X, I mean Y") is consulted here too, so
 teaching Talos a phrase needs no retraining.
 
-**4. Classifier.** Character n-gram features into a linear model trained
-offline from the same manifests. It returns a ranked list; the top candidate
-is accepted only above an absolute threshold *and* with a margin over the
-runner-up. Out-of-scope examples are a real class. Slots are then extracted by
-typed extractors (term, number, date, duration, datetime, daterange, place,
-language, choice, confirm; docs/SKILLS.md §3).
+**4. Classifier.** Runs only when no rule matched. Character n-grams, words
+and word pairs of the match form, weighted by TF-IDF, into a multinomial
+linear model trained offline from the manifests' examples and an
+out-of-scope corpus (`reflector/out-of-scope.toml`), which is a real class.
+It ranks every class; the top one is accepted only if it is an intent, above
+an absolute threshold (higher for a message of one word) *and* with a margin
+over the runner-up, and never if the intent has side effects (§11). An
+accepted intent is dispatched with no captures, carrying the slots its rules
+fix most often on its examples; a handler that fails without a capture sends
+the turn on to the reflector. The outcome's confidence is the
+accepted probability. Slots are extracted by typed extractors (term, number, date,
+duration, datetime, daterange, place, language, choice, confirm;
+docs/SKILLS.md §3). Model, trainer, file
+format and thresholds: [MODEL.md](MODEL.md).
 ([ADR 0008](adr/0008-intent-classification.md))
 
 **5. Dispatch.** The intent's skill receives the turn, the slots and a context
@@ -253,8 +272,9 @@ whose numbers were given), `rules` (candidates with priority, or the courtesy
 dropped), `slots`, `dispatch`, `render` (reply and variant), `reflector`
 (shape or guard, echo or why not, variant), `fallback` (an empty message),
 `random` (draws), `state` (turn number, language, recent topic), `dialog`
-(the open question: answered, kept, released, cancelled, expired) and
-`command`; the classifier joins as it is built. This is the main debugging tool and the
+(the open question: answered, kept, released, cancelled, expired), `command`
+and `classifier` (the top three classes with their probabilities, and why the
+first was or was not accepted). This is the main debugging tool and the
 reason the pipeline is a list of functions and not a graph of subscribers.
 
 ## 5. Knowledge
@@ -352,8 +372,10 @@ $XDG_DATA_HOME/talos/
     skills/          user-installed manifests and external skills
 ```
 
-Built-in manifests, reflector scripts and the classifier model are embedded in
-the binary, so a bare executable works with no installation.
+Built-in manifests, reflector scripts and the classifier models are embedded in
+the binary, so a bare executable works with no installation. The models are
+read in place from the executable's image, never copied to the heap
+([MODEL.md](MODEL.md) §5).
 
 ## 11. Security
 
@@ -385,7 +407,8 @@ the binary, so a bare executable works with no installation.
 
 1. **External skill transport.** Talos's own JSON protocol, the Model
    Context Protocol, or both. MCP is the leading candidate if skills are to be
-   shared with a host such as Tomos. Decided in v0.5.
+   shared with a host such as Tomos. No longer decided in v0.5: external
+   skills are deferred until after 1.0.
    ([ADR 0013](adr/0013-external-skills.md))
 2. **Pack attachment vs. merge.** Attaching packs keeps them shareable and
    read-only; it needs a spike to confirm query cost across several attached
@@ -397,3 +420,19 @@ the binary, so a bare executable works with no installation.
    there is a design for interruption.
 5. **Search backend.** Which sources the `search` skill uses by default, and
    whether a host-provided search endpoint is the primary path.
+6. **Translating whole sentences.** `translate` covers words and a table of
+   stock phrases. For free sentences three routes are open, none chosen: an
+   optional local translation model (CTranslate2), an online service, or
+   word-by-word from the lexicon as a clearly labelled fallback. The first
+   two are machine-generated text: they would need an amendment to
+   [ADR 0012](adr/0012-no-language-model.md), sit behind a feature that is
+   off by default, and mark their outcomes `generated`. An online service
+   also sends the user's text off the machine. A fourth route, the owner's
+   current leaning: sentence translation as a skill served by his Dédalo
+   workflow engine and reached as an external skill
+   ([ADR 0013](adr/0013-external-skills.md)), declared `generated`; Talos
+   stays model-free and keeps word-by-word translation from the lexicon for
+   when Dédalo is not there. How such a skill is presented to Talos is not
+   designed. Whether the reordering of
+   v0.3 (a dictionary first, the semantic store later) happens is undecided
+   too.

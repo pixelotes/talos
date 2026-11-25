@@ -12,6 +12,7 @@
 
 pub mod check;
 pub mod civil;
+pub mod classifier;
 mod dialog;
 mod engine;
 mod error;

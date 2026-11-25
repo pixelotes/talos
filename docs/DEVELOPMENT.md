@@ -19,10 +19,22 @@ cargo test --workspace                                   # tests
 cargo deny check                                         # licences, advisories, bans
 cargo build --release                                    # small, stripped binary
 TALOS_BLESS=1 cargo test -p talos-skills --test golden   # regenerate golden files
+cargo run --release -p talos-train                       # retrain the classifiers (models/)
+cargo run --release -p talos-train -- --check            # fail if models/ is not what training gives
+cargo run --release -p talos-train -- --cv 5             # cross-validate on the training corpus
+cargo run --release -- eval                              # score the batteries, rules only and with the classifier
 ```
 
 Lints are shared through `[workspace.lints]` in `Cargo.toml`
-(`unsafe_code` is forbidden). `spikes/` is excluded from the workspace.
+(`unsafe_code` is forbidden). `spikes/` is excluded from the workspace;
+`tools/` holds development-time workspace members (the trainer), never linked
+into the binary.
+
+Retrain after changing any manifest's `[intent.examples]` or
+`reflector/out-of-scope.toml`: the engine refuses models trained on another
+corpus (rules only) and `the_embedded_models_match_the_manifests` fails until
+`models/` is regenerated. The trainer and the models are described in
+[MODEL.md](MODEL.md).
 
 ## CI
 
@@ -30,7 +42,7 @@ Lints are shared through `[workspace.lints]` in `Cargo.toml`
 
 | Job | Runs |
 |---|---|
-| `check` | the fmt, clippy and test commands above |
+| `check` | the fmt, clippy and test commands above, and `talos-train --check` |
 | `deny` | `cargo deny check` against `deny.toml` |
 | `release-x86_64` | `cargo build --release --target x86_64-unknown-linux-gnu` |
 | `release-aarch64-musl` | `cargo zigbuild` for `aarch64-unknown-linux-musl`, prints the size, fails over budget, uploads the binary |
@@ -87,6 +99,22 @@ taken, plus the small ones Slice A needed. Slice B may revisit any of them.
 | Local time in the CLI | the binary runs `date +%z` before each turn | the smallest means with no `unsafe` and no crate; honours `TZ`; where `date` is missing the offset is unknown and time-of-day answers stay neutral. The date/time crate is left to Slice C |
 | JSON | `serde_json` (std only) in the binary for `--json` | +17 KB on the stripped binary, measured; the server will need it anyway |
 | Validator | `talos_core::check`, run by `talos skills check` and by a test in `talos-skills` that requires zero findings | see the list of checks in `check.rs` |
+
+## Decisions taken in v0.2 Slice A (the classifier)
+
+Details in [MODEL.md](MODEL.md).
+
+| Question | Taken | Note |
+|---|---|---|
+| Trainer | a Rust workspace member, `tools/train` (`talos-train`), not Python | no second toolchain; it calls the engine's own feature extraction and file writer, so training and inference cannot drift; dev-time only, never linked into `talos` (ADR 0003 allows Python, does not require it) |
+| Optimiser | own SGD for softmax regression with lazy L2, class weights `(mean / size)^0.5`, two fits (choose features, then refit on them), prune at 2 % of the largest weight, signed-byte weights | no ML crate; `exp`/`ln` are own code so files are byte-identical across machines |
+| Model in the binary | `include_bytes!` from `models/` via `talos-skills/build.rs`, read in place | the image is paged in on demand like an mmap, without `unsafe` or an installed file; a rule turn never touches it. Without `models/` at build time the engine is rules only |
+| Wrong model | refused when its corpus hash is not the hash of the manifests and `reflector/out-of-scope.toml`; rules only, the trace says why; a test fails | the out-of-scope file is embedded for the hash |
+| Out-of-scope | a class trained from `reflector/out-of-scope.toml` (both languages): generation, open questions, future skills, statements, near misses, the reflector's shapes, acknowledgements, noise | the classifier's "none of the above" |
+| Acceptance | threshold 0.6 (0.85 for a one-word message), margin 0.3 over the runner-up, never an intent with side effects (`classifier::SIDE_EFFECTS`) | chosen by 5-fold cross-validation on the training corpus; the batteries were only ever run whole |
+| Slots of a guess | no captures; the fixed slots the intent's rules set most often on its examples, recorded per class by the trainer | `identity` needs a `topic` to answer; a handler that needs a capture gives its usage hint; one that fails sends the turn to the reflector |
+| Language, step 3 | the same machinery, two classes, no biases; asked only when markers decide nothing and the conversation has not settled; decides at ≥ 0.95 and only with a word of 3+ letters; holds like a default | "bye", "thx", "vale" now get their language; "hey", "ok", "d20", "2+2" keep the default, as the golden files require |
+| `talos eval` | two engines, rules only and with the classifier, side by side; built-skill accuracy; conversation catch-all rate | counts only, never phrases |
 
 ## Footprint
 
@@ -168,6 +196,30 @@ space after construction). Max RSS sits around 8.2 MB, peak footprint
 `rules.rs` has a guard test: compiling rules builds nothing, a turn builds
 only its language's narrow automata, and only a wide text builds the
 written form.
+
+### With the classifier (v0.2)
+
+Measured 2026-11-25 on the same Mac, release build, seven runs each:
+
+| | no models in the build | with the models |
+|---|---|---|
+| stripped binary | 1 617 120 B | 2 244 576 B (+620 KB of models) |
+| `talos ask "hola"`: max RSS / peak footprint | 7.1–7.5 / 5.4–5.8 MB | 7.0–7.7 / 5.3–5.9 MB |
+| the four-turn chat above: max RSS / peak footprint | 8.6–8.9 / 6.9–7.2 MB | 9.1–9.7 / 6.8–7.5 MB |
+| the same plus two turns the classifier answers | — | 9.2–9.8 / 6.9–7.5 MB |
+| classifier stage alone, p50 / p99 (`footprint 5000`) | — | 20 / 32 µs |
+| turn answered by the classifier, p50 | — | 0.5–0.8 ms (mostly the rules of both languages and the courtesy retries that run first) |
+
+Both columns carry v0.2's larger manifests (about 3 000 examples), which
+account for the rise of the no-model build over the figures above. The models
+are read in place from the executable's image ([MODEL.md](MODEL.md) §5): a
+rule-matched turn never touches them, and a turn that reaches the classifier
+(every reflector turn does) brings in clean, file-backed pages of them, up to
+their 620 KB. They count in the resident set but not in the peak footprint,
+which counts dirty memory, and the system can drop them under pressure. The
+CLI target of ≤ 8 MB resident holds for one-shot rule turns; a chat that
+reaches the classifier and the reflector exceeds it by about 1.5 MB, of which
+the models are under 0.7 MB.
 
 ## Server
 

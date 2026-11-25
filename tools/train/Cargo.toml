@@ -1,0 +1,18 @@
+[package]
+name = "talos-train"
+description = "Offline trainer of Talos's intent and language classifiers (dev-time only)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+# The same crates the binary is built from, so the trainer reads the
+# manifests the binary embeds and extracts features with the same code.
+[dependencies]
+talos-core.workspace = true
+talos-skills.workspace = true

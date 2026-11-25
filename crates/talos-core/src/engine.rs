@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
+use crate::classifier::{Classifiers, ModelFiles};
 use crate::dialog::{self, CommandLine};
 use crate::extract;
 use crate::fallback::Move;
@@ -73,6 +74,8 @@ pub struct Engine {
     /// The fallback scripts, and the distress patterns.
     reflector: Reflector,
     conversations: Conversations,
+    /// Stage 4 and language step 3; none until [`Engine::with_models`].
+    classifiers: Classifiers,
 }
 
 /// How many turns after the one that asked an open question stays open,
@@ -215,6 +218,12 @@ fn describe_language(lang: Lang, decided: Decided) -> String {
             language::SWITCH_WORDS
         ),
         Decided::Default(e) => format!("{lang}: default, no decisive evidence ({})", counts(e)),
+        Decided::Classified(e, guess) => format!(
+            "{lang}: language model, {}.{:03} (no decisive {})",
+            guess.permille / 1000,
+            guess.permille % 1000,
+            counts(e)
+        ),
     }
 }
 
@@ -283,7 +292,24 @@ impl Engine {
             rules,
             commands,
             reflector: Reflector::new()?,
+            classifiers: Classifiers::none(),
         })
+    }
+
+    /// Attaches the classifier models (ADR 0008, ADR 0015). A model that is
+    /// absent, malformed or trained on a corpus other than these manifests
+    /// is refused, and the engine runs on rules alone; [`Engine::classifiers`]
+    /// and the trace say why.
+    #[must_use]
+    pub fn with_models(mut self, files: ModelFiles) -> Self {
+        self.classifiers = Classifiers::load(&self.manifests, files);
+        self
+    }
+
+    /// The classifiers, or why they are off.
+    #[must_use]
+    pub fn classifiers(&self) -> &Classifiers {
+        &self.classifiers
     }
 
     /// The configuration the engine was built with.
@@ -356,11 +382,12 @@ impl Engine {
         // 1. Language, sticky per conversation. A command line is no
         // evidence: the reply is in the conversation's language (ADR 0016).
         let evidence = if command.is_some() { "" } else { &message.text };
-        let (lang, decided) = language::decide(
+        let (lang, decided) = language::decide_with(
             turn.lang,
             evidence,
             state.lang_hold(),
             self.config.default_lang,
+            |text| self.classifiers.language(text),
         );
         state.set_lang(lang, decided.hold());
         trace.note("language", || describe_language(lang, decided));
@@ -410,6 +437,7 @@ impl Engine {
             number,
             turn: &turn,
         };
+        let mut confidence = 1.0;
         let answered = if message.is_empty() || alarm.is_some() {
             None
         } else if let Some(line) = &command {
@@ -433,7 +461,13 @@ impl Engine {
                     let candidates =
                         found.unwrap_or_else(|| self.recognise(lang, &message, &mut trace));
 
-                    // 4. Classifier: v0.2.
+                    // 4. Classifier, only when no rule matched (ADR 0008).
+                    let guessed = candidates.is_empty();
+                    let candidates = if guessed {
+                        self.classify(lang, &message, &mut confidence, &mut trace)
+                    } else {
+                        candidates
+                    };
 
                     // 5. Dispatch and 6. render, candidate by candidate until
                     // one does not decline.
@@ -444,6 +478,9 @@ impl Engine {
                         if handled.is_some() {
                             break;
                         }
+                    }
+                    if guessed {
+                        handled = Self::unless_failed(handled, &mut trace);
                     }
                     handled
                 }
@@ -484,7 +521,11 @@ impl Engine {
             reply: handled.reply,
             status: handled.status,
             lang,
-            confidence: if handled.intent.is_some() { 1.0 } else { 0.0 },
+            confidence: if handled.intent.is_some() {
+                confidence
+            } else {
+                0.0
+            },
             intent: handled.intent,
             slots: handled.slots,
             reason: handled.reason,
@@ -525,6 +566,33 @@ impl Engine {
             )
         });
         Vec::new()
+    }
+
+    /// Stage 4: the classifier's candidate, if it accepts one, with its
+    /// confidence (ADR 0008).
+    fn classify(
+        &self,
+        lang: Lang,
+        message: &Normalised,
+        confidence: &mut f32,
+        trace: &mut Tracer,
+    ) -> Vec<Candidate> {
+        let verdict = self.classifiers.recognise(lang, &message.folded);
+        trace.note("classifier", || verdict.describe());
+        *confidence = verdict.confidence();
+        verdict.candidates()
+    }
+
+    /// A skill that fails on a classifier's guess needed what only a rule
+    /// extracts: no answer, so the turn goes on to the reflector.
+    fn unless_failed(handled: Option<Handled>, trace: &mut Tracer) -> Option<Handled> {
+        if handled.as_ref()?.reason == Some(Reason::FAILED) {
+            trace.note("classifier", || {
+                "the skill failed on the guess; on to the reflector".to_owned()
+            });
+            return None;
+        }
+        handled
     }
 
     /// Typed slots for a candidate: fixed values from its pattern, then each

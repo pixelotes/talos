@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+# tools/ holds development-time programs (the classifier trainer); none is
+# linked into the `talos` binary.
+members = ["crates/*", "tools/*"]
 # spikes/ holds standalone throwaway projects with their own Cargo.toml.
 exclude = ["spikes"]
 

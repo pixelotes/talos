@@ -65,6 +65,7 @@ fn the_trace_lists_every_stage_on_request() {
             "language",
             "safety",
             "rules",
+            "classifier",
             "reflector",
             "random",
             "state"
@@ -93,6 +94,66 @@ fn the_trace_lists_every_stage_on_request() {
     ] {
         assert!(text.contains(expected), "{expected:?} not in\n{text}");
     }
+}
+
+#[test]
+fn the_classifier_answers_what_no_rule_matches_and_says_why() {
+    // Training phrases (manifest examples), so the assertions hold for any
+    // reasonable model; held-out quality is `talos eval`'s business.
+    let e = engine();
+    let note = |outcome: &talos_core::Outcome| -> String {
+        let trace = outcome.trace.as_ref().unwrap();
+        let step = trace.steps.iter().find(|s| s.stage == "classifier");
+        step.map_or_else(String::new, |s| s.note.clone())
+    };
+    for (text, intent) in [
+        ("me gustaría saber qué hora es", "clock.now"),
+        ("i'd like to know what time it is", "clock.now"),
+        ("tengo curiosidad por saber tu nombre", "identity.who"),
+    ] {
+        e.end(&ConvId::new("test"));
+        let outcome = e.respond(turn(text).with_trace());
+        assert_eq!(
+            outcome.intent.as_ref().map(talos_core::IntentId::as_str),
+            Some(intent),
+            "{text}"
+        );
+        assert!(
+            outcome.confidence > 0.0 && outcome.confidence < 1.0,
+            "{text}"
+        );
+        assert!(
+            note(&outcome).contains(&format!("accepted {intent}")),
+            "{text}"
+        );
+    }
+    // Out of scope: the classifier declines and the reflector answers.
+    e.end(&ConvId::new("test"));
+    let outcome = e.respond(turn("write me a poem").with_trace());
+    assert_eq!(outcome.intent, None);
+    assert_eq!(outcome.confidence, 0.0);
+    assert!(note(&outcome).contains("out-of-scope is the top class"));
+    // A rule match never reaches the classifier and is certain.
+    let outcome = e.respond(turn("qué hora es").with_trace());
+    assert_eq!(outcome.confidence, 1.0);
+    assert_eq!(note(&outcome), "");
+}
+
+#[test]
+fn the_language_model_decides_only_what_markers_leave_open() {
+    let e = engine();
+    let first = |text: &str| {
+        e.end(&ConvId::new("test"));
+        e.respond(turn(text)).lang
+    };
+    // No marker word in either: the model decides (ADR 0015, step 3).
+    assert_eq!(first("bye"), Lang::En);
+    assert_eq!(first("thx"), Lang::En);
+    // Shared by both languages, or no word at all: the default (es).
+    assert_eq!(first("hey"), Lang::Es);
+    assert_eq!(first("ok"), Lang::Es);
+    assert_eq!(first("2+2"), Lang::Es);
+    assert_eq!(first("d20"), Lang::Es);
 }
 
 #[test]

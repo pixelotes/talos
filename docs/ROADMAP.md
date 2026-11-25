@@ -175,18 +175,29 @@ is wanted sooner, do v0.4 right after v0.1 and keep the integration experimental
 
 ## v0.5 — Tools
 
-Parity with what the old Talos could do for a user, plus the door for more.
+Parity with what the old Talos could do for a user. Every skill is built in:
+Talos stands on its own ([ADR 0013](adr/0013-external-skills.md), amended).
 
 **Scope**
 
 - Capabilities and their configuration; the `net` feature.
 - `weather` (with place resolution and offline degradation).
-- `search` (sourced extract; configurable backend, including a host-provided
-  one).
+- `search` (sourced extract; configurable backend).
+- `news` (today's headlines from a configured source, with their origin; no
+  summary). To be specified before it is built.
+- `wikipedia` (the article for a subject, in the conversation's language:
+  its opening and an **extractive** summary — sentences chosen from the
+  article and quoted as written, with the link). It is also what `define`
+  falls back to when the store has no entry and the network is allowed. To
+  be specified before it is built.
+- Shared by `search`, `news` and `wikipedia`: reading a web page down to its
+  text, and choosing sentences from it. The owner's Dédalo project already
+  does both without a model and is the reference to reimplement from: a
+  page reader (fetch, strip markup, extract by selector) and three
+  summarisers — Luhn, Luhn+ (stop-word filter, length normalisation, lead
+  bias, redundancy penalty) and TextRank. Which summariser Talos ships is
+  decided by comparing them on Spanish and English articles.
 - `games`: chess with conversation-scoped state; hangman or guess-the-number.
-- Decide the external skill transport — own JSON protocol, MCP, or both
-  ([ADR 0013](adr/0013-external-skills.md)) — then implement it with
-  allow-list and timeouts, and a reference external skill.
 - Reflector coverage pass, driven by the stand-alone battery.
 - Parity checklist against the old Talos's user-visible capabilities, each
   item marked done, dropped on purpose, or deferred.
@@ -197,8 +208,6 @@ Parity with what the old Talos could do for a user, plus the door for more.
 - With the network unplugged, every skill either works or says clearly why it
   cannot; no turn hangs beyond its timeout.
 - Stand-alone battery: bare catch-all on ≤ 15 % of turns (*target*).
-- An external skill written in another language answers through Talos in both
-  languages.
 
 ---
 
@@ -215,7 +224,7 @@ Prove the claim the project exists for, and freeze the interfaces.
 - Release builds for Linux ARM64/ARMv7/x86-64 and macOS; a container image;
   an install script or packages.
 - Freeze and version: the `talos` extension object, manifest
-  format, external skill protocol, pack schema.
+  format, pack schema.
 - User documentation: install, configure, teach, write a skill, build a pack.
 - Tomos switches its default to the new Talos; the old one is removed from
   Tomos.
@@ -227,7 +236,7 @@ Prove the claim the project exists for, and freeze the interfaces.
 - A clean device goes from download to first answer in under five minutes
   following the documentation.
 - Tomos no longer contains the old Talos.
-- All four interfaces above carry a version number and a compatibility
+- All three interfaces above carry a version number and a compatibility
   statement.
 
 ---
@@ -238,13 +247,33 @@ Not planned, only noted so they have somewhere to live:
 
 - **An entities pack from Wikidata** — places, people, works. The model
   already accommodates it; it is a pack to build, not a redesign.
-- **Speaking first** — timers, reminders, "tell me when…". Needs an
-  interruption design and a channel to the host.
+- **Speaking first** — timers, alarms and reminders ("avísame en diez
+  minutos", "recuérdame mañana que llame a Ana"). Moved here by the owner on
+  2026-11-25. Talos would say something nobody just asked for, which needs a
+  scheduler, items stored on disk and a way to reach the user: easy at a
+  terminal, not available over the OpenAI-style interface, where the host
+  would have to hold a stream of events open or be called back. It may end
+  up working from `talos chat` only. How to do it is undecided.
+- **Calendar** — two different things. *Asking* ("what do I have today?")
+  is an ordinary request and needs no scheduler: only a source of events.
+  *Being told* about an event builds on the delivery channel above. For the
+  source, either Talos reads a calendar itself, or the owner's Dédalo
+  workflow engine serves it: a Dédalo flow called over HTTP and returning
+  structured data is exactly an external skill
+  ([ADR 0013](adr/0013-external-skills.md)), and would open the same door
+  for anything else Dédalo can already fetch. Undecided.
+- **Home control** — "close the dining-room blinds", "turn on the air in the
+  bedroom". Far off. It needs a model of rooms and devices, a connection to
+  whatever runs the home, and confirmation rules for actions with effects.
+  This is where external integration
+  ([ADR 0013](adr/0013-external-skills.md)) would be reconsidered.
 - **Voice** — as a front end; speech recognition stays outside the engine.
 - **Embeddings as a ranking signal** for sense selection and search.
 - **More languages.**
-- **A sandbox for external skills** (WebAssembly) if untrusted skills become
-  a use case.
+- **External skills** — handlers outside the process, over Talos's own
+  protocol or MCP, each with its manifest
+  ([ADR 0013](adr/0013-external-skills.md)); and a sandbox for them
+  (WebAssembly) if untrusted skills become a use case.
 - **On-device retraining** of the classifier.
 - **Free-text fact extraction with review**, so Talos can propose claims from
   a document and the user approves them.

@@ -1,6 +1,10 @@
 //! Embeds the built-in skill manifests: lists `skills/<id>/manifest.toml` at
 //! the workspace root and writes an `include_str!` table for each one, so
 //! the binary needs no file access at run time to know its skills.
+//!
+//! Also embeds the classifier models of `models/` (written by
+//! `tools/train`, docs/MODEL.md) when they exist; without them the engine
+//! runs on rules alone.
 
 use std::error::Error;
 use std::fmt::Write as _;
@@ -37,6 +41,27 @@ fn main() -> Result<(), Box<dyn Error>> {
         writeln!(code, "    ({id:?}, include_str!({path:?})),")?;
     }
     code.push_str("];\n");
+
+    let models_dir = crate_dir.join("../../models");
+    println!("cargo::rerun-if-changed={}", models_dir.display());
+    for (name, constant) in [("intent", "INTENT_MODEL"), ("language", "LANGUAGE_MODEL")] {
+        let path = models_dir.join(format!("{name}.model"));
+        println!("cargo::rerun-if-changed={}", path.display());
+        writeln!(
+            code,
+            "/// The {name} model file, if `models/{name}.model` existed at build time."
+        )?;
+        if path.is_file() {
+            let path = path.canonicalize()?;
+            let path = path.to_str().ok_or("model path is not UTF-8")?;
+            writeln!(
+                code,
+                "pub(crate) const {constant}: Option<&[u8]> = Some(include_bytes!({path:?}));"
+            )?;
+        } else {
+            writeln!(code, "pub(crate) const {constant}: Option<&[u8]> = None;")?;
+        }
+    }
 
     let out = PathBuf::from(env::var("OUT_DIR")?).join("manifests.rs");
     fs::write(out, code)?;

@@ -63,3 +63,26 @@ answering. They were not broken down further here.
 - About a tenth of the intent rows are textually identical to an example in
   the specifications (see `docs/plans/M0.md`, follow-ups); they are not
   separated here.
+
+## With the classifier (2026-11-25, v0.2 Slice A)
+
+Same batteries, `talos eval`, after the classifier and the command and
+question work were merged. Intent model: 21 classes, 21,420 features, 520 KB;
+threshold 0.6, margin 0.3. The thresholds were set by cross-validation on the
+training examples and have **not** been tuned against the batteries.
+
+| | Spanish | English | Target |
+|---|---|---|---|
+| Intents of the built skills (200 rows), rules only | 49.5 % | 48.0 % | |
+| The same, rules and classifier | **89.5 %** (179) | **89.5 %** (179) | es ≥ 92 %, en ≥ 95 % |
+| Wrong intent / no intent (of 380 rows) | 11 / 190 | 11 / 190 | |
+| False accepts on the rejection set (99 rows) | 1 (1.0 %), a near miss | 1 (1.0 %), a near miss | ≤ 3 % |
+| Conversation battery (66 turns): bare catch-all | 31.8 % → 25.8 % | 34.8 % → 24.2 % | ≤ 15 % by v0.5 |
+
+The 190 rows with no intent are, for 180 of them, skills that do not exist
+yet. Recognition of built skills is 5.5 points short of the English target
+and 2.5 short of the Spanish one; the gap between languages is zero.
+
+A classified turn carries no captured values, so a request accepted by the
+classifier is answered with the intent's defaults ("lanza tres dados" rolls
+one die). Counted as correct here, because the battery scores the intent.
