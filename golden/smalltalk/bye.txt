@@ -41,7 +41,7 @@
 # (the spec says `deflected`, which only the reflector produces; until it
 # exists nothing answers), and so does "no, déjalo" (dialog layer).
 [es] U: me voy a Sevilla el viernes
-     T: No te he entendido.                       → unhandled · catch-all
+     T: ¿Vas a Sevilla el viernes? ¿Y eso?        → deflected · plan
 
 [en] U: I'm off to Paris
      T: You're off to Paris?                      → deflected · plan

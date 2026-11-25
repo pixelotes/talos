@@ -169,6 +169,8 @@ name = "talos-core"
 version = "0.0.0"
 dependencies = [
  "regex",
+ "regex-automata",
+ "regex-syntax",
  "serde",
  "toml",
  "unicode-normalization",

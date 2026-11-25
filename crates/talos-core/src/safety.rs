@@ -220,13 +220,11 @@ pub(crate) fn check(
     for script_lang in [lang, lang.other()] {
         let distress = &reflector.script(script_lang).distress;
         let mut text = message.folded.clone();
-        for idiom in &distress.idioms {
-            text = idiom
-                .replace_all(&text, |c: &regex::Captures<'_>| " ".repeat(c[0].len()))
-                .into_owned();
+        for idiom in 0..distress.idioms.len() {
+            text = distress.idioms.blank(idiom, &text);
         }
-        if let Some(pattern) = distress.patterns.iter().find(|p| p.is_match(&text)) {
-            hit = Some((script_lang, pattern.as_str().to_owned()));
+        if let Some(&pattern) = distress.patterns.matches(&text).first() {
+            hit = Some((script_lang, distress.patterns.source(pattern).to_owned()));
             break;
         }
     }

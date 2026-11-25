@@ -1,10 +1,10 @@
 //! Stage 3: rules (DESIGN.md section 4).
 //!
-//! Every pattern of every manifest is compiled once, at engine construction,
-//! into one `RegexSet` per language (to find which rules match) plus each
-//! pattern on its own (to read the winner's captures). Patterns match the
-//! **match form** of the message: lower case, accents folded
-//! ([`normalise`](crate::normalise)).
+//! Every pattern of every manifest is parsed at engine construction into one
+//! pattern list per language (`patterns.rs`), which finds the rules that
+//! match and reads the winner's captures; its automata are built when first
+//! needed. Patterns match the **match form** of the message: lower case,
+//! accents folded ([`normalise`](crate::normalise)).
 //!
 //! A match is certain (confidence 1.0). Candidates are ordered by the
 //! manifest's explicit priority, highest first; ties are broken by intent
@@ -14,9 +14,8 @@
 use std::collections::BTreeMap;
 use std::ops::Range;
 
-use regex::{Regex, RegexSet};
-
 use crate::manifest::Manifest;
+use crate::patterns::Patterns;
 use crate::{Error, IntentId, Lang};
 
 /// A recognised intent, as proposed by a rule.
@@ -36,7 +35,8 @@ pub struct Candidate {
     pub captures: Vec<(String, Range<usize>)>,
 }
 
-/// One compiled pattern and its bookkeeping.
+/// One pattern's bookkeeping; the pattern has the same index in
+/// [`LangRules::patterns`].
 #[derive(Debug)]
 struct Rule {
     intent: IntentId,
@@ -45,13 +45,12 @@ struct Rule {
     /// Position of the pattern within its manifest, for the tie-break.
     position: usize,
     fixed: BTreeMap<String, String>,
-    regex: Regex,
 }
 
 /// The rules of one language.
 #[derive(Debug)]
 struct LangRules {
-    set: RegexSet,
+    patterns: Patterns,
     rules: Vec<Rule>,
 }
 
@@ -87,6 +86,8 @@ impl Rules {
     pub fn compile(manifests: &[Manifest]) -> Result<Self, Error> {
         let by_lang = Lang::ALL.map(|lang| {
             let mut rules = Vec::new();
+            let mut sources = Vec::new();
+            let mut owners = Vec::new();
             for manifest in manifests {
                 let mut position = 0;
                 for intent in &manifest.intents {
@@ -95,38 +96,40 @@ impl Rules {
                         if pattern.lang != lang {
                             continue;
                         }
-                        let at = |message: String| {
-                            Error::manifest(
-                                &manifest.id,
-                                format!("intent `{}`: {message}", intent.id),
-                            )
-                        };
-                        let regex = Regex::new(&pattern.regex)
-                            .map_err(|e| at(format!("pattern does not compile: {e}")))?;
-                        if let Some(name) = regex
-                            .capture_names()
-                            .flatten()
-                            .find(|name| intent.slot(name).is_none())
-                        {
-                            return Err(at(format!(
-                                "pattern /{}/ captures `{name}`, which is not a declared slot",
-                                pattern.regex
-                            )));
-                        }
+                        sources.push(pattern.regex.as_str());
+                        owners.push((manifest, intent));
                         rules.push(Rule {
                             intent: intent.id.clone(),
                             priority: intent.priority,
                             courtesy: intent.courtesy,
                             position,
                             fixed: pattern.slots.clone(),
-                            regex,
                         });
                     }
                 }
             }
-            let set = RegexSet::new(rules.iter().map(|r| r.regex.as_str()))
-                .map_err(|e| Error::Registry(format!("rule set for `{lang}`: {e}")))?;
-            Ok(LangRules { set, rules })
+            let at = |i: usize, message: String| {
+                let (manifest, intent) = owners[i];
+                Error::manifest(&manifest.id, format!("intent `{}`: {message}", intent.id))
+            };
+            let patterns = Patterns::new(sources)
+                .map_err(|(i, e)| at(i, format!("pattern does not compile: {e}")))?;
+            for (i, &(_, intent)) in owners.iter().enumerate() {
+                if let Some(name) = patterns
+                    .names(i)
+                    .iter()
+                    .find(|name| intent.slot(name).is_none())
+                {
+                    return Err(at(
+                        i,
+                        format!(
+                            "pattern /{}/ captures `{name}`, which is not a declared slot",
+                            patterns.source(i)
+                        ),
+                    ));
+                }
+            }
+            Ok(LangRules { patterns, rules })
         });
         let [es, en] = by_lang;
         Ok(Self {
@@ -136,15 +139,15 @@ impl Rules {
 
     /// Every rule in `lang` that matches `text`, best first, with
     /// repeats of an intent kept.
-    fn hits(&self, lang: Lang, text: &str) -> Vec<&Rule> {
+    fn hits(&self, lang: Lang, text: &str) -> Vec<(usize, &Rule)> {
         let lang_rules = &self.by_lang[lang.index()];
-        let mut hits: Vec<&Rule> = lang_rules
-            .set
+        let mut hits: Vec<(usize, &Rule)> = lang_rules
+            .patterns
             .matches(text)
             .into_iter()
-            .map(|i| &lang_rules.rules[i])
+            .map(|i| (i, &lang_rules.rules[i]))
             .collect();
-        hits.sort_by(|a, b| {
+        hits.sort_by(|(_, a), (_, b)| {
             b.priority
                 .cmp(&a.priority)
                 .then_with(|| a.intent.cmp(&b.intent))
@@ -158,25 +161,22 @@ impl Rules {
     /// byte `base`, so captures come back as ranges of the whole.
     #[must_use]
     pub fn candidates(&self, lang: Lang, text: &str, base: usize) -> Vec<Candidate> {
+        let patterns = &self.by_lang[lang.index()].patterns;
         let mut hits = self.hits(lang, text);
-        hits.dedup_by(|later, earlier| later.intent == earlier.intent);
+        hits.dedup_by(|(_, later), (_, earlier)| later.intent == earlier.intent);
         hits.into_iter()
-            .map(|r| {
-                let captures = r.regex.captures(text).map_or_else(Vec::new, |caps| {
-                    r.regex
-                        .capture_names()
-                        .flatten()
-                        .filter_map(|name| {
-                            let m = caps.name(name)?;
-                            Some((name.to_owned(), base + m.start()..base + m.end()))
-                        })
-                        .collect()
-                });
+            .map(|(i, r)| {
+                let captures = patterns
+                    .captures(i, text)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|(name, m)| (name.to_owned(), base + m.start..base + m.end))
+                    .collect();
                 Candidate {
                     intent: r.intent.clone(),
                     priority: r.priority,
                     lang,
-                    pattern: r.regex.as_str().to_owned(),
+                    pattern: patterns.source(i).to_owned(),
                     fixed: r.fixed.clone(),
                     captures,
                 }
@@ -202,8 +202,8 @@ impl Rules {
         [lang, lang.other()].into_iter().find_map(|l| {
             self.hits(l, text)
                 .into_iter()
-                .find(|r| r.courtesy)
-                .map(|r| r.intent.clone())
+                .find(|(_, r)| r.courtesy)
+                .map(|(_, r)| r.intent.clone())
         })
     }
 
@@ -254,9 +254,10 @@ impl Rules {
     /// pattern), best first; for `talos skills check`.
     #[must_use]
     pub fn all_matches(&self, lang: Lang, text: &str) -> Vec<(IntentId, i32, String)> {
+        let patterns = &self.by_lang[lang.index()].patterns;
         self.hits(lang, text)
             .into_iter()
-            .map(|r| (r.intent.clone(), r.priority, r.regex.as_str().to_owned()))
+            .map(|(i, r)| (r.intent.clone(), r.priority, patterns.source(i).to_owned()))
             .collect()
     }
 
@@ -350,6 +351,28 @@ mod tests {
         let found = rules.candidates(Lang::Es, &text[3..], 3);
         assert_eq!(found[0].captures, [("what".to_owned(), 9..18)]);
         assert_eq!(&text[9..18], "te o cafe");
+    }
+
+    /// Footprint guard (docs/DEVELOPMENT.md, "Footprint"): nothing is
+    /// compiled up front, a language's rules only when a turn needs them,
+    /// and an ASCII message never needs the costly Unicode form.
+    #[test]
+    fn rules_are_compiled_when_needed_and_narrow_for_plain_text() {
+        let rules = Rules::compile(&[
+            manifest("a", &[("x", 10, "es", r"^hola (?P<what>\w+)$")]),
+            manifest("b", &[("y", 10, "en", r"^hi \w+$")]),
+        ])
+        .unwrap();
+        let built = |lang: Lang| rules.by_lang[lang.index()].patterns.built();
+        assert_eq!([built(Lang::Es), built(Lang::En)], [[false, false]; 2]);
+        let found = rules.candidates_any(Lang::Es, "hola mundo", 0);
+        assert_eq!(found[0].captures, [("what".to_owned(), 5..10)]);
+        assert_eq!(built(Lang::Es), [true, false]);
+        assert_eq!(built(Lang::En), [false, false]);
+        // A letter beyond ASCII is matched with the pattern as written.
+        let found = rules.candidates_any(Lang::Es, "hola σοφία", 0);
+        assert_eq!(found[0].captures, [("what".to_owned(), 5..15)]);
+        assert_eq!(built(Lang::Es), [true, true]);
     }
 
     #[test]

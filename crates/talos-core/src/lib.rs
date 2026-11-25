@@ -22,6 +22,7 @@ pub mod language;
 pub mod manifest;
 pub mod normalise;
 mod outcome;
+mod patterns;
 pub mod random;
 mod reflector;
 pub mod render;

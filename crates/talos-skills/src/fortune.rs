@@ -33,7 +33,12 @@ impl Fortune {
         {
             return SkillResult::Decline;
         }
-        let list = sayings(call.lang);
+        // Never the saying just given (docs/spec/basics.md, fortune): it is
+        // left out of the draw, so one draw still decides.
+        let mut list = sayings(call.lang);
+        if let Some(previous) = cx.conversation().last_reply() {
+            list.retain(|saying| *saying != previous);
+        }
         let index = cx.random().entry(&list);
         match list.get(index) {
             Some(saying) => SkillResult::Answer(Message::new("saying").var("text", *saying)),

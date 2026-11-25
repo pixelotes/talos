@@ -4,12 +4,15 @@
 
 use std::fmt::Write as _;
 use std::io::{self, BufRead, IsTerminal, Write};
+use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use serde_json::{Map, Value as Json, json};
 use talos_core::check::Severity;
 use talos_core::{Config, ConvId, Engine, Lang, Outcome, Status, Timestamp, Turn, Value};
+
+mod eval;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -18,11 +21,13 @@ usage: talos [options] ask <text>        answer one message, then exit
        talos [options] chat              a conversation on stdin/stdout
        talos [options] explain <text>    show how a message is answered, stage by stage
        talos skills list | check         inspect and validate the skill manifests
+       talos eval                        score the intent batteries, rules only
        talos --version
 
 options: --lang es|en   the caller's language hint
          --seed N       the random source's seed (default 0)
-         --json         print the full outcome object (ask, explain)
+         --json         print the full outcome object (ask, explain) or the report (eval)
+         --dir PATH     the batteries' directory (eval; default `evals`)
 
 exit status of `ask`: 0 answered, 2 deflected, 3 unhandled;
 of `skills check`: 1 when a manifest has errors";
@@ -52,6 +57,7 @@ enum Command {
     Chat(Options),
     SkillsList,
     SkillsCheck,
+    Eval(Options, PathBuf),
 }
 
 /// Parses the arguments after the program name. Flags may come before or
@@ -61,6 +67,7 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
     let mut positional: Vec<&str> = Vec::new();
     let mut iter = args.iter();
     let mut flags_done = false;
+    let mut dir: Option<&str> = None;
     while let Some(arg) = iter.next() {
         let arg = arg.as_str();
         if flags_done || !arg.starts_with("--") && !matches!(arg, "-V" | "-h") {
@@ -81,6 +88,7 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
             "--version" | "-V" => return Ok(Command::Version),
             "--help" | "-h" => return Ok(Command::Help),
             "--json" => options.json = true,
+            "--dir" => dir = Some(value("a directory")?),
             "--lang" => {
                 options.lang = Some(
                     value("es or en")?
@@ -97,7 +105,15 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
             _ => return Err(format!("unknown option `{arg}`")),
         }
     }
+    if dir.is_some() && positional.first() != Some(&"eval") {
+        return Err("`--dir` is only for `eval`".to_owned());
+    }
     match positional.split_first() {
+        Some((&"eval", [])) => Ok(Command::Eval(
+            options,
+            PathBuf::from(dir.unwrap_or("evals")),
+        )),
+        Some((&"eval", _)) => Err("`eval` takes no text; use `--dir PATH`".to_owned()),
         Some((&"ask", words)) if !words.is_empty() => Ok(Command::Ask(options, words.join(" "))),
         Some((&"explain", words)) if !words.is_empty() => {
             Ok(Command::Explain(options, words.join(" ")))
@@ -350,6 +366,24 @@ fn chat(
     Ok(())
 }
 
+/// `talos eval`: exits 0 whatever the scores, as long as the batteries ran.
+fn run_eval(engine: &Engine, options: Options, dir: &std::path::Path) -> ExitCode {
+    match eval::run(engine, dir) {
+        Ok(reports) => {
+            if options.json {
+                println!("{:#}", eval::render_json(&reports));
+            } else {
+                print!("{}", eval::render_text(&reports));
+            }
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("talos: {error}");
+            ExitCode::from(EXIT_IO)
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let command = match parse_args(&args) {
@@ -369,9 +403,10 @@ fn main() -> ExitCode {
             return ExitCode::SUCCESS;
         }
         Command::SkillsCheck => return skills_check(),
-        Command::Ask(options, _) | Command::Explain(options, _) | Command::Chat(options) => {
-            *options
-        }
+        Command::Ask(options, _)
+        | Command::Explain(options, _)
+        | Command::Chat(options)
+        | Command::Eval(options, _) => *options,
         Command::SkillsList => Options::default(),
     };
     let config = Config {
@@ -392,6 +427,7 @@ fn main() -> ExitCode {
             skills_list(&engine);
             ExitCode::SUCCESS
         }
+        Command::Eval(options, dir) => run_eval(&engine, options, &dir),
         _ => {
             let stdin = io::stdin();
             let prompt = stdin.is_terminal();
@@ -491,6 +527,22 @@ mod tests {
         assert!(parse(&["ask", "--seed", "-1", "x"]).is_err());
         assert!(parse(&["--frobnicate"]).is_err());
         assert!(parse(&["serve"]).is_err());
+        assert_eq!(
+            parse(&["eval"]),
+            Ok(Command::Eval(Options::default(), PathBuf::from("evals")))
+        );
+        assert_eq!(
+            parse(&["eval", "--dir", "x", "--json"]),
+            Ok(Command::Eval(
+                Options {
+                    json: true,
+                    ..Options::default()
+                },
+                PathBuf::from("x")
+            ))
+        );
+        assert!(parse(&["eval", "text"]).is_err());
+        assert!(parse(&["ask", "--dir", "x", "hi"]).is_err());
     }
 
     #[test]

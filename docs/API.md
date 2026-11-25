@@ -11,16 +11,16 @@ talos chat                      interactive session
 talos ask "what time is it"     one answer, then exit
 talos explain "…"               show the pipeline trace for a message
 talos skills list | check       inspect and validate skill manifests
+talos eval [--dir evals]        score the intent batteries, rules only
 talos --version
 
 talos serve                     HTTP server                       (planned)
-talos eval [battery]            run an evaluation battery         (planned)
 talos packs list | add | remove manage knowledge packs            (planned)
 talos teach export | import     back up what the user has taught  (planned)
 ```
 
-Built today: `ask`, `chat`, `explain` and `skills list | check`; the rest of
-the list is planned. Flags, before or after the subcommand: `--lang es|en`
+Built today: `ask`, `chat`, `explain`, `skills list | check` and `eval`; the
+rest of the list is planned. Flags, before or after the subcommand: `--lang es|en`
 (the caller's hint), `--seed N` (the random source's seed, default 0) and
 `--json` (for `ask` and `explain`: print the full outcome object instead of
 the reply text). `--config PATH` and `--data-dir PATH` are planned with
@@ -35,6 +35,17 @@ shell script can fall through to something else exactly as a host application
 would. Other statuses: `talos skills check` exits `1` when a manifest has
 errors; `64` for wrong arguments, `70` when the engine cannot be built, `74`
 when reading or writing the terminal fails. `talos explain` exits `0`.
+
+`talos eval [--dir PATH] [--json]` runs `intents.{es,en}.jsonl` and
+`reject.{es,en}.jsonl` from `PATH` (default `evals`) with the engine as it is,
+rules only, each row as a fresh single-turn conversation with the row's
+language as the hint. Per language it reports the rows, the intent accuracy
+(the outcome's intent equals the label, whatever the status), the false
+accepts of the rejection set (`answered` with an intent, also per `kind`),
+the share of rejection rows with the expected status, and each intent's rows
+and correct ones, worst first. `--json` prints the same as one object. It is a
+baseline, not a gate: it exits `0` whatever the scores, `74` when a battery
+cannot be read.
 
 `--json` prints one object with the fields of the `talos` object of §2.1,
 plus the reply:

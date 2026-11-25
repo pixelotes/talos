@@ -42,10 +42,11 @@
 //! and is the one used when the echo is blocked.
 
 use std::collections::BTreeMap;
+use std::ops::Range;
 
-use regex::{Regex, RegexSet};
 use serde::Deserialize;
 
+use crate::patterns::Patterns;
 use crate::render;
 use crate::{Error, Lang, Status};
 
@@ -155,16 +156,17 @@ pub(crate) struct Rule {
     pub(crate) rank: usize,
     pub(crate) when: When,
     pub(crate) person: Person,
-    pub(crate) patterns: Vec<Regex>,
-    pub(crate) unless: Vec<Regex>,
+    /// Its patterns: these indices of [`Script::patterns`].
+    pub(crate) patterns: Range<usize>,
+    pub(crate) unless: Patterns,
     pub(crate) replies: Vec<Template>,
 }
 
 /// The distress check's data (S29).
 #[derive(Debug)]
 pub(crate) struct Distress {
-    pub(crate) patterns: Vec<Regex>,
-    pub(crate) idioms: Vec<Regex>,
+    pub(crate) patterns: Patterns,
+    pub(crate) idioms: Patterns,
     /// With a general emergency number and a crisis line.
     pub(crate) two_numbers: Template,
     /// With a general emergency number only.
@@ -187,9 +189,9 @@ pub(crate) struct Script {
     pub(crate) distress: Distress,
     /// In rank order; within a shape, in file order.
     pub(crate) rules: Vec<Rule>,
-    /// Every pattern of every rule, for a first pass over a sentence.
-    pub(crate) set: RegexSet,
-    /// The rule of each pattern in `set`.
+    /// Every pattern of every rule, in rule order.
+    pub(crate) patterns: Patterns,
+    /// The rule of each pattern in `patterns`.
     pub(crate) pattern_rule: Vec<usize>,
     /// The person tables, as written.
     pub(crate) reflect: RawReflect,
@@ -315,8 +317,9 @@ pub(crate) struct RawVerbs {
     pub(crate) shared: BTreeMap<String, String>,
 }
 
-fn compile(pattern: &str) -> Result<Regex, String> {
-    Regex::new(pattern).map_err(|e| format!("pattern `{pattern}`: {e}"))
+fn compile(patterns: &[String]) -> Result<Patterns, String> {
+    Patterns::new(patterns.iter().map(String::as_str))
+        .map_err(|(i, e)| format!("pattern `{}`: {e}", patterns[i]))
 }
 
 fn templates(texts: &[String], what: &str) -> Result<Vec<Template>, String> {
@@ -377,18 +380,8 @@ impl Script {
         }
 
         let distress = Distress {
-            patterns: raw
-                .distress
-                .patterns
-                .iter()
-                .map(|p| compile(p))
-                .collect::<Result<_, _>>()?,
-            idioms: raw
-                .distress
-                .idioms
-                .iter()
-                .map(|p| compile(p))
-                .collect::<Result<_, _>>()?,
+            patterns: compile(&raw.distress.patterns)?,
+            idioms: compile(&raw.distress.idioms)?,
             two_numbers: Template::parse(&raw.distress.two_numbers)?,
             one_number: Template::parse(&raw.distress.one_number)?,
             no_number: Template::parse(&raw.distress.no_number)?,
@@ -421,28 +414,17 @@ impl Script {
             if rule.patterns.is_empty() {
                 return Err(format!("{what}: no patterns"));
             }
-            let patterns: Vec<Regex> = rule
-                .patterns
-                .iter()
-                .map(|p| compile(p))
-                .collect::<Result<_, _>>()
-                .map_err(|e| format!("{what}: {e}"))?;
-            let unless: Vec<Regex> = rule
-                .unless
-                .iter()
-                .map(|p| compile(p))
-                .collect::<Result<_, _>>()
-                .map_err(|e| format!("{what}: {e}"))?;
+            let patterns = compile(&rule.patterns).map_err(|e| format!("{what}: {e}"))?;
+            let unless = compile(&rule.unless).map_err(|e| format!("{what}: {e}"))?;
             let replies = templates(&rule.replies, &what)?;
             for reply in &replies {
                 for var in &reply.vars {
-                    if let Some(p) = patterns
-                        .iter()
-                        .find(|p| !p.capture_names().any(|n| n == Some(var.as_str())))
+                    if let Some(p) = (0..patterns.len()).find(|&p| !patterns.names(p).contains(var))
                     {
                         return Err(format!(
-                            "{what}: `{}` uses `{{{var}}}`, which pattern `{p}` does not capture",
-                            reply.text
+                            "{what}: `{}` uses `{{{var}}}`, which pattern `{}` does not capture",
+                            reply.text,
+                            patterns.source(p)
                         ));
                     }
                 }
@@ -458,29 +440,37 @@ impl Script {
                 }
                 Status::Unhandled | Status::Answered => neutral_only(&replies, &what)?,
             }
-            rules.push(Rule {
-                shape,
-                status,
-                rank,
-                when: rule.when,
-                person: rule.person,
+            rules.push((
+                Rule {
+                    shape,
+                    status,
+                    rank,
+                    when: rule.when,
+                    person: rule.person,
+                    patterns: 0..0,
+                    unless,
+                    replies,
+                },
                 patterns,
-                unless,
-                replies,
-            });
+            ));
         }
         // Stable: within a shape, file order.
-        rules.sort_by_key(|r| r.rank);
+        rules.sort_by_key(|(r, _)| r.rank);
 
         let mut pattern_rule = Vec::new();
-        let mut sources = Vec::new();
-        for (index, rule) in rules.iter().enumerate() {
-            for pattern in &rule.patterns {
-                pattern_rule.push(index);
-                sources.push(pattern.as_str());
-            }
-        }
-        let set = RegexSet::new(&sources).map_err(|e| e.to_string())?;
+        let mut lists = Vec::new();
+        let rules = rules
+            .into_iter()
+            .enumerate()
+            .map(|(index, (mut rule, patterns))| {
+                let start = pattern_rule.len();
+                pattern_rule.extend(std::iter::repeat_n(index, patterns.len()));
+                rule.patterns = start..pattern_rule.len();
+                lists.push(patterns);
+                rule
+            })
+            .collect();
+        let patterns = Patterns::concat(lists);
 
         Ok(Self {
             lang,
@@ -491,7 +481,7 @@ impl Script {
             long_text,
             distress,
             rules,
-            set,
+            patterns,
             pattern_rule,
             reflect: raw.reflect,
         })

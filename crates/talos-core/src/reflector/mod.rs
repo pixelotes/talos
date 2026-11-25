@@ -24,6 +24,7 @@ use std::ops::Range;
 use self::reflect::{MAX_ECHO_WORDS, Reflection, Tables};
 use self::script::{Person, Rule, Script, Template, When};
 use crate::normalise::Normalised;
+use crate::patterns::Patterns;
 use crate::state::ConversationState;
 use crate::{ConvId, Error, Lang, Reason, Status, render};
 
@@ -84,8 +85,8 @@ impl Reflector {
 
     /// Loads two scripts, Spanish first.
     pub(crate) fn from_sources(es: &str, en: &str) -> Result<Self, Error> {
-        let es = Script::parse("reflector/es.toml", es)?;
-        let en = Script::parse("reflector/en.toml", en)?;
+        let mut es = Script::parse("reflector/es.toml", es)?;
+        let mut en = Script::parse("reflector/en.toml", en)?;
         for (script, lang) in [(&es, Lang::Es), (&en, Lang::En)] {
             if script.lang != lang {
                 return Err(Error::Script {
@@ -94,13 +95,15 @@ impl Reflector {
                 });
             }
         }
-        let tables = |script: &Script| {
-            Tables::compile(script.lang, &script.reflect).map_err(|message| Error::Script {
+        // The tables as written are not needed once compiled.
+        let tables = |script: &mut Script| {
+            let raw = std::mem::take(&mut script.reflect);
+            Tables::compile(script.lang, &raw).map_err(|message| Error::Script {
                 script: format!("reflector/{}.toml", script.lang),
                 message,
             })
         };
-        let tables = [tables(&es)?, tables(&en)?];
+        let tables = [tables(&mut es)?, tables(&mut en)?];
         Ok(Self {
             scripts: [es, en],
             tables,
@@ -208,21 +211,23 @@ impl Reflector {
             let mut here: Option<Found<'a>> = None;
             for range in ranges {
                 let text = &message.folded[range.clone()];
-                let mut rules: Vec<usize> = script
-                    .set
-                    .matches(text)
-                    .into_iter()
-                    .map(|p| script.pattern_rule[p])
-                    .collect();
+                let matched = script.patterns.matches(text);
+                let mut rules: Vec<usize> =
+                    matched.iter().map(|&p| script.pattern_rule[p]).collect();
                 rules.dedup();
                 for index in rules {
                     if here.as_ref().is_some_and(|h| h.index <= index) {
                         break;
                     }
                     let rule = &script.rules[index];
-                    if let Some(found) =
-                        try_rule(rule, index, tables, message, &range, sentence.question)
-                    {
+                    if let Some(found) = try_rule(
+                        (rule, index),
+                        (&script.patterns, &matched),
+                        tables,
+                        message,
+                        &range,
+                        sentence.question,
+                    ) {
                         here = Some(found);
                         break;
                     }
@@ -325,10 +330,11 @@ fn guard(
     }
 }
 
-/// Tries one rule on one sentence.
+/// Tries one rule on one sentence. `matched` lists the patterns that match
+/// it, so the others are not run (nor built) again to read captures.
 fn try_rule<'a>(
-    rule: &'a Rule,
-    index: usize,
+    (rule, index): (&'a Rule, usize),
+    (patterns, matched): (&'a Patterns, &[usize]),
     tables: &Tables,
     message: &Normalised,
     range: &Range<usize>,
@@ -343,23 +349,24 @@ fn try_rule<'a>(
         return None;
     }
     let text = &message.folded[range.clone()];
-    if rule.unless.iter().any(|u| u.is_match(text)) {
+    if (0..rule.unless.len()).any(|u| rule.unless.is_match(u, text)) {
         return None;
     }
     if rule.person == Person::None && tables.has_person(message.original_of(range.clone())) {
         return None;
     }
-    for pattern in &rule.patterns {
-        let Some(caps) = pattern.captures(text) else {
+    for pattern in rule
+        .patterns
+        .clone()
+        .filter(|p| matched.binary_search(p).is_ok())
+    {
+        let Some(caps) = patterns.captures(pattern, text) else {
             continue;
         };
         let mut captures = BTreeMap::new();
-        for name in pattern.capture_names().flatten() {
-            let Some(m) = caps.name(name) else {
-                continue;
-            };
-            let absolute = range.start + m.start()..range.start + m.end();
-            let before = text[..m.start()]
+        for (name, m) in caps {
+            let absolute = range.start + m.start..range.start + m.end;
+            let before = text[..m.start]
                 .split(|c: char| !c.is_alphanumeric())
                 .rfind(|w| !w.is_empty());
             let original = message.original_of(absolute);
@@ -371,7 +378,7 @@ fn try_rule<'a>(
         return Some(Found {
             rule,
             index,
-            pattern: pattern.as_str(),
+            pattern: patterns.source(pattern),
             captures,
         });
     }

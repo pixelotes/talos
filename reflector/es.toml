@@ -519,7 +519,7 @@ replies = ["Cada cual con sus gustos.", "Cada cual con lo suyo.", "Gustos tuyos;
 # S3. Planes: eco como pregunta o como resumen; nunca «buena idea».
 [[rule]]
 shape = "plan"
-patterns = ['^(?:(?:manana|pasado manana|esta (?:tarde|noche|semana)|este (?:finde|fin de semana|verano|invierno|mes|ano)|la semana que viene|el (?:mes|ano|verano|invierno|curso|lunes|martes|miercoles|jueves|viernes|sabado|domingo|finde) que viene|la proxima semana|el proximo (?:mes|ano|lunes|verano|curso)|dentro de (?:poco|nada|un rato|un mes|un ano|unos dias)|en (?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|verano|navidad|vacaciones)),? )?voy a (?P<x>.+)$']
+patterns = ['^(?:(?:manana|pasado manana|esta (?:tarde|noche|semana)|este (?:finde|fin de semana|verano|invierno|mes|ano)|la semana que viene|el (?:mes|ano|verano|invierno|curso|lunes|martes|miercoles|jueves|viernes|sabado|domingo|finde) que viene|la proxima semana|el proximo (?:mes|ano|lunes|verano|curso)|dentro de (?:poco|nada|un rato|un mes|un ano|unos dias)|en (?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|verano|navidad|vacaciones)),? )?(?:me )?voy a (?P<x>.+)$']
 replies = [
     "¿Vas a {x}? ¿Y eso?",
     "Vas a {x}, entonces.",

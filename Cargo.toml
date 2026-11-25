@@ -21,8 +21,13 @@ talos-skills = { path = "crates/talos-skills", version = "0.0.0" }
 serde = { version = "1.0.228", default-features = false, features = ["std", "derive"] }
 # Parses skill manifests (ADR 0007); parse-only, no writer or display code.
 toml = { version = "1.2", default-features = false, features = ["std", "parse", "serde"] }
-# Rule patterns as a linear-time RegexSet; only the Unicode classes \b \w \s
-# are needed, so the other Unicode tables and the perf engines are left out.
+# Rule patterns: the parser and the linear-time PikeVM that the `regex` crate
+# is built on, used directly (talos-core/src/patterns.rs) so that no matcher
+# keeps a per-pattern cache. Only the Unicode classes \b \w \s \d are needed,
+# so the other Unicode tables and the perf engines are left out.
+regex-syntax = { version = "0.8.5", default-features = false, features = ["std", "unicode-perl"] }
+regex-automata = { version = "0.4.9", default-features = false, features = ["std", "syntax", "nfa-pikevm", "unicode-perl", "unicode-word-boundary"] }
+# Tests only: the reflector's tests build their own word patterns.
 regex = { version = "1.12", default-features = false, features = ["std", "unicode-perl"] }
 # NFKC for the normalisation stage (DESIGN.md s.4, stage 0); small, standard.
 unicode-normalization = "0.1.24"

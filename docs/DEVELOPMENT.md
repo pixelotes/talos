@@ -58,7 +58,7 @@ taken, plus the small ones Slice A needed. Slice B may revisit any of them.
 | Question | Taken | Note |
 |---|---|---|
 | Argument parsing | hand-written, in `crates/talos/src/main.rs` | `--lang` before or after the subcommand; usage errors exit 64 |
-| Pattern engine | `regex` `RegexSet`, one per language, features `std` + `unicode-perl` only | no `perf` engines: a few dozen anchored patterns do not need them |
+| Pattern engine | `regex` `RegexSet`, one per language, features `std` + `unicode-perl` only | no `perf` engines: a few dozen anchored patterns do not need them. Superseded after Slice D: see [Footprint](#footprint) |
 | Unicode normalisation | `unicode-normalization` (NFKC), then `to_lowercase` | `to_lowercase` stands in for full case folding |
 | Manifest embedding | `crates/talos-skills/build.rs` lists `skills/*/manifest.toml` and emits an `include_str!` table | no run-time file access for built-ins |
 | Manifest parsing | `serde` + `toml` (parse only), read into a raw form then validated | unknown keys rejected; a summary, example list or reply lacking `es` or `en` is rejected by name |
@@ -87,6 +87,87 @@ taken, plus the small ones Slice A needed. Slice B may revisit any of them.
 | Local time in the CLI | the binary runs `date +%z` before each turn | the smallest means with no `unsafe` and no crate; honours `TZ`; where `date` is missing the offset is unknown and time-of-day answers stay neutral. The date/time crate is left to Slice C |
 | JSON | `serde_json` (std only) in the binary for `--json` | +17 KB on the stripped binary, measured; the server will need it anyway |
 | Validator | `talos_core::check`, run by `talos skills check` and by a test in `talos-skills` that requires zero findings | see the list of checks in `check.rs` |
+
+## Footprint
+
+After Slices C and D (seven skills, the reflector), start-up and memory
+regressed far past the v0.1 targets (ROADMAP: ≤ 8 MB resident at rest,
+rule-matched turn p99 ≤ 2 ms, binary ≤ 6 MB). Measured on an Apple-silicon
+Mac, release build:
+
+| | before | after |
+|---|---|---|
+| `talos ask "hola"`: wall / max RSS | ~100 ms / 20.7 MB | ~20 ms / 6.8 MB |
+| one process after a rule and a reflector turn in each language: max RSS (`time -l`) / peak footprint | 21.4 MB / 19.8 MB | 8.2 MB / 6.7 MB |
+| engine construction | 97 ms | 17 ms |
+| rule turn p50 / p99 (5000 in one process) | 20 / 46 µs | 14 / 15 µs |
+| reflector turn p50 / p99 | 700 µs / 1.2 ms | 640 / 660 µs |
+| stripped binary | 1 401 152 B | 1 367 600 B |
+
+Medians of 11 runs; max RSS varies by ±0.4 MB from run to run. Reproduce
+with `examples/footprint.rs` in `talos-skills` (it prints the resident set
+after each stage and, given a count, p50/p99 per turn kind) and with
+`printf 'hola\nhello\ncreo que el cine es aburrido\ni think movies are boring\n' | /usr/bin/time -l target/release/talos chat`.
+
+**Cause.** The 433 patterns (165 of the skills, 223 reflector rules, 45
+`unless`/distress) were compiled at construction, each twice (a
+`RegexSet` per list and a `Regex` per pattern), with their Unicode classes.
+A Unicode `\w` is a UTF-8 automaton of ~320 NFA states (18 KB), and
+`(?:\w+ ){0,3}` repeats it four times: the largest reflector patterns were
+140 KB each, the lists 3.8 MB of NFA in all, and the Thompson compiler
+peaks at several times its output (one `RegexSet` of 85 patterns: 6 MB
+peak for 1.1 MB kept), which the allocator keeps. The engine held 8.6 MB of
+heap after construction, 1.7 million allocations; every `Regex` used then
+kept its own matching cache besides.
+
+**What was done** (`talos-core/src/patterns.rs`; nothing a pattern matches
+changed, and golden transcripts, replies and `talos explain` traces are
+identical over 1 658 inputs):
+
+- **A narrow form of each pattern.** In the match form, accents are gone
+  and every space is ASCII, so almost no message holds a word, digit or
+  space character beyond ASCII (`¿`, `¡`, `€` are none of those). On such
+  a text `\w`, `\d`, `\s` and their negations mean exactly their ASCII
+  classes, so each pattern also gets a narrow form with them replaced
+  (3.8 MB of NFA → 1.4 MB). A text with such a character (`ß`, `µ`, Greek,
+  CJK) is matched with the pattern as written, built the first time one
+  arrives. A test checks both forms agree on every golden and example
+  line.
+- **Built when first needed.** Construction only parses (and so
+  validates) the patterns; a list's automata are built on its first
+  search, so `ask "hola"` builds the Spanish rules and the distress check
+  only.
+- **Nothing twice, no kept caches.** A list is matched by multi-pattern
+  automata of eight patterns each (small builds keep the transient peak
+  low: 8 beat 1, 4, 16, 32 and one per list); a pattern's own automaton,
+  for its captures, is built only when it is read. They are the `PikeVM`s
+  `regex` would run, configured as it configures them, used through
+  `regex-automata` directly (already in the tree under `regex`) so that a
+  search's scratch space is freed after it instead of kept per automaton
+  (−1.6 MB). Like `regex`, a search is skipped when the text is shorter
+  than any match or longer than an anchored one.
+- The reflector drops its person tables as written once compiled.
+
+**Tried and rejected.** `regex-lite`: compiles everything in 5 ms, but its
+classes are ASCII-only (it would change what `\w` matches), it has no set
+(433 `is_match` per turn), and its per-regex caches took the process to
+12 MB. Disabling Unicode outright: non-ASCII literals in classes (`[¿¡]`)
+do not parse, and non-ASCII letters would stop matching. Size and DFA
+limits: no DFA engine is compiled in (no `perf` features), and the NFA
+limit only rejects. Factoring common prefixes out of alternations: +2 %
+states. Building eagerly at construction, or reusing one compiler per
+list: no gain or worse.
+
+**Left.** The automata themselves are ~1.7 MB of heap (a Thompson NFA has
+about one state per pattern byte); the rest of the process is the binary,
+TOML parsing, the reflector's person tables (~0.45 MB resident) and
+allocator fragmentation (on macOS about 45 % of the malloc zone is free
+space after construction). Max RSS sits around 8.2 MB, peak footprint
+6.7 MB.
+
+`rules.rs` has a guard test: compiling rules builds nothing, a turn builds
+only its language's narrow automata, and only a wide text builds the
+written form.
 
 ## Golden transcripts
 
