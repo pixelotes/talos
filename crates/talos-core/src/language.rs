@@ -1,30 +1,94 @@
-//! Stage 1: which language a turn is in (ADR 0015).
+//! Stage 1: which language a turn is in (ADR 0015,
+//! docs/spec/conversation.md section 1).
 //!
-//! Slice A implements steps 1, 2 and 4: the caller's hint, then words and
-//! characters that belong to only one language, then the configured default.
-//! The classifier (step 3) and per-conversation stickiness come later.
+//! Steps 1, 2 and 4 of ADR 0015: the caller's hint, then words and
+//! characters that belong to only one language, then the conversation's
+//! language (or the configured default on a fresh conversation). The
+//! classifier (step 3) arrives in v0.2.
+//!
+//! The result is sticky per conversation, with hysteresis:
+//!
+//! - a conversation whose language was **settled** (by a hint or by
+//!   evidence) switches only on clear evidence for the other language: at
+//!   least [`SWITCH_WORDS`] marker words of it, and more than of the current
+//!   one. "gracias" after English turns, or "hello" after Spanish ones,
+//!   switches nothing;
+//! - a conversation whose language only **defaulted** (no evidence yet)
+//!   takes the first one-sided evidence it sees.
 
 use crate::Lang;
+
+/// Marker words of the other language needed to switch a settled
+/// conversation: one word is never enough (conversation.md 1.2).
+pub const SWITCH_WORDS: usize = 2;
+
+/// How firmly a conversation holds its language.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Hold {
+    /// Settled by a hint or by evidence: switches only on clear evidence.
+    Settled,
+    /// Taken from the default with no evidence: the next evidence decides.
+    Defaulted,
+}
+
+/// The language evidence in one message: marker words of each language.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Evidence {
+    /// Spanish marker words (a word on the Spanish list, or containing a
+    /// letter only Spanish uses), plus one for `¿`/`¡` when no word is.
+    pub es: usize,
+    /// English marker words.
+    pub en: usize,
+}
+
+impl Evidence {
+    /// The score of one language.
+    #[must_use]
+    pub const fn of(self, lang: Lang) -> usize {
+        match lang {
+            Lang::Es => self.es,
+            Lang::En => self.en,
+        }
+    }
+
+    /// The language with more evidence, if one has more.
+    #[must_use]
+    pub fn leader(self) -> Option<Lang> {
+        match self.es.cmp(&self.en) {
+            std::cmp::Ordering::Greater => Some(Lang::Es),
+            std::cmp::Ordering::Less => Some(Lang::En),
+            std::cmp::Ordering::Equal => None,
+        }
+    }
+}
 
 /// How the language of a turn was decided.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Decided {
     /// The caller said so.
     Hint,
-    /// Markers of one language and none of the other: the counts found.
-    Markers {
-        /// Spanish markers in the message.
-        es: usize,
-        /// English markers in the message.
-        en: usize,
-    },
-    /// No decisive evidence (none, or markers of both): the default applies.
-    Default {
-        /// Spanish markers in the message.
-        es: usize,
-        /// English markers in the message.
-        en: usize,
-    },
+    /// A conversation with no settled language: the evidence decided.
+    Evidence(Evidence),
+    /// Clear evidence switched a settled conversation.
+    Switched(Evidence),
+    /// The conversation kept its settled language.
+    Kept(Evidence),
+    /// No evidence either way and nothing settled: the default (or the
+    /// earlier default) applies.
+    Default(Evidence),
+}
+
+impl Decided {
+    /// How firmly the conversation holds the language afterwards.
+    #[must_use]
+    pub const fn hold(self) -> Hold {
+        match self {
+            Decided::Default(_) => Hold::Defaulted,
+            Decided::Hint | Decided::Evidence(_) | Decided::Switched(_) | Decided::Kept(_) => {
+                Hold::Settled
+            }
+        }
+    }
 }
 
 /// Function words and greetings that occur in Spanish and not in English.
@@ -146,28 +210,31 @@ const EN_WORDS: &[&str] = &[
 
 /// Characters that only Spanish uses among the two.
 fn is_es_char(c: char) -> bool {
-    matches!(c, 'ñ' | '¿' | '¡' | 'á' | 'é' | 'í' | 'ó' | 'ú' | 'ü')
+    matches!(c, 'ñ' | 'á' | 'é' | 'í' | 'ó' | 'ú' | 'ü')
 }
 
-/// Counts the markers of each language in normalised text.
+/// Counts the marker words of each language in normalised text (accents
+/// kept: they are evidence, though their absence is not).
 #[must_use]
-pub fn markers(text: &str) -> (usize, usize) {
-    let mut es = text.chars().filter(|&c| is_es_char(c)).count();
-    let mut en = 0;
+pub fn evidence(text: &str) -> Evidence {
+    let mut found = Evidence::default();
     for word in text
         .split(|c: char| !(c.is_alphanumeric() || c == '\''))
         .filter(|w| !w.is_empty())
     {
         let word = unstretch(word);
         let word = word.as_str();
-        if ES_WORDS.contains(&word) {
-            es += 1;
+        if ES_WORDS.contains(&word) || word.chars().any(is_es_char) {
+            found.es += 1;
         }
         if EN_WORDS.contains(&word) || word.ends_with("n't") {
-            en += 1;
+            found.en += 1;
         }
     }
-    (es, en)
+    if found.es == 0 && text.contains(['¿', '¡']) {
+        found.es = 1;
+    }
+    found
 }
 
 /// Collapses a run of three or more equal letters to one, so a stretched
@@ -186,16 +253,36 @@ fn unstretch(word: &str) -> String {
     out
 }
 
-/// Decides the language of a turn from its hint and its normalised text.
+/// Decides the language of a turn from its hint, its normalised text and
+/// the conversation's current language.
 #[must_use]
-pub fn detect(hint: Option<Lang>, text: &str, default: Lang) -> (Lang, Decided) {
+pub fn decide(
+    hint: Option<Lang>,
+    text: &str,
+    current: Option<(Lang, Hold)>,
+    default: Lang,
+) -> (Lang, Decided) {
     if let Some(lang) = hint {
         return (lang, Decided::Hint);
     }
-    match markers(text) {
-        (es, 0) if es > 0 => (Lang::Es, Decided::Markers { es, en: 0 }),
-        (0, en) if en > 0 => (Lang::En, Decided::Markers { es: 0, en }),
-        (es, en) => (default, Decided::Default { es, en }),
+    let found = evidence(text);
+    match current {
+        Some((lang, Hold::Settled)) => {
+            let other = lang.other();
+            if found.of(other) >= SWITCH_WORDS && found.of(other) > found.of(lang) {
+                (other, Decided::Switched(found))
+            } else {
+                (lang, Decided::Kept(found))
+            }
+        }
+        Some((_, Hold::Defaulted)) | None => {
+            if let Some(lang) = found.leader() {
+                (lang, Decided::Evidence(found))
+            } else {
+                let lang = current.map_or(default, |(lang, _)| lang);
+                (lang, Decided::Default(found))
+            }
+        }
     }
 }
 
@@ -203,29 +290,37 @@ pub fn detect(hint: Option<Lang>, text: &str, default: Lang) -> (Lang, Decided) 
 mod tests {
     use super::*;
 
-    fn lang(text: &str) -> Lang {
-        detect(None, text, Lang::Es).0
+    fn fresh(text: &str, default: Lang) -> Lang {
+        decide(None, text, None, default).0
     }
 
-    fn lang_default_en(text: &str) -> Lang {
-        detect(None, text, Lang::En).0
+    fn after(lang: Lang, text: &str) -> (Lang, Decided) {
+        decide(None, text, Some((lang, Hold::Settled)), Lang::Es)
     }
 
     #[test]
     fn the_hint_wins() {
         assert_eq!(
-            detect(Some(Lang::En), "hola", Lang::Es),
+            decide(
+                Some(Lang::En),
+                "hola",
+                Some((Lang::Es, Hold::Settled)),
+                Lang::Es
+            ),
             (Lang::En, Decided::Hint)
         );
     }
 
     #[test]
-    fn unambiguous_words_decide() {
-        assert_eq!(lang_default_en("hola"), Lang::Es);
-        assert_eq!(lang_default_en("que hora es"), Lang::Es);
-        assert_eq!(lang("hello"), Lang::En);
-        assert_eq!(lang("what time is it"), Lang::En);
-        assert_eq!(lang("don't"), Lang::En);
+    fn unambiguous_words_decide_a_fresh_conversation() {
+        assert_eq!(fresh("hola", Lang::En), Lang::Es);
+        assert_eq!(fresh("que hora es", Lang::En), Lang::Es);
+        assert_eq!(fresh("hello", Lang::Es), Lang::En);
+        assert_eq!(fresh("what time is it", Lang::Es), Lang::En);
+        assert_eq!(fresh("don't", Lang::Es), Lang::En);
+        assert_eq!(fresh("¿mañana?", Lang::En), Lang::Es);
+        assert_eq!(fresh("escríbeme un poema", Lang::En), Lang::Es);
+        assert_eq!(fresh("¿?", Lang::En), Lang::Es);
     }
 
     #[test]
@@ -233,25 +328,60 @@ mod tests {
         assert_eq!(unstretch("holaaaa"), "hola");
         assert_eq!(unstretch("hiii"), "hi");
         assert_eq!(unstretch("hello"), "hello");
-        assert_eq!(lang("hiii!!!"), Lang::En);
-        assert_eq!(lang_default_en("holaaa"), Lang::Es);
+        assert_eq!(fresh("hiii!!!", Lang::Es), Lang::En);
+        assert_eq!(fresh("holaaa", Lang::En), Lang::Es);
     }
 
     #[test]
-    fn spanish_characters_decide() {
-        assert_eq!(lang_default_en("¿mañana?"), Lang::Es);
-        assert_eq!(lang_default_en("escríbeme un poema"), Lang::Es);
-    }
-
-    #[test]
-    fn no_evidence_or_mixed_evidence_falls_back_to_the_default() {
+    fn no_evidence_or_a_tie_takes_the_default() {
         assert_eq!(
-            detect(None, "ok", Lang::En),
-            (Lang::En, Decided::Default { es: 0, en: 0 })
+            decide(None, "ok", None, Lang::En),
+            (Lang::En, Decided::Default(Evidence::default()))
         );
-        assert_eq!(lang("hey"), Lang::Es);
-        assert_eq!(lang_default_en("hey"), Lang::En);
-        assert_eq!(lang_default_en("hola, what time is it"), Lang::En);
-        assert_eq!(lang("asdkjh qwe"), Lang::Es);
+        assert_eq!(fresh("hey", Lang::Es), Lang::Es);
+        assert_eq!(fresh("hey", Lang::En), Lang::En);
+        assert_eq!(fresh("asdkjh qwe", Lang::Es), Lang::Es);
+        // More English than Spanish.
+        assert_eq!(fresh("hola, what time is it", Lang::Es), Lang::En);
+    }
+
+    #[test]
+    fn one_word_never_switches_a_settled_conversation() {
+        // conversation.md 1.2 and 1.3.
+        assert_eq!(after(Lang::En, "gracias").0, Lang::En);
+        assert_eq!(after(Lang::En, "hola").0, Lang::En);
+        assert_eq!(after(Lang::Es, "thanks").0, Lang::Es);
+        assert_eq!(after(Lang::Es, "ok").0, Lang::Es);
+        assert_eq!(after(Lang::Es, "chess").0, Lang::Es);
+        // Mixed: the grammar's language has more markers.
+        assert_eq!(after(Lang::Es, "qué hora es in tokyo").0, Lang::Es);
+        assert_eq!(after(Lang::En, "what's the hora in tokyo").0, Lang::En);
+    }
+
+    #[test]
+    fn clear_evidence_switches() {
+        assert!(matches!(
+            after(Lang::Es, "and what's the time in london?"),
+            (Lang::En, Decided::Switched(_))
+        ));
+        assert!(matches!(
+            after(Lang::En, "y en berlín, por favor"),
+            (Lang::Es, Decided::Switched(_))
+        ));
+    }
+
+    #[test]
+    fn a_defaulted_conversation_takes_the_first_evidence() {
+        let defaulted = Some((Lang::En, Hold::Defaulted));
+        assert_eq!(decide(None, "hola", defaulted, Lang::En).0, Lang::Es);
+        assert_eq!(
+            decide(None, "ok", defaulted, Lang::Es),
+            (Lang::En, Decided::Default(Evidence::default()))
+        );
+        assert_eq!(
+            Decided::Default(Evidence::default()).hold(),
+            Hold::Defaulted
+        );
+        assert_eq!(Decided::Hint.hold(), Hold::Settled);
     }
 }

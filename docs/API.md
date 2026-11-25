@@ -9,21 +9,47 @@ function and return the same outcome. Decision:
 ```
 talos chat                      interactive session
 talos ask "what time is it"     one answer, then exit
-talos serve                     HTTP server
-
 talos explain "…"               show the pipeline trace for a message
-talos eval [battery]            run an evaluation battery, print metrics
 talos skills list | check       inspect and validate skill manifests
-talos packs list | add | remove manage knowledge packs
-talos teach export | import     back up what the user has taught
+talos --version
+
+talos serve                     HTTP server                       (planned)
+talos eval [battery]            run an evaluation battery         (planned)
+talos packs list | add | remove manage knowledge packs            (planned)
+talos teach export | import     back up what the user has taught  (planned)
 ```
 
-Common flags: `--lang es|en`, `--config PATH`, `--data-dir PATH`, `--json`
-(print the full outcome object instead of the reply text).
+Built today: `ask`, `chat`, `explain` and `skills list | check`; the rest of
+the list is planned. Flags, before or after the subcommand: `--lang es|en`
+(the caller's hint), `--seed N` (the random source's seed, default 0) and
+`--json` (for `ask` and `explain`: print the full outcome object instead of
+the reply text). `--config PATH` and `--data-dir PATH` are planned with
+`talos.toml`.
+
+`talos chat` reads one message per line from standard input (a `> ` prompt
+only on a terminal) and prints one reply per line until end of input; all its
+lines are one conversation.
 
 Exit status of `talos ask`: `0` answered, `2` deflected, `3` unhandled. A
 shell script can fall through to something else exactly as a host application
-would.
+would. Other statuses: `talos skills check` exits `1` when a manifest has
+errors; `64` for wrong arguments, `70` when the engine cannot be built, `74`
+when reading or writing the terminal fails. `talos explain` exits `0`.
+
+`--json` prints one object with the fields of the `talos` object of §2.1,
+plus the reply:
+
+```json
+{ "reply": "…", "status": "answered", "intent": "smalltalk.greet",
+  "slots": {}, "confidence": 1.0, "language": "es", "reason": null,
+  "pending": false, "generated": false, "elapsed_us": 412 }
+```
+
+Slot values are strings (a list is an array of strings; numbers keep their
+exact decimal text, dates are ISO 8601). `intent` and `reason` are `null` when
+absent. With `explain`, the object also carries `trace` (an array of
+`{stage, note}`) and `internal_slots`. Without `--json`, `explain` prints one
+line per stage, then `outcome` and `reply`.
 
 ## 2. HTTP server
 
@@ -68,6 +94,8 @@ The response is a standard completion with one extra object:
     "intent": "clock.now",
     "confidence": 1.0,
     "language": "es",
+    "slots": {},
+    "reason": null,
     "pending": false,
     "generated": false,
     "elapsed_us": 412

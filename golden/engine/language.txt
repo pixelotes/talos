@@ -1,0 +1,51 @@
+# Language of a turn and of a conversation (docs/spec/conversation.md 1,
+# ADR 0015): a hint wins; one-sided evidence decides a fresh conversation;
+# a settled conversation switches only on clear evidence (two or more marker
+# words of the other language, and more than of its own); a conversation
+# that only defaulted takes the first evidence it sees.
+
+# One word of the other language never switches.
+[es] U: hola
+     T: ¡Hola!                                    → answered · smalltalk.greet
+[es] U: hello
+     T: ¡Hola, buenas!                            → answered · smalltalk.greet
+[en] U: good morning talos
+     T: Hello!                                    → answered · smalltalk.greet
+[en] U: hola
+     T: Hi!                                       → answered · smalltalk.greet
+[es] U: escríbeme un poema
+     T: No sé hacer eso.                          → unhandled · catch-all
+
+# A fresh conversation with no evidence takes the default, and the first
+# evidence afterwards decides.
+Given: default language = en
+
+[en] U: ok
+     T: I can't do that.                          → unhandled · catch-all
+[es] U: hola
+     T: ¡Hola, buenas!                            → answered · smalltalk.greet
+[es] U: hi
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+Given: default language = es
+
+# More English than Spanish: English.
+[en] U: hola, what time is it
+     T: I can't do that.                          → unhandled · catch-all
+
+# The caller's hint wins, and the other language's rules still recognise
+# the message (ADR 0011).
+Given: hint = en
+
+[en] U: hola
+     T: Hello!                                    → answered · smalltalk.greet
+
+[en] U: buenas
+     T: Hey!                                      → answered · smalltalk.greet
+
+Given: hint = es
+
+[es] U: hello
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+Given: hint = none

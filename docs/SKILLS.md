@@ -22,13 +22,14 @@ summary.en = "the current time and date"
 summary.es = "la hora y la fecha"
 names.en   = ["clock", "time"]   # what a user calls it, for help.skill
 names.es   = ["reloj", "hora"]
-help.en    = ["what time is it?"]   # shown by help; never training examples
-help.es    = ["¿qué hora es?"]
+help.en    = ["what time is it"]    # shown by help; never training examples
+help.es    = ["qué hora es"]
 capabilities = []                # e.g. ["network"]
 
 [[intent]]
 id = "clock.now"
 priority = 50                    # explicit; higher wins among rule matches
+courtesy = false                 # true for greetings and thanks (see below)
 
   [intent.examples]              # classifier training data
   en = ["what time is it", "do you have the time", "tell me the time"]
@@ -36,12 +37,14 @@ priority = 50                    # explicit; higher wins among rule matches
 
   [[intent.pattern]]             # optional certain matches
   lang  = "es"
-  regex = '^qu[eé] hora (es|tienes)\b'
+  regex = '^que hora (es|tienes)\b'     # lower case, no accents
 
   [[intent.slot]]
-  name     = "place"
-  type     = "place"
+  name     = "date"
+  type     = "date"              # today: term | number | date
   required = false
+  repeated = false               # only for `term`: a list of options
+  internal = false               # true: steers the handler, not reported
 
 [reply.now]
 en = ["It's {time}.", "{time}."]
@@ -54,65 +57,104 @@ es = ["En {place} son las {time}."]
 
 Rules that follow from the format:
 
-- **Both languages or neither.** A manifest with an intent that has examples
-  in only one language fails validation. (An intent may be explicitly marked
-  single-language when that is genuinely the case.)
+- **Both languages or neither.** A manifest with a summary, examples, names,
+  help or reply in only one language fails validation. (Explicitly marking an
+  intent single-language, when that is genuinely the case, is not built yet.)
+- **Unknown keys are errors**, so a typo cannot pass silently.
+- **Patterns match the match form** of the message: lower case, accents and
+  diacritics removed (`¿Qué día es MAÑANA?` is matched as
+  `¿que dia es manana?`). Write them lower-case and unaccented; `talos skills
+  check` rejects a pattern that could never match. A capture still reaches the
+  handler in the user's own spelling. See
+  [SKILL_AUTHORING.md](SKILL_AUTHORING.md) §2.1.
+- **`courtesy = true`** marks an intent whose phrasing may open or close a
+  message that carries a request. When no rule matches the whole message, a
+  courtesy of up to four words at either end is dropped if the rest matches.
+- **`internal = true` slots** are set by fixed values in patterns
+  (`slots = { register = "casual" }`) and tell the handler which phrasing was
+  used; they are left out of the outcome.
 - **Priority is a number in the file**, never a position in source code.
 - **Replies are templates with named variables.** Handlers never build
   sentences.
 - **The help answer is generated** from `summary`, so "what can you do?"
   cannot drift from what is installed.
 
-`talos skills check` validates every manifest: schema, both languages present,
-patterns compile, every reply id used by the handler exists, no two rules of
-equal priority match the same example.
+`talos skills check` validates every manifest together with its handler.
+Errors (exit status 1): the manifest does not parse (schema, a missing
+language, a bad template or slot type); the id differs from the directory; a
+manifest without a handler or the reverse; `names` or `help` missing in a
+language; a reply id the handler declares that the manifest lacks, or a
+manifest reply no handler declares; a pattern that does not compile, captures
+an undeclared slot or is written with accents or capitals; two intents of equal
+priority whose rules in one language match the same example. Warnings: an
+example taken by a rule of an intent with higher priority; an intent with no
+pattern (unreachable until the classifier exists); variants of one reply that
+use different variables.
 
 ## 2. Handler
 
 ```rust
 pub trait Skill: Send + Sync {
-    fn id(&self) -> &'static str;
-    fn handle(&self, cx: &mut Context<'_>, call: &Call) -> SkillResult;
+    fn id(&self) -> &'static str;                 // the manifest's id
+    fn replies(&self) -> &'static [&'static str]; // every reply id it can return
+    fn handle(&self, cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult;
 }
 
 pub struct Call<'a> {
-    pub intent: IntentId,
-    pub slots: Slots,        // typed, already extracted
-    pub turn: &'a Turn,
+    pub intent: &'a IntentId,   // always one of the skill's own
+    pub lang: Lang,             // the turn's language, already decided
+    pub slots: &'a Slots,       // typed, already extracted; internal ones included
+    pub text: &'a str,          // as received; never for deciding the intent
 }
 
 pub enum SkillResult {
-    Answer(Message),               // template id + variables
+    Answer(Message),               // template id + variables; status Answered
     Ask(Expectation, Message),     // a question back to the user
+    Unable(Message),               // recognised, cannot provide: Unhandled, intent kept
     Decline,                       // not mine; try the next candidate
-    Fail(SkillError),
+    Fail(SkillError),              // an honest error; Unhandled
 }
 ```
 
-`Context` gives a handler what it may use and nothing else: the knowledge
-store, user preferences, this conversation's dialog state, and — only if the
-capability was granted — an HTTP client.
+`Context` gives a handler what it may use and nothing else: the injected
+clock (`now()`), the caller's place (`place()`), the turn's random source
+(`random()`, one draw per call, seeded so that turns replay), this
+conversation's state (`conversation()`: turn number, language, recent topic),
+the user's preferences (`preferences()`; empty until v0.3), the installed
+manifests (`skills()`, for generated answers such as help) and `report()` to
+put a slot on the outcome (a default the handler applied). A handler reads no
+system clock, environment, file or global state. The knowledge store, and an
+HTTP client when the `network` capability is granted, join the context as they
+are built.
+
+`Ask` is declared but not available until v0.2: today the engine renders such
+a turn as `Unhandled` with reason `cannot-ask`, and a skill whose required
+slot is missing answers `Unable` with a usage hint instead. How to write a
+built-in skill, step by step, is in [SKILL_AUTHORING.md](SKILL_AUTHORING.md).
 
 Handlers are synchronous. One that uses the network must honour the timeout
 it is given and degrade to a clear "I can't reach that right now" message.
 
 ## 3. Slots and expectations
 
-Slot types are shared and typed: `number`, `duration`, `datetime`,
-`daterange` ("this week"), `place`, `language`, `term` (a quoted or trailing
-phrase), `choice`, `confirm` (yes or no). A slot may be declared repeatable
-(several places, a list of options). Extractors are
-bilingual and tested independently of any skill.
+Slot types are shared and typed. Available today: `term` (a quoted or
+trailing phrase, in the user's spelling), `number` (exact decimal; digits and
+words) and `date` (absolute or relative to the turn's `now`); a slot that
+cannot be read becomes an `Invalid` value, never a guess. Planned: `duration`,
+`datetime`, `daterange` ("this week"), `place`, `language`, `choice`,
+`confirm` (yes or no). A `term` slot may be declared repeatable (a list of
+options). Extractors are bilingual and tested independently of any skill.
 
-When a required slot is missing, the skill returns `Ask`. The expectation
+From v0.2, when a required slot is missing, the skill returns `Ask`. The expectation
 records which skill asked, which slot is open and when it expires. The next
 message in that conversation is offered to it first. "Never mind" / "déjalo"
 cancels; an unrelated message releases the expectation and is routed normally.
 
 ## 4. Built-in skills
 
-Planned for the first major version. Network skills are disabled until
-enabled in configuration.
+Planned for the first major version; of these only `smalltalk` is built so far
+(its `smalltalk.greet` intent). Network skills are disabled until enabled in
+configuration.
 
 | Skill | Does | Network |
 |---|---|---|
@@ -146,6 +188,9 @@ Notes:
   See the open questions in [DESIGN.md](DESIGN.md).
 
 ## 5. External skills
+
+Not built yet: the manifest parser does not accept `[handler]` or
+`generated` today.
 
 A manifest may point at a program or a URL instead of a compiled handler:
 

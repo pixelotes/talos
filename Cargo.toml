@@ -26,6 +26,8 @@ toml = { version = "1.2", default-features = false, features = ["std", "parse", 
 regex = { version = "1.12", default-features = false, features = ["std", "unicode-perl"] }
 # NFKC for the normalisation stage (DESIGN.md s.4, stage 0); small, standard.
 unicode-normalization = "0.1.24"
+# `talos ask --json` (API.md s.1) now, the HTTP server's bodies later; std only.
+serde_json = { version = "1.0.140", default-features = false, features = ["std"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

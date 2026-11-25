@@ -1,0 +1,132 @@
+# smalltalk.greet (docs/spec/basics.md). Each exchange is its own
+# conversation, so every reply is a conversation's first: the canonical
+# wording. The spec's own wording ("Hola.") is illustrative; ours is
+# "¡Hola!" / "Hello!".
+#
+# Given: now defaults to 2027-03-14 18:42 Europe/Madrid.
+
+[es] U: hola
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+[es] U: Hola
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+[es] U: HOLA
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+[es] U: ¡Hola!
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+[es] U: hola!!!
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+[es] U: ¿hola?
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+[es] U: holaaaa
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+[es] U: Hola, Talos.
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+[es] U: ey
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+# "buenas" is answered in the same register; the register is an internal
+# slot, shown only when asked for.
+Given: slots = all
+
+[es] U: buenas
+     T: ¡Buenas!                                  → answered · smalltalk.greet · register=casual
+
+[es] U: ey, muy buenas
+     T: ¡Buenas!                                  → answered · smalltalk.greet · register=casual
+
+Given: slots = public
+
+[es] U: muy buenas, talos
+     T: ¡Buenas!                                  → answered · smalltalk.greet
+
+# Time of day: echoed only when the clock agrees ("never contradicts the
+# clock"). At 18:42 "buenos días" gets a plain hello.
+[es] U: Buenas tardes
+     T: ¡Buenas tardes!                           → answered · smalltalk.greet
+
+[es] U: buenos días
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+[es] U: buenos dias talos
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+Given: now = 2027-03-14 09:42 Europe/Madrid
+
+[es] U: Buenos días
+     T: ¡Buenos días!                             → answered · smalltalk.greet
+
+[es] U: buenos dias
+     T: ¡Buenos días!                             → answered · smalltalk.greet
+
+[en] U: Good morning, Talos
+     T: Good morning!                             → answered · smalltalk.greet
+
+Given: now = 2027-03-14 18:42 Europe/Madrid
+
+[en] U: hi
+     T: Hello!                                    → answered · smalltalk.greet
+
+[en] U: Hello there
+     T: Hello!                                    → answered · smalltalk.greet
+
+[en] U: hiya!
+     T: Hello!                                    → answered · smalltalk.greet
+
+[en] U: HIII!!!
+     T: Hello!                                    → answered · smalltalk.greet
+
+[en] U: Hello, Talos.
+     T: Hello!                                    → answered · smalltalk.greet
+
+[en] U: good evening
+     T: Good evening!                             → answered · smalltalk.greet
+
+[en] U: Good morning, Talos
+     T: Hello!                                    → answered · smalltalk.greet
+
+# "hey" is valid in both languages: with no hint, the default (es) decides.
+[es] U: hey
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+Given: hint = en
+
+[en] U: hey
+     T: Hey!                                      → answered · smalltalk.greet
+
+Given: hint = none
+Given: default language = en
+
+[en] U: hey
+     T: Hey!                                      → answered · smalltalk.greet
+
+Given: default language = es
+
+# Not a bare greeting: a greeting followed by something else is left to the
+# rule that recognises the rest; with no such rule yet, nothing answers.
+[es] U: hola, qué hora es
+     T: No sé hacer eso.                          → unhandled · catch-all
+
+[es] U: buenas noches
+     T: No sé hacer eso.                          → unhandled · catch-all
+
+[es] U: hola, ¿qué tal?
+     T: No sé hacer eso.                          → unhandled · catch-all
+
+[en] U: good night
+     T: I can't do that.                          → unhandled · catch-all
+
+[en] U: hello, what's 3 times 4
+     T: I can't do that.                          → unhandled · catch-all
+
+# A courtesy followed by a recognised request is dropped: here the request
+# is itself a greeting.
+[es] U: hola, buenas tardes
+     T: ¡Buenas tardes!                           → answered · smalltalk.greet

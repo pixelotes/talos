@@ -7,6 +7,7 @@
 
 use std::collections::BTreeMap;
 
+use crate::random::Fnv;
 use crate::{ConvId, Error};
 
 /// Variables for a template.
@@ -63,6 +64,23 @@ pub(crate) fn check(template: &str) -> Result<(), Error> {
     parse(template).map(|_| ())
 }
 
+/// The variable names a well-formed template uses, sorted, without repeats;
+/// empty for a malformed one.
+#[must_use]
+pub fn variables(template: &str) -> Vec<&str> {
+    let mut names: Vec<&str> = parse(template)
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|piece| match piece {
+            Piece::Var(name) => Some(name),
+            Piece::Text(_) => None,
+        })
+        .collect();
+    names.sort_unstable();
+    names.dedup();
+    names
+}
+
 /// Fills a template. Every variable it names must be provided.
 ///
 /// # Errors
@@ -81,32 +99,24 @@ pub fn fill(template: &str, vars: &Vars) -> Result<String, Error> {
     Ok(out)
 }
 
-/// 64-bit FNV-1a: tiny, stable across platforms and releases (unlike
-/// `std`'s hasher, whose output is not guaranteed).
-fn fnv1a(bytes: &[u8]) -> u64 {
-    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-    for &b in bytes {
-        hash ^= u64::from(b);
-        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
-    }
-    hash
-}
-
 /// Which of `count` variants a turn uses.
 ///
 /// The first turn of a conversation always gets the first variant, the
 /// canonical wording, so a one-shot question reads the same every time.
-/// Later turns step through the variants from an offset derived from the
-/// conversation, so two conversations do not vary in lock-step.
+/// Later turns step through the variants one at a time, so two successive
+/// turns never share a wording, from a phase derived from the conversation
+/// (chosen so that turn 2 differs from turn 1), so that conversations with
+/// three or more variants do not vary in lock-step.
 #[must_use]
 pub fn variant(conversation: &ConvId, turn: u32, count: usize) -> usize {
     if count <= 1 || turn <= 1 {
         return 0;
     }
-    let offset = fnv1a(conversation.as_str().as_bytes());
-    let step = offset.wrapping_add(u64::from(turn));
+    let count = count as u64;
+    let phase = Fnv::new().bytes(conversation.as_str().as_bytes()).finish() % (count - 1);
+    let step = (u64::from(turn) - 1 + phase) % count;
     // The remainder is below `count`, which is a usize, so it fits.
-    usize::try_from(step % count as u64).unwrap_or(0)
+    usize::try_from(step).unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -148,6 +158,12 @@ mod tests {
     }
 
     #[test]
+    fn lists_variables() {
+        assert_eq!(variables("{b} y {a}, {b}"), ["a", "b"]);
+        assert_eq!(variables("{oops"), Vec::<&str>::new());
+    }
+
+    #[test]
     fn variant_is_a_pure_function_of_conversation_and_turn() {
         let a = ConvId::new("a");
         assert_eq!(variant(&a, 1, 3), 0);
@@ -158,7 +174,11 @@ mod tests {
             assert!(v < 3);
             assert_eq!(v, variant(&a, turn, 3));
         }
-        // Successive turns move through the variants.
-        assert_ne!(variant(&a, 2, 3), variant(&a, 3, 3));
+        // Successive turns move through the variants, turn 2 included.
+        for count in 2..6 {
+            for turn in 1..20 {
+                assert_ne!(variant(&a, turn, count), variant(&a, turn + 1, count));
+            }
+        }
     }
 }

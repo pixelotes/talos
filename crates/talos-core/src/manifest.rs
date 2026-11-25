@@ -3,15 +3,21 @@
 //!
 //! The TOML is read into a permissive raw form and then validated into the
 //! model below, so a missing language is reported by name instead of as a
-//! generic parse error. Slice A reads only what it uses: the skill's id and
-//! summary, intents with priority, examples and patterns, and replies. Any
-//! other key is rejected, so a typo cannot pass silently.
+//! generic parse error. Any unknown key is rejected, so a typo cannot pass
+//! silently.
+//!
+//! Parsing enforces what the engine needs to run: ids, both languages for
+//! summaries, examples and replies, well-formed templates, declared slot
+//! types. What only a reviewer needs (names and help lines, reachability of
+//! replies, rule overlaps) is checked by [`check`](crate::check), which is
+//! what `talos skills check` runs.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Deserialize;
 
-use crate::{Error, IntentId, Lang, Slots, render};
+use crate::value::SlotType;
+use crate::{Error, IntentId, Lang, render};
 
 /// One value per language. Construction guarantees both are present.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,10 +44,31 @@ impl<T> PerLang<T> {
 pub struct Pattern {
     /// The language whose rule set it joins.
     pub lang: Lang,
-    /// A `regex` crate expression, matched against the normalised text.
+    /// A `regex` crate expression, matched against the match form: lower
+    /// case, accents removed (see [`normalise`](crate::normalise)). Named
+    /// groups (`(?P<name>…)`) capture declared slots.
     pub regex: String,
-    /// Slots this pattern sets to fixed values when it matches.
-    pub slots: Slots,
+    /// Slots this pattern sets to fixed values when it matches; each must
+    /// be a declared `term` slot.
+    pub slots: BTreeMap<String, String>,
+}
+
+/// A slot an intent declares (docs/SKILLS.md section 3).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SlotDecl {
+    /// The name; captures and fixed pattern slots refer to it.
+    pub name: String,
+    /// What it holds; its extractor turns a capture into a typed value.
+    pub kind: SlotType,
+    /// The intent cannot be answered without it. Informational in v0.1: a
+    /// handler answers a missing required slot with a usage hint; from v0.2
+    /// the engine asks back.
+    pub required: bool,
+    /// A list of terms ("té, café o agua"); only for `term` slots.
+    pub repeated: bool,
+    /// Steers the handler only: left out of the outcome and of golden
+    /// comparison (e.g. which greeting was used).
+    pub internal: bool,
 }
 
 /// One thing a user can want from a skill.
@@ -55,6 +82,21 @@ pub struct Intent {
     pub examples: PerLang<Vec<String>>,
     /// Certain-match rules.
     pub patterns: Vec<Pattern>,
+    /// The slots it declares, in file order.
+    pub slots: Vec<SlotDecl>,
+    /// A courtesy (a greeting, a thanks) that may open or close a message
+    /// carrying a real request: when the rest of the message is recognised
+    /// on its own, this part is dropped (docs/spec/basics.md, "Greeting
+    /// prefixes").
+    pub courtesy: bool,
+}
+
+impl Intent {
+    /// The declared slot called `name`.
+    #[must_use]
+    pub fn slot(&self, name: &str) -> Option<&SlotDecl> {
+        self.slots.iter().find(|s| s.name == name)
+    }
 }
 
 /// A validated skill manifest.
@@ -64,6 +106,14 @@ pub struct Manifest {
     pub id: String,
     /// One line for the generated help answer.
     pub summary: PerLang<String>,
+    /// What a user calls the skill, for `help.skill`; empty lists when the
+    /// manifest gives none (which `talos skills check` reports).
+    pub names: PerLang<Vec<String>>,
+    /// Example requests shown by help; never training data. Empty when the
+    /// manifest gives none (reported by the check).
+    pub help: PerLang<Vec<String>>,
+    /// Capabilities the skill needs (`network`, `filesystem`, `exec`).
+    pub capabilities: Vec<String>,
     /// The skill's intents, in file order.
     pub intents: Vec<Intent>,
     /// Reply templates by id; each has one or more variants per language.
@@ -86,6 +136,12 @@ struct RawSkill {
     id: String,
     #[serde(default)]
     summary: RawPerLang<String>,
+    #[serde(default)]
+    names: RawPerLang<Vec<String>>,
+    #[serde(default)]
+    help: RawPerLang<Vec<String>>,
+    #[serde(default)]
+    capabilities: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -97,6 +153,24 @@ struct RawIntent {
     examples: RawPerLang<Vec<String>>,
     #[serde(default)]
     pattern: Vec<RawPattern>,
+    #[serde(default)]
+    slot: Vec<RawSlot>,
+    #[serde(default)]
+    courtesy: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawSlot {
+    name: String,
+    #[serde(rename = "type")]
+    kind: String,
+    #[serde(default)]
+    required: bool,
+    #[serde(default)]
+    repeated: bool,
+    #[serde(default)]
+    internal: bool,
 }
 
 #[derive(Deserialize)]
@@ -105,7 +179,7 @@ struct RawPattern {
     lang: String,
     regex: String,
     #[serde(default)]
-    slots: Slots,
+    slots: BTreeMap<String, String>,
 }
 
 #[derive(Deserialize)]
@@ -159,6 +233,54 @@ impl<T: Blank> RawPerLang<T> {
     }
 }
 
+impl<T: Default> RawPerLang<T> {
+    /// Whatever is there; a missing language is left empty for the check to
+    /// report.
+    fn lenient(self) -> PerLang<T> {
+        PerLang {
+            es: self.es.unwrap_or_default(),
+            en: self.en.unwrap_or_default(),
+        }
+    }
+}
+
+/// The capabilities a skill may declare (DESIGN.md section 11).
+pub const CAPABILITIES: [&str; 3] = ["network", "filesystem", "exec"];
+
+/// Parses an intent's slot declarations.
+fn slots(skill: &str, intent: &str, raw: Vec<RawSlot>) -> Result<Vec<SlotDecl>, Error> {
+    let mut out: Vec<SlotDecl> = Vec::with_capacity(raw.len());
+    for slot in raw {
+        let at = |message: String| Error::manifest(skill, format!("intent `{intent}`: {message}"));
+        if !is_identifier(&slot.name) {
+            return Err(at(format!("bad slot name `{}`", slot.name)));
+        }
+        if out.iter().any(|s| s.name == slot.name) {
+            return Err(at(format!("slot `{}` declared twice", slot.name)));
+        }
+        let kind = SlotType::parse(&slot.kind).ok_or_else(|| {
+            at(format!(
+                "slot `{}` has unknown type `{}` (expected term, number or date)",
+                slot.name, slot.kind
+            ))
+        })?;
+        if slot.repeated && kind != SlotType::Term {
+            return Err(at(format!(
+                "slot `{}`: only `term` slots may be repeated",
+                slot.name
+            )));
+        }
+        out.push(SlotDecl {
+            name: slot.name,
+            kind,
+            required: slot.required,
+            repeated: slot.repeated,
+            internal: slot.internal,
+        });
+    }
+    Ok(out)
+}
+
 fn is_identifier(s: &str) -> bool {
     !s.is_empty()
         && s.chars()
@@ -182,6 +304,17 @@ impl Manifest {
             return Err(Error::manifest(source, format!("bad skill id `{id}`")));
         }
         let summary = raw.skill.summary.both(&id, "skill summary")?;
+        if let Some(unknown) = raw
+            .skill
+            .capabilities
+            .iter()
+            .find(|c| !CAPABILITIES.contains(&c.as_str()))
+        {
+            return Err(Error::manifest(
+                &id,
+                format!("unknown capability `{unknown}`"),
+            ));
+        }
 
         let mut seen = BTreeSet::new();
         let mut intents = Vec::with_capacity(raw.intent.len());
@@ -205,13 +338,29 @@ impl Manifest {
             let examples = intent
                 .examples
                 .both(&id, &format!("intent `{}` examples", intent.id))?;
+            let declared = slots(&id, &intent.id, intent.slot)?;
             let patterns = intent
                 .pattern
                 .into_iter()
                 .map(|p| {
-                    let lang = p.lang.parse::<Lang>().map_err(|e| {
-                        Error::manifest(&id, format!("intent `{}`: {e}", intent.id))
-                    })?;
+                    let at =
+                        |m: String| Error::manifest(&id, format!("intent `{}`: {m}", intent.id));
+                    let lang = p.lang.parse::<Lang>().map_err(|e| at(e.to_string()))?;
+                    for name in p.slots.keys() {
+                        match declared.iter().find(|s| &s.name == name) {
+                            Some(s) if s.kind == SlotType::Term && !s.repeated => {}
+                            Some(_) => {
+                                return Err(at(format!(
+                                    "a pattern fixes slot `{name}`, which is not a single `term`"
+                                )));
+                            }
+                            None => {
+                                return Err(at(format!(
+                                    "a pattern fixes slot `{name}`, which is not declared"
+                                )));
+                            }
+                        }
+                    }
                     Ok(Pattern {
                         lang,
                         regex: p.regex,
@@ -224,6 +373,8 @@ impl Manifest {
                 priority: intent.priority,
                 examples,
                 patterns,
+                slots: declared,
+                courtesy: intent.courtesy,
             });
         }
 
@@ -240,6 +391,9 @@ impl Manifest {
         Ok(Manifest {
             id,
             summary,
+            names: raw.skill.names.lenient(),
+            help: raw.skill.help.lenient(),
+            capabilities: raw.skill.capabilities,
             intents,
             replies,
         })
@@ -255,10 +409,22 @@ mod tests {
 id = "demo"
 summary.es = "una prueba"
 summary.en = "a test"
+names.es = ["prueba"]
+names.en = ["test"]
 
 [[intent]]
 id = "demo.ping"
 priority = 10
+
+  [[intent.slot]]
+  name = "kind"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "items"
+  type = "term"
+  repeated = true
 
   [intent.examples]
   es = ["ping"]
@@ -288,6 +454,37 @@ en = ["Pong."]
         assert_eq!(m.intents[0].patterns[0].lang, Lang::Es);
         assert_eq!(m.intents[0].patterns[0].slots["kind"], "plain");
         assert_eq!(m.replies["pong"].get(Lang::Es).len(), 2);
+        assert_eq!(m.names.get(Lang::Es), &["prueba"]);
+        assert_eq!(m.help.get(Lang::En), &Vec::<String>::new());
+        let kind = m.intents[0].slot("kind").unwrap();
+        assert!(kind.internal && !kind.required && kind.kind == SlotType::Term);
+        assert!(m.intents[0].slot("items").unwrap().repeated);
+        assert!(!m.intents[0].courtesy);
+    }
+
+    #[test]
+    fn rejects_bad_slots() {
+        assert!(
+            error(&GOOD.replace(
+                "type = \"term\"\n  internal",
+                "type = \"place\"\n  internal"
+            ))
+            .contains("unknown type `place`")
+        );
+        assert!(error(&GOOD.replace("slots = { kind", "slots = { other")).contains("not declared"));
+        assert!(error(&GOOD.replace("slots = { kind", "slots = { items")).contains("not a single"));
+        assert!(error(&GOOD.replace("name = \"items\"", "name = \"kind\"")).contains("twice"));
+        assert!(
+            error(&GOOD.replace(
+                "type = \"term\"\n  repeated",
+                "type = \"number\"\n  repeated"
+            ))
+            .contains("only `term`")
+        );
+        assert!(
+            error(&GOOD.replace("names.es", "capabilities = [\"teleport\"]\nnames.es"))
+                .contains("teleport")
+        );
     }
 
     #[test]

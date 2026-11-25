@@ -1,0 +1,30 @@
+# What nothing recognises is `unhandled`, in the turn's language
+# (docs/spec/conversation.md 4). The reflector (Slice D) will replace the
+# catch-all reply and give these reasons of their own (`generative`,
+# `noise`, …).
+
+[es] U: escríbeme un poema
+     T: No sé hacer eso.                          → unhandled · catch-all
+
+[es] U: escríbeme un poema sobre el mar
+     T: No sé hacer eso.                          → unhandled · catch-all
+
+[en] U: write me a poem about the sea
+     T: I can't do that.                          → unhandled · catch-all
+
+[es] U: asdkjh qwe
+     T: No sé hacer eso.                          → unhandled · catch-all
+
+[es] U: ?
+     T: No sé hacer eso.                          → unhandled · catch-all
+
+Given: hint = en
+
+[en] U: blorp zzz
+     T: I can't do that.                          → unhandled · catch-all
+
+Given: hint = none
+
+# Empty or whitespace only.
+[es] U:
+     T: No he recibido ningún texto.              → unhandled · empty

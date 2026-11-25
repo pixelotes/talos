@@ -6,25 +6,40 @@
 //! concrete skill: skills are registered as a manifest plus a handler.
 //!
 //! The one entry point is [`Engine::respond`]; the pipeline it runs is
-//! written out in order in that function (ADR 0004).
+//! written out in order in one function (ADR 0004). The contract for skill
+//! authors ([`Skill`], [`Context`], [`Call`], [`SkillResult`]) is described
+//! in `docs/SKILL_AUTHORING.md`.
 
+pub mod check;
+pub mod civil;
 mod engine;
 mod error;
+pub mod extract;
 pub mod fallback;
+pub mod golden;
 mod lang;
 pub mod language;
 pub mod manifest;
 pub mod normalise;
 mod outcome;
+pub mod random;
 pub mod render;
 pub mod rules;
 pub mod skill;
+mod state;
 mod turn;
+mod value;
 
+pub use civil::{Date, Weekday};
 pub use engine::{Config, Engine};
 pub use error::Error;
 pub use lang::{Lang, UnknownLang};
 pub use manifest::Manifest;
-pub use outcome::{IntentId, Outcome, Reason, Slots, Status, Trace, TraceStep};
-pub use skill::{Call, Expectation, Message, Registration, Skill, SkillError, SkillResult};
+pub use outcome::{IntentId, Outcome, Reason, Status, Trace, TraceStep};
+pub use random::{Coin, Draw, Random};
+pub use skill::{
+    Call, Context, Expectation, Message, Preferences, Registration, Skill, SkillError, SkillResult,
+};
+pub use state::ConversationState;
 pub use turn::{ConvId, Place, Timestamp, Turn};
+pub use value::{Number, Problem, SlotType, Slots, Value};

@@ -2,6 +2,7 @@
 //! (DESIGN.md section 3). Context travels in this value and nowhere else.
 
 use crate::Lang;
+use crate::civil::Date;
 
 /// Identifies the dialog a turn belongs to.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -25,6 +26,14 @@ impl ConvId {
 /// interpreted; resolving it needs the date/time crate chosen in Slice C.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Place(pub String);
+
+impl Place {
+    /// The place as text.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
 
 /// An instant, injected by the caller. The engine never reads the system
 /// clock (DESIGN.md section 3).
@@ -61,12 +70,46 @@ impl Timestamp {
         }
     }
 
+    /// An instant from a wall-clock reading and its offset from UTC: the
+    /// inverse of [`Timestamp::local_date`] and
+    /// [`Timestamp::local_seconds_of_day`].
+    #[must_use]
+    pub fn from_local(date: Date, seconds_of_day: u32, utc_offset_seconds: i32) -> Self {
+        let local = date.days_since_epoch() * 86_400 + i64::from(seconds_of_day);
+        Self::from_unix(local - i64::from(utc_offset_seconds)).with_utc_offset(utc_offset_seconds)
+    }
+
+    /// Seconds since 1970 on the local wall clock, if the offset is known.
+    fn local_seconds(self) -> Option<i64> {
+        Some(self.unix_seconds + i64::from(self.utc_offset_seconds?))
+    }
+
     /// The hour (0–23) on the local wall clock, if the offset is known.
     #[must_use]
     pub fn local_hour(self) -> Option<u8> {
-        let offset = i64::from(self.utc_offset_seconds?);
-        let seconds_of_day = (self.unix_seconds + offset).rem_euclid(86_400);
-        u8::try_from(seconds_of_day / 3_600).ok()
+        u8::try_from(self.local_seconds_of_day()? / 3_600).ok()
+    }
+
+    /// Seconds since local midnight (0–86 399), if the offset is known.
+    #[must_use]
+    pub fn local_seconds_of_day(self) -> Option<u32> {
+        u32::try_from(self.local_seconds()?.rem_euclid(86_400)).ok()
+    }
+
+    /// The date on the local wall clock, if the offset is known.
+    #[must_use]
+    pub fn local_date(self) -> Option<Date> {
+        Some(Date::from_days_since_epoch(
+            self.local_seconds()?.div_euclid(86_400),
+        ))
+    }
+
+    /// The local date when the offset is known, else the date in UTC: what
+    /// relative dates ("mañana") are counted from.
+    #[must_use]
+    pub fn date_or_utc(self) -> Date {
+        self.local_date()
+            .unwrap_or_else(|| Date::from_days_since_epoch(self.unix_seconds.div_euclid(86_400)))
     }
 }
 
@@ -77,11 +120,9 @@ pub struct Turn {
     pub text: String,
     /// The caller's language hint; detected when absent.
     pub lang: Option<Lang>,
-    /// Which dialog this turn belongs to.
+    /// Which dialog this turn belongs to. The engine keeps that dialog's
+    /// state (language, turn counter, recent topic) itself.
     pub conversation: ConvId,
-    /// Position of this turn in its conversation, starting at 1. Supplied by
-    /// the caller until a per-conversation state holder owns the counter.
-    pub number: u32,
     /// The current instant, injected.
     pub now: Timestamp,
     /// Where the caller is, if it says.
@@ -93,12 +134,11 @@ pub struct Turn {
 impl Turn {
     /// A turn with no language hint, no place and no trace.
     #[must_use]
-    pub fn new(text: impl Into<String>, conversation: ConvId, number: u32, now: Timestamp) -> Self {
+    pub fn new(text: impl Into<String>, conversation: ConvId, now: Timestamp) -> Self {
         Self {
             text: text.into(),
             lang: None,
             conversation,
-            number,
             now,
             place: None,
             trace: false,
@@ -109,6 +149,13 @@ impl Turn {
     #[must_use]
     pub fn with_lang(mut self, lang: Option<Lang>) -> Self {
         self.lang = lang;
+        self
+    }
+
+    /// The same turn with the caller's place.
+    #[must_use]
+    pub fn with_place(mut self, place: Option<Place>) -> Self {
+        self.place = place;
         self
     }
 
@@ -132,6 +179,22 @@ mod tests {
         assert_eq!(t.with_utc_offset(0).local_hour(), Some(17));
         assert_eq!(t.with_utc_offset(3_600).local_hour(), Some(18));
         assert_eq!(t.with_utc_offset(-18 * 3_600).local_hour(), Some(23));
+    }
+
+    #[test]
+    fn local_date_and_its_inverse() {
+        let t = Timestamp::from_unix(1_805_046_120).with_utc_offset(3_600);
+        let date = t.local_date().unwrap();
+        assert_eq!(date.to_string(), "2027-03-14");
+        assert_eq!(t.local_seconds_of_day(), Some(18 * 3_600 + 42 * 60));
+        assert_eq!(Timestamp::from_local(date, 18 * 3_600 + 42 * 60, 3_600), t);
+        // 23:30 UTC on the 14th is already the 15th in Madrid.
+        let late = Timestamp::from_unix(1_805_046_120 + 5 * 3_600 + 48 * 60);
+        assert_eq!(late.date_or_utc().to_string(), "2027-03-14");
+        assert_eq!(
+            late.with_utc_offset(3_600).date_or_utc().to_string(),
+            "2027-03-15"
+        );
     }
 
     #[test]

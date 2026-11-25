@@ -11,6 +11,7 @@ publish.workspace = true
 [dependencies]
 talos-core.workspace = true
 talos-skills.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

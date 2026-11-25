@@ -1,23 +1,42 @@
 # smalltalk: greetings (docs/spec/basics.md, `smalltalk`).
 #
 # Slice A ships `smalltalk.greet` only; bye, thanks and how_are_you follow in
-# Slice C. Patterns match the normalised text (lower case, NFKC, whitespace
-# collapsed) and are anchored: a greeting followed by anything else
-# ("hola, qué hora es") is not a bare greeting and is left to other rules.
+# Slice C. Patterns match the match form of the message (lower case,
+# accents removed, whitespace collapsed; docs/SKILL_AUTHORING.md), so they are
+# written without accents: `dias` matches "días" and "dias". They are
+# anchored: a greeting followed by anything else is not a bare greeting.
+# Because the intent is a courtesy, "hola, qué hora es" drops the greeting
+# and is answered as the request when another rule recognises the rest.
 #
-# Patterns set fixed slots that tell the handler which greeting was used:
-# `register = "casual"` for "buenas"/"hey", `daypart` for "buenos días",
+# Patterns set fixed internal slots that tell the handler which greeting was
+# used: `register = "casual"` for "buenas"/"hey", `daypart` for "buenos días",
 # "good evening" and the like. The handler echoes a time-of-day greeting only
 # when the local clock agrees with it, and otherwise says a plain hello.
 
 [skill]
 id = "smalltalk"
-summary.es = "saludos"
-summary.en = "greetings"
+summary.es = "saludar y despedirme"
+summary.en = "say hello and goodbye"
+names.es = ["saludos", "charla"]
+names.en = ["greetings", "small talk"]
+help.es = ["hola", "buenos días"]
+help.en = ["hello", "good morning"]
 
 [[intent]]
 id = "smalltalk.greet"
 priority = 100
+courtesy = true
+
+  # Which greeting was used; they steer the handler and are not reported.
+  [[intent.slot]]
+  name = "register"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "daypart"
+  type = "term"
+  internal = true
 
   [intent.examples]
   es = ["hola", "buenas", "buenos días", "buenas tardes", "ey", "muy buenas", "hola talos"]
@@ -36,7 +55,7 @@ priority = 100
 
   [[intent.pattern]]
   lang = "es"
-  regex = '^[¡¿!\s]*(?:muy\s+)?buen(?:os)?\s+d[ií]as(?:[\s,]+talos)?[\s!?.]*$'
+  regex = '^[¡¿!\s]*(?:muy\s+)?buen(?:os)?\s+dias(?:[\s,]+talos)?[\s!?.]*$'
   slots = { daypart = "morning" }
 
   [[intent.pattern]]

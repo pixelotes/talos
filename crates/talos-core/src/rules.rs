@@ -1,15 +1,23 @@
 //! Stage 3: rules (DESIGN.md section 4).
 //!
 //! Every pattern of every manifest is compiled once, at engine construction,
-//! into one `RegexSet` per language. A match is certain (confidence 1.0).
-//! Candidates are ordered by the manifest's explicit priority, highest first;
-//! ties are broken by intent id, then by the pattern's position in its
-//! manifest, so the order never depends on registration order.
+//! into one `RegexSet` per language (to find which rules match) plus each
+//! pattern on its own (to read the winner's captures). Patterns match the
+//! **match form** of the message: lower case, accents folded
+//! ([`normalise`](crate::normalise)).
+//!
+//! A match is certain (confidence 1.0). Candidates are ordered by the
+//! manifest's explicit priority, highest first; ties are broken by intent
+//! id, then by the pattern's position in its manifest, so the order never
+//! depends on registration order.
 
-use regex::RegexSet;
+use std::collections::BTreeMap;
+use std::ops::Range;
+
+use regex::{Regex, RegexSet};
 
 use crate::manifest::Manifest;
-use crate::{Error, IntentId, Lang, Slots};
+use crate::{Error, IntentId, Lang};
 
 /// A recognised intent, as proposed by a rule.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,21 +26,26 @@ pub struct Candidate {
     pub intent: IntentId,
     /// Its priority, from the manifest.
     pub priority: i32,
-    /// Slots the matching pattern set.
-    pub slots: Slots,
+    /// The language whose rule set matched.
+    pub lang: Lang,
     /// The pattern that matched, for the trace.
     pub pattern: String,
+    /// Slots the pattern fixes, by name.
+    pub fixed: BTreeMap<String, String>,
+    /// Named captures, as byte ranges of the message's match form.
+    pub captures: Vec<(String, Range<usize>)>,
 }
 
-/// One compiled pattern's bookkeeping.
+/// One compiled pattern and its bookkeeping.
 #[derive(Debug)]
 struct Rule {
     intent: IntentId,
     priority: i32,
+    courtesy: bool,
     /// Position of the pattern within its manifest, for the tie-break.
     position: usize,
-    slots: Slots,
-    regex: String,
+    fixed: BTreeMap<String, String>,
+    regex: Regex,
 }
 
 /// The rules of one language.
@@ -48,13 +61,29 @@ pub struct Rules {
     by_lang: [LangRules; 2],
 }
 
+/// A courtesy dropped from a message so that the rest could be recognised
+/// (docs/spec/basics.md, "Greeting prefixes").
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Courtesy {
+    /// The intent the dropped part matched, e.g. `smalltalk.greet`.
+    pub intent: IntentId,
+    /// The dropped part, as a byte range of the match form.
+    pub dropped: Range<usize>,
+}
+
+/// Characters that separate a courtesy from the request it opens or closes.
+const COURTESY_SEPARATORS: &[char] = &[' ', ',', ';', '.', '!'];
+
+/// How many words a courtesy may have.
+const COURTESY_WORDS: usize = 4;
+
 impl Rules {
     /// Compiles the patterns of every manifest.
     ///
     /// # Errors
     ///
     /// [`Error::Manifest`] naming the skill and intent if a pattern does not
-    /// compile.
+    /// compile or captures a slot its intent does not declare.
     pub fn compile(manifests: &[Manifest]) -> Result<Self, Error> {
         let by_lang = Lang::ALL.map(|lang| {
             let mut rules = Vec::new();
@@ -66,18 +95,31 @@ impl Rules {
                         if pattern.lang != lang {
                             continue;
                         }
-                        if let Err(e) = regex::Regex::new(&pattern.regex) {
-                            return Err(Error::manifest(
+                        let at = |message: String| {
+                            Error::manifest(
                                 &manifest.id,
-                                format!("intent `{}`: pattern does not compile: {e}", intent.id),
-                            ));
+                                format!("intent `{}`: {message}", intent.id),
+                            )
+                        };
+                        let regex = Regex::new(&pattern.regex)
+                            .map_err(|e| at(format!("pattern does not compile: {e}")))?;
+                        if let Some(name) = regex
+                            .capture_names()
+                            .flatten()
+                            .find(|name| intent.slot(name).is_none())
+                        {
+                            return Err(at(format!(
+                                "pattern /{}/ captures `{name}`, which is not a declared slot",
+                                pattern.regex
+                            )));
                         }
                         rules.push(Rule {
                             intent: intent.id.clone(),
                             priority: intent.priority,
+                            courtesy: intent.courtesy,
                             position,
-                            slots: pattern.slots.clone(),
-                            regex: pattern.regex.clone(),
+                            fixed: pattern.slots.clone(),
+                            regex,
                         });
                     }
                 }
@@ -92,10 +134,9 @@ impl Rules {
         })
     }
 
-    /// The intents whose rules in `lang` match `text`, best first, one
-    /// candidate per intent.
-    #[must_use]
-    pub fn candidates(&self, lang: Lang, text: &str) -> Vec<Candidate> {
+    /// Every rule in `lang` that matches `text`, best first, with
+    /// repeats of an intent kept.
+    fn hits(&self, lang: Lang, text: &str) -> Vec<&Rule> {
         let lang_rules = &self.by_lang[lang.index()];
         let mut hits: Vec<&Rule> = lang_rules
             .set
@@ -109,14 +150,113 @@ impl Rules {
                 .then_with(|| a.intent.cmp(&b.intent))
                 .then_with(|| a.position.cmp(&b.position))
         });
+        hits
+    }
+
+    /// The intents whose rules in `lang` match `text`, best first, one
+    /// candidate per intent. `text` is (part of) the match form starting at
+    /// byte `base`, so captures come back as ranges of the whole.
+    #[must_use]
+    pub fn candidates(&self, lang: Lang, text: &str, base: usize) -> Vec<Candidate> {
+        let mut hits = self.hits(lang, text);
         hits.dedup_by(|later, earlier| later.intent == earlier.intent);
         hits.into_iter()
-            .map(|r| Candidate {
-                intent: r.intent.clone(),
-                priority: r.priority,
-                slots: r.slots.clone(),
-                pattern: r.regex.clone(),
+            .map(|r| {
+                let captures = r.regex.captures(text).map_or_else(Vec::new, |caps| {
+                    r.regex
+                        .capture_names()
+                        .flatten()
+                        .filter_map(|name| {
+                            let m = caps.name(name)?;
+                            Some((name.to_owned(), base + m.start()..base + m.end()))
+                        })
+                        .collect()
+                });
+                Candidate {
+                    intent: r.intent.clone(),
+                    priority: r.priority,
+                    lang,
+                    pattern: r.regex.as_str().to_owned(),
+                    fixed: r.fixed.clone(),
+                    captures,
+                }
             })
+            .collect()
+    }
+
+    /// Candidates for the whole text: the turn's language first, then the
+    /// other (ADR 0011).
+    #[must_use]
+    pub fn candidates_any(&self, lang: Lang, text: &str, base: usize) -> Vec<Candidate> {
+        let found = self.candidates(lang, text, base);
+        if found.is_empty() {
+            self.candidates(lang.other(), text, base)
+        } else {
+            found
+        }
+    }
+
+    /// The courtesy intent `text` is, if a courtesy rule matches it in
+    /// either language.
+    fn courtesy(&self, lang: Lang, text: &str) -> Option<IntentId> {
+        [lang, lang.other()].into_iter().find_map(|l| {
+            self.hits(l, text)
+                .into_iter()
+                .find(|r| r.courtesy)
+                .map(|r| r.intent.clone())
+        })
+    }
+
+    /// When the whole message matched nothing: a courtesy (greeting,
+    /// thanks) at its start or end is dropped if what is left is
+    /// recognised. "hola, qué hora es" is a clock question.
+    #[must_use]
+    pub fn without_courtesy(&self, lang: Lang, text: &str) -> Option<(Courtesy, Vec<Candidate>)> {
+        let boundaries: Vec<usize> = text
+            .char_indices()
+            .filter(|&(_, c)| c == ' ')
+            .map(|(i, _)| i)
+            .collect();
+        let prefixes = boundaries.iter().take(COURTESY_WORDS);
+        let suffixes = boundaries.iter().rev().take(COURTESY_WORDS);
+        for (&at, is_prefix) in prefixes
+            .map(|b| (b, true))
+            .chain(suffixes.map(|b| (b, false)))
+        {
+            let (head, tail) = text.split_at(at);
+            let (courtesy, rest, rest_base) = if is_prefix {
+                let rest = tail.trim_start_matches(COURTESY_SEPARATORS);
+                (head, rest, text.len() - rest.len())
+            } else {
+                (tail, head.trim_end_matches(COURTESY_SEPARATORS), 0)
+            };
+            let courtesy_text = courtesy.trim_matches(COURTESY_SEPARATORS);
+            if rest.is_empty() || courtesy_text.is_empty() {
+                continue;
+            }
+            let Some(intent) = self.courtesy(lang, courtesy_text) else {
+                continue;
+            };
+            let found = self.candidates_any(lang, rest, rest_base);
+            if !found.is_empty() {
+                let dropped = if is_prefix {
+                    0..rest_base
+                } else {
+                    rest.len()..text.len()
+                };
+                return Some((Courtesy { intent, dropped }, found));
+            }
+        }
+        None
+    }
+
+    /// Every rule in `lang` that matches `text` as (intent, priority,
+    /// pattern), best first; for `talos skills check`.
+    #[must_use]
+    pub fn all_matches(&self, lang: Lang, text: &str) -> Vec<(IntentId, i32, String)> {
+        self.hits(lang, text)
+            .into_iter()
+            .map(|r| (r.intent.clone(), r.priority, r.regex.as_str().to_owned()))
             .collect()
     }
 
@@ -139,8 +279,11 @@ mod tests {
             write!(
                 text,
                 "[[intent]]\nid = \"{skill}.{name}\"\npriority = {priority}\n\
+                 courtesy = {}\n\
                  examples.es = [\"x\"]\nexamples.en = [\"x\"]\n\
-                 [[intent.pattern]]\nlang = \"{lang}\"\nregex = '{regex}'\n"
+                 slot = [{{ name = \"what\", type = \"term\" }}]\n\
+                 [[intent.pattern]]\nlang = \"{lang}\"\nregex = '{regex}'\n",
+                *name == "greet"
             )
             .unwrap();
         }
@@ -162,11 +305,12 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(
-            ids(&rules.candidates(Lang::Es, "hola")),
+            ids(&rules.candidates(Lang::Es, "hola", 0)),
             ["b.high", "a.same", "b.low"]
         );
-        assert_eq!(rules.candidates(Lang::En, "hola"), []);
-        assert_eq!(rules.candidates(Lang::Es, "adiós"), []);
+        assert_eq!(rules.candidates(Lang::En, "hola", 0), []);
+        assert_eq!(rules.candidates(Lang::Es, "adios", 0), []);
+        assert_eq!(ids(&rules.candidates_any(Lang::En, "hola", 0)).len(), 3);
     }
 
     #[test]
@@ -176,10 +320,10 @@ mod tests {
         let one = Rules::compile(&[a.clone(), b.clone()]).unwrap();
         let two = Rules::compile(&[b, a]).unwrap();
         assert_eq!(
-            one.candidates(Lang::En, "hi"),
-            two.candidates(Lang::En, "hi")
+            one.candidates(Lang::En, "hi", 0),
+            two.candidates(Lang::En, "hi", 0)
         );
-        assert_eq!(ids(&one.candidates(Lang::En, "hi")), ["a.x", "b.x"]);
+        assert_eq!(ids(&one.candidates(Lang::En, "hi", 0)), ["a.x", "b.x"]);
     }
 
     #[test]
@@ -192,14 +336,60 @@ mod tests {
         });
         let rules = Rules::compile(&[m]).unwrap();
         assert_eq!(rules.len(Lang::En), 2);
-        let found = rules.candidates(Lang::En, "hi");
+        let found = rules.candidates(Lang::En, "hi", 0);
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].pattern, "^hi");
+        assert_eq!(rules.all_matches(Lang::En, "hi").len(), 2);
     }
 
     #[test]
-    fn a_bad_pattern_names_its_skill() {
+    fn captures_are_ranges_of_the_whole_text() {
+        let rules =
+            Rules::compile(&[manifest("a", &[("x", 10, "es", "^elige (?P<what>.+)$")])]).unwrap();
+        let text = "xx elige te o cafe";
+        let found = rules.candidates(Lang::Es, &text[3..], 3);
+        assert_eq!(found[0].captures, [("what".to_owned(), 9..18)]);
+        assert_eq!(&text[9..18], "te o cafe");
+    }
+
+    #[test]
+    fn bad_patterns_name_their_skill() {
         let err = Rules::compile(&[manifest("a", &[("x", 10, "es", "(")])]).unwrap_err();
         assert!(err.to_string().starts_with("manifest `a`: intent `a.x`"));
+        let err = Rules::compile(&[manifest("a", &[("x", 10, "es", "(?P<who>.+)")])]).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("captures `who`, which is not a declared slot")
+        );
+    }
+
+    #[test]
+    fn a_courtesy_is_dropped_when_the_rest_is_recognised() {
+        let rules = Rules::compile(&[manifest(
+            "s",
+            &[
+                ("greet", 100, "es", "^hola$"),
+                ("time", 50, "es", "^que hora es\\??$"),
+            ],
+        )])
+        .unwrap();
+        let text = "hola, que hora es?";
+        assert_eq!(rules.candidates_any(Lang::Es, text, 0), []);
+        let (courtesy, found) = rules.without_courtesy(Lang::Es, text).unwrap();
+        assert_eq!(courtesy.intent.as_str(), "s.greet");
+        assert_eq!(&text[courtesy.dropped], "hola, ");
+        assert_eq!(ids(&found), ["s.time"]);
+        let (courtesy, found) = rules
+            .without_courtesy(Lang::En, "que hora es, hola")
+            .unwrap();
+        assert_eq!(courtesy.dropped, 11..17);
+        assert_eq!(ids(&found), ["s.time"]);
+        // Nothing is dropped when the rest means nothing.
+        assert!(
+            rules
+                .without_courtesy(Lang::Es, "hola, me llamo ana")
+                .is_none()
+        );
+        assert!(rules.without_courtesy(Lang::Es, "hola").is_none());
     }
 }

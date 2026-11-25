@@ -82,9 +82,9 @@ question, the ruling and where it is specified.
 | A refused deleting or unsupported teaching shape, and a refused `teach.phrase`, are `unhandled` with the intent. | knowledge.md teach | reasonable default |
 | "Are you sure?" about the clock's answer is `answered · relations.provenance` (cross-review: was `unhandled`). | knowledge.md provenance | reasonable default |
 | Advice (S27), commands Talos cannot do (S28) and distress (S29) are recognised shapes but `unhandled`. | reflector.md decision 2 | reasonable default |
-| Reflector shape ids and unhandled reasons (`catch-all`, `unknown-fact`, `generative`, …) travel in the trace only; `intent` is empty for reflector turns. | reflector.md 2.2, decision 3 | conflicts with design docs: `Outcome` (DESIGN.md §3) and the API `talos` object have no field for them; hosts can only get them with `trace` |
-| Skills return honest `unhandled` replies (unknown word, unknown place). | all skill files | conflicts with design docs: DESIGN.md §3, ADR 0009 and SKILLS.md §6 say `Unhandled` means only the catch-all applied, and `SkillResult` has no "could not" variant besides `Fail` |
-| Outcome lines list slots. | README format, all files | conflicts with design docs: `Outcome` has no slots field |
+| Shape ids and unhandled reasons are carried in `Outcome.reason` and in the API's `talos.reason`, as well as in the trace; `intent` stays empty for reflector turns. | reflector.md 2.2, decision 3 | resolved 2026-11-24: design amended (DESIGN.md §3, API.md) |
+| Skills return honest `unhandled` replies (unknown word, unknown place). | all skill files | resolved 2026-11-24: design amended (`SkillResult::Unable`, DESIGN.md §3, ADR 0009, SKILLS.md §6) |
+| Outcome lines list slots. | README format, all files | resolved 2026-11-24: `Outcome` carries typed slots (DESIGN.md §3) |
 | A "no" to a yes/no keeps the original intent (`answered · preferences.forget`); a cancellation has no intent (cross-review: state.md had "no intent" for "no"). | conversation.md 3.3; state.md; knowledge.md 2.9 | reasonable default |
 
 ## Language and conventions
@@ -149,7 +149,7 @@ question, the ruling and where it is specified.
 | A bare hour is the next time that reading occurs; a passed time of day means tomorrow. | conversation.md 2.3; basics.md clock.until | reasonable default |
 | Day parts are ranges with representative times (09:00, 12:00, 17:00, 21:00, 03:00). | conversation.md 2.3 | reasonable default |
 | Two-digit years are 20xx; a date without a year is the next occurrence ("since" takes the last one). | conversation.md 2.3; basics.md | reasonable default |
-| `clock.date` also answers relative days, `clock.now` an offset. | basics.md assumptions | conflicts with design docs: README's catalogue says "today's date" and "the current time" only |
+| `clock.date` also answers relative days, `clock.now` an offset. | basics.md assumptions | resolved 2026-11-24 by amending the design; was a conflict: README's catalogue says "today's date" and "the current time" only |
 | Well-known days: a fixed list (Año Nuevo, Reyes, San Valentín, Halloween, Nochebuena, Navidad, Nochevieja, Easter computed). | basics.md clock.until | reasonable default |
 | Dates before 1583 in the proleptic Gregorian calendar, said so. | basics.md clock.weekday | reasonable default |
 | Weeks start on Monday in both languages. | basics.md conventions | reasonable default |
@@ -182,7 +182,7 @@ question, the ruling and where it is specified.
 | `identity.who` vs `identity.nature`: name and introduction ("quién eres", "qué eres", "tell me about yourself") are `who`; what kind of thing, feelings, consciousness, understanding, named assistants are `nature`; questions presupposing a life ("¿sueñas?", "¿te aburres?") are the reflector's S17 (cross-review: basics.md had "¿sueñas?" as `nature`). | basics.md identity; reflector.md S15, S17 | reasonable default |
 | Comparisons with other assistants are `unhandled · identity.nature`. | basics.md identity.nature | reasonable default |
 | Origin questions. | basics.md identity.who | see ruling 4 |
-| `help.capabilities` lists enabled skills' summaries in catalogue order, user skills alphabetically; `help.skill` gives the summary and two or three example phrases and says when a skill is disabled. No conflict between the files was found. | basics.md help | conflicts with design docs: SKILLS.md §1 has no manifest field for a skill's everyday names ("reloj", "calculadora") or for help examples distinct from classifier training data |
+| `help.capabilities` lists enabled skills' summaries in catalogue order, user skills alphabetically; `help.skill` gives the summary and two or three example phrases and says when a skill is disabled. No conflict between the files was found. | basics.md help | resolved 2026-11-24 by amending the design; was a conflict: SKILLS.md §1 has no manifest field for a skill's everyday names ("reloj", "calculadora") or for help examples distinct from classifier training data |
 
 ## Preferences
 
@@ -209,7 +209,7 @@ question, the ruling and where it is specified.
 | Ambiguous Spanish causal questions are answered in both directions. | knowledge.md decision 13 | reasonable default |
 | List caps: kinds/parts 15 with "all", about five items, teach.list ten. | knowledge.md decision 14 | reasonable default |
 | Missing gloss falls back to relations, other language's gloss only on request. | knowledge.md decision 11 | see ruling 8 |
-| Translation lists one translation per sense instead of asking. | knowledge.md decision 9 | conflicts with design docs: KNOWLEDGE.md §5 step 4 says Talos asks when no sense wins |
+| Translation lists one translation per sense instead of asking. | knowledge.md decision 9 | resolved 2026-11-24 by amending the design; was a conflict: KNOWLEDGE.md §5 step 4 says Talos asks when no sense wins |
 
 ## Teaching
 
@@ -219,7 +219,7 @@ question, the ruling and where it is specified.
 | Ordinary statements are never stored, never used as context, and Talos gives no hint they could be taught. | knowledge.md decision 16 | reasonable default (KNOWLEDGE.md §6, §8) |
 | Unknown subject becomes a new word without asking; unknown object is asked; new words stored as typed. | knowledge.md decision 17 | reasonable default |
 | Re-teaching known facts stores nothing. | knowledge.md decision 18 | reasonable default |
-| Contradictions: pack → ask to override; user → ask to replace; derived → ask which link; an `is_a` cycle is refused without asking; a subclass exception is stored without asking. | knowledge.md decision 19 | conflicts with design docs (minor): KNOWLEDGE.md §4 says Talos asks on a cycle too |
+| Contradictions: pack → ask to override; user → ask to replace; derived → ask which link; an `is_a` cycle is refused without asking; a subclass exception is stored without asking. | knowledge.md decision 19 | resolved 2026-11-24 by amending the design; was a conflict: KNOWLEDGE.md §4 says Talos asks on a cycle too |
 | Forgetting: user claims at once, pack claims with confirmation and a tombstone; topic and "all" cover taught knowledge only; re-teaching lifts a tombstone. | knowledge.md decision 20 | reasonable default |
 | Taught phrases match the whole normalised message, in either language, never map to deleting intents or `teach.phrase`, and ask before shadowing a meaning. | knowledge.md decision 21 | reasonable default |
 

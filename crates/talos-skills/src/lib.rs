@@ -2,29 +2,48 @@
 //!
 //! Responsible for the skills that ship inside the binary (DESIGN.md sections 2
 //! and 6): each is a manifest under `skills/<id>/` at the workspace root,
-//! embedded at build time, paired here with its compiled handler.
+//! embedded at build time, paired here with its compiled handler in
+//! `src/<id>.rs`. How to add one: `docs/SKILL_AUTHORING.md`.
 
-mod smalltalk;
-
+use talos_core::check::Report;
 use talos_core::{Config, Engine, Error, Manifest, Registration, Skill};
-
-pub use smalltalk::Smalltalk;
 
 include!(concat!(env!("OUT_DIR"), "/manifests.rs"));
 
-/// Every built-in handler. Adding a skill is one line here plus its
-/// manifest directory.
-fn handlers() -> Vec<Box<dyn Skill>> {
-    vec![Box::new(Smalltalk)]
+/// Declares the built-in skills: each entry is `module::Handler`, where
+/// `src/module.rs` defines the handler and `skills/module/manifest.toml` its
+/// manifest. Declares the modules too.
+macro_rules! skills {
+    ($($module:ident :: $handler:ident),* $(,)?) => {
+        $(mod $module;)*
+
+        /// Every built-in handler, in catalogue order (docs/spec/README.md):
+        /// the order `help` lists skills in.
+        fn handlers() -> Vec<Box<dyn Skill>> {
+            vec![$(Box::new($module::$handler)),*]
+        }
+    };
 }
 
-/// The embedded manifests as (directory name, TOML text).
+// The one shared line per skill: uncomment yours, in this order.
+skills! {
+    smalltalk::Smalltalk,
+    // identity::Identity,
+    // help::Help,
+    // clock::Clock,
+    // calc::Calc,
+    // random::Random,
+    // fortune::Fortune,
+}
+
+/// The embedded manifests as (directory name, TOML text), by directory name.
 #[must_use]
 pub fn manifest_sources() -> &'static [(&'static str, &'static str)] {
     MANIFESTS
 }
 
-/// The built-in skills, each manifest parsed and paired with its handler.
+/// The built-in skills, each manifest parsed and paired with its handler,
+/// in catalogue order.
 ///
 /// # Errors
 ///
@@ -32,9 +51,16 @@ pub fn manifest_sources() -> &'static [(&'static str, &'static str)] {
 /// from its directory; [`Error::Registry`] if a manifest has no handler or a
 /// handler no manifest.
 pub fn builtin() -> Result<Vec<Registration>, Error> {
-    let mut handlers = handlers();
     let mut skills = Vec::with_capacity(MANIFESTS.len());
-    for (dir, text) in MANIFESTS {
+    let mut sources: Vec<&(&str, &str)> = MANIFESTS.iter().collect();
+    for handler in handlers() {
+        let position = sources
+            .iter()
+            .position(|(dir, _)| *dir == handler.id())
+            .ok_or_else(|| {
+                Error::Registry(format!("handler `{}` has no manifest", handler.id()))
+            })?;
+        let (dir, text) = sources.remove(position);
         let manifest = Manifest::parse(dir, text)?;
         if manifest.id != *dir {
             return Err(Error::Manifest {
@@ -42,17 +68,10 @@ pub fn builtin() -> Result<Vec<Registration>, Error> {
                 message: format!("id `{}` differs from its directory", manifest.id),
             });
         }
-        let position = handlers
-            .iter()
-            .position(|h| h.id() == manifest.id)
-            .ok_or_else(|| Error::Registry(format!("skill `{}` has no handler", manifest.id)))?;
-        skills.push((manifest, handlers.swap_remove(position)));
+        skills.push((manifest, handler));
     }
-    if let Some(orphan) = handlers.first() {
-        return Err(Error::Registry(format!(
-            "handler `{}` has no manifest",
-            orphan.id()
-        )));
+    if let Some((dir, _)) = sources.first() {
+        return Err(Error::Registry(format!("skill `{dir}` has no handler")));
     }
     Ok(skills)
 }
@@ -66,6 +85,13 @@ pub fn engine(config: Config) -> Result<Engine, Error> {
     Engine::new(config, builtin()?)
 }
 
+/// Validates every built-in manifest against its handler: what `talos
+/// skills check` prints.
+#[must_use]
+pub fn check() -> Report {
+    talos_core::check::check(MANIFESTS, &handlers())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -73,8 +99,18 @@ mod tests {
     #[test]
     fn every_embedded_manifest_loads_with_its_handler() {
         let skills = builtin().unwrap();
-        let ids: Vec<&str> = skills.iter().map(|(m, _)| m.id.as_str()).collect();
-        assert_eq!(ids, ["smalltalk"]);
+        assert_eq!(skills.len(), MANIFESTS.len());
+        assert_eq!(
+            skills[0].0.id, "smalltalk",
+            "catalogue order starts with smalltalk"
+        );
         assert!(engine(Config::default()).is_ok());
+    }
+
+    #[test]
+    fn the_built_in_skills_pass_the_check() {
+        let report = check();
+        let findings: Vec<String> = report.findings.iter().map(ToString::to_string).collect();
+        assert!(findings.is_empty(), "{findings:#?}");
     }
 }

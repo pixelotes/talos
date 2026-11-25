@@ -1,0 +1,28 @@
+# Reply variants are a pure function of the conversation and the turn
+# number (docs/spec/conversation.md 5.2): a conversation opens with the
+# canonical wording, later turns step through the others, and the content
+# never changes.
+
+[es] U: hola
+     T: ¡Hola!                                    → answered · smalltalk.greet
+[es] U: hola
+     T: ¡Hola, buenas!                            → answered · smalltalk.greet
+[es] U: hola
+     T: ¡Hola!                                    → answered · smalltalk.greet
+[es] U: hola
+     T: ¡Hola, buenas!                            → answered · smalltalk.greet
+
+# A new conversation starts again from the first variant.
+[es] U: hola
+     T: ¡Hola!                                    → answered · smalltalk.greet
+
+# An idle conversation starts afresh: 30 minutes without a turn, measured
+# with the injected clock.
+[en] U: hello
+     T: Hello!                                    → answered · smalltalk.greet
+[en] U: hello
+     T: Hi!                                       → answered · smalltalk.greet
+Given: now = 2027-03-14 19:13 Europe/Madrid
+[en] U: hello
+     T: Hello!                                    → answered · smalltalk.greet
+Given: now = 2027-03-14 18:42 Europe/Madrid

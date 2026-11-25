@@ -1,8 +1,9 @@
 # Design
 
-This is the architecture of Talos as intended. It describes the target, not an
-implementation; nothing here exists yet. Each significant choice links to the
-decision record that justifies it.
+This is the architecture of Talos as intended. It describes the target; the
+engine and the first skills exist (see [ROADMAP.md](ROADMAP.md)), and where a
+section says what is built today, the code is the authority. Each significant
+choice links to the decision record that justifies it.
 
 ## 1. Goals
 
@@ -83,6 +84,7 @@ struct Turn {
     conversation: ConvId,    // which dialog this belongs to
     now: Timestamp,          // injected, never read from the clock mid-turn
     place: Option<Place>,    // caller-provided: a place name or an IANA zone
+    trace: bool,             // ask for the stage-by-stage trace in the outcome
 }
 
 struct Outcome {
@@ -90,14 +92,25 @@ struct Outcome {
     status: Status,          // Answered | Deflected | Unhandled
     lang: Lang,
     intent: Option<IntentId>, // kept even when the status is Unhandled
-    slots: Slots,            // what was extracted, for hosts and tests
+    slots: Slots,            // what was extracted: typed values by name
     confidence: f32,         // of the intent recognition, not of any fact
     reason: Option<Reason>,  // why a turn is Unhandled or which shape Deflected
     pending: bool,           // Talos asked back and expects the next message
     generated: bool,         // true only if an external skill used a model
-    trace: Option<Trace>,    // stage-by-stage decisions, on request
+    trace: Option<Trace>,    // stage-by-stage decisions, if the turn asked
+}
+
+enum Value {                 // a slot value, typed by the manifest
+    Text(String), Number(Number), Date { date: Date, year_given: bool },
+    List { items: Vec<String>, uncertain: bool },
+    Invalid { raw: String, problem: Problem },   // could not be read
 }
 ```
+
+`Reason` is an open set of lower-case, hyphenated names, not an enum: the
+engine's own (`empty`, `catch-all`, `cannot`, `cannot-ask`, `failed`) and the
+sentence shapes the reflector adds. `Number` is an exact decimal, so a number
+loses nothing between extractor and reply.
 
 Two rules follow from this shape:
 
@@ -105,7 +118,12 @@ Two rules follow from this shape:
   the turn. No stage can lose them, because there is no other way to reach a
   stage.
 - **Time is an input.** `now` is injected so that a turn can be replayed and
-  tested.
+  tested. It is a Unix instant plus, when the caller knows it, the local
+  offset from UTC; without the offset, answers that depend on the wall clock
+  stay time-neutral.
+- **The turn number is the engine's.** The turn carries no counter: the
+  engine keeps each conversation's turn count, language and recent topic
+  (§7) and hands them to skills through the context.
 
 `Status` has three values on purpose ([ADR 0009](adr/0009-reflector-fallback.md)):
 
@@ -134,8 +152,14 @@ text
 ```
 
 **0. Normalise.** Unicode NFKC, case folding, whitespace, typographic variants
-(superscripts, `×`, curly quotes). The original text is kept; skills that need
-it (translation, teaching) read the original.
+(superscripts, `×`, curly quotes). Three forms are kept, aligned character by
+character: the original; the normalised text, which keeps accents because they
+are evidence of language; and the *match form*, the normalised text with
+diacritics removed from Latin letters (`¿Qué día es MAÑANA?` becomes
+`¿que dia es manana?`). Rules and extractors match the match form, so patterns
+are written lower-case and unaccented; a capture is read back from the
+original, in the user's own spelling. Skills that need the original
+(translation, teaching) read it.
 
 **1. Language.** A caller's hint wins. Otherwise words and characters that
 belong to only one of the two languages decide; failing that, a tiny two-class
@@ -159,7 +183,11 @@ a hesitation — as `Answered` with no intent, since they belong to no skill.
 
 **3. Rules.** Patterns declared in skill manifests, compiled once into a
 per-language set. Ordered by explicit priority, then by specificity. A rule
-match is certain: it yields an intent and slots with confidence 1.0. A small
+match is certain: it yields an intent and slots with confidence 1.0. An intent
+marked `courtesy` (a greeting, a thanks) may also open or close a message that
+carries a request: when no rule matches the whole message, a courtesy of up to
+four words at either end is dropped if what remains is recognised ("hola, qué
+hora es" is answered as the clock question). A small
 table of user corrections ("when I say X, I mean Y") is consulted here too, so
 teaching Talos a phrase needs no retraining.
 
@@ -167,7 +195,8 @@ teaching Talos a phrase needs no retraining.
 offline from the same manifests. It returns a ranked list; the top candidate
 is accepted only above an absolute threshold *and* with a margin over the
 runner-up. Out-of-scope examples are a real class. Slots are then extracted by
-typed extractors (number, duration, date, place, language, quoted term).
+typed extractors (today: term, number, date; planned: duration, place,
+language).
 ([ADR 0008](adr/0008-intent-classification.md))
 
 **5. Dispatch.** The intent's skill receives the turn, the slots and a context
@@ -195,7 +224,12 @@ reflection. A match on a real pattern is `Deflected`; only the catch-all is
 ### Trace
 
 Every stage records what it decided and why. `talos explain "…"` and the
-`trace` option on the API return it. This is the main debugging tool and the
+`trace` option on the API return it. Today the stages that report are
+`normalise` (the match form), `language`, `rules` (candidates with priority,
+or the courtesy dropped), `slots`, `dispatch`, `render` (reply and variant),
+`fallback`, `random` (draws) and `state` (turn number, language, recent
+topic); the safety check, pending dialog and classifier join as they are built
+(v0.2 and later). This is the main debugging tool and the
 reason the pipeline is a list of functions and not a graph of subscribers.
 
 ## 5. Knowledge
@@ -221,7 +255,7 @@ and [ADR 0013](adr/0013-external-skills.md).
 | State | Lives in | Survives restart |
 |---|---|---|
 | NLU model, compiled rules, skill registry | memory, immutable after start | rebuilt |
-| Dialog state (expectations, recent topics) | memory, per conversation | no |
+| Dialog state (turn count, language, recent topic; expectations from v0.2) | memory, per conversation | no |
 | Preferences, taught claims, corrections | `user.db` | yes |
 | Packs | `*.talospack`, read-only | yes |
 | Turn log | off by default; batched when on | optional |
@@ -230,6 +264,13 @@ The engine is shareable across threads: the immutable parts are shared, dialog
 state sits in a map with one lock per conversation, and SQLite connections come
 from a small pool (WAL mode: many readers, one writer). Turns of the same
 conversation are serialised; turns of different conversations are independent.
+
+Dialog state is bounded so that memory cannot grow without limit: at most
+`max_conversations` are held (default 1024; the least recently seen goes
+first, ties broken by id), and a conversation idle for longer than
+`idle_expiry_seconds` (default 30 minutes) starts afresh. Idleness is measured
+with the turns' injected `now`, never the system clock. Both are fields of the
+engine's `Config`, with the random seed (default 0).
 
 Nothing is written to disk on an ordinary turn. Writes happen only when the
 user teaches, corrects, or sets a preference.
@@ -251,20 +292,21 @@ carries the subset it must meet.
 
 ## 9. Technology
 
-Rust, stable toolchain ([ADR 0003](adr/0003-rust.md)). Candidate dependencies,
-each to be confirmed when first needed:
+Rust, stable toolchain ([ADR 0003](adr/0003-rust.md)). Status of each
+candidate dependency:
 
-| Need | Candidate | Note |
+| Need | Candidate | Status |
 |---|---|---|
-| SQLite | `rusqlite` (bundled, FTS5) | no system SQLite required |
-| HTTP server | `axum` on a single-threaded `tokio` runtime | behind a `server` feature |
-| CLI | `clap` | |
-| Patterns | `regex` (`RegexSet`), `aho-corasick` | linear-time matching |
-| Serialisation | `serde`, `toml`, `serde_json` | |
-| Dates and zones | `chrono`, `chrono-tz` | |
-| Outbound HTTP | `ureq` | blocking, small; behind a `net` feature |
-| Arithmetic | own parser, or `fasteval` | exact rationals where possible |
-| Chess rules | permissively licensed crate + own search | no GPL in the binary |
+| SQLite | `rusqlite` (bundled, FTS5) | undecided; with the knowledge store |
+| HTTP server | `axum` on a single-threaded `tokio` runtime | undecided; behind a `server` feature |
+| CLI | `clap` | not used: arguments are parsed by hand in the binary |
+| Patterns | `regex` | in use (rules; `unicode-perl` only); `aho-corasick` undecided |
+| Serialisation | `serde`, `toml`, `serde_json` | in use: `serde` + `toml` for manifests, `serde_json` in the binary only |
+| Normalisation | `unicode-normalization` | in use (NFKC and diacritic folding) |
+| Dates and zones | `chrono`, `chrono-tz` | undecided: `Timestamp` and `Date` are own code; zones come with `timezones` |
+| Outbound HTTP | `ureq` | undecided; behind a `net` feature |
+| Arithmetic | own parser, or `fasteval` | undecided; exact decimals are own code (`Number`) |
+| Chess rules | permissively licensed crate + own search | undecided; no GPL in the binary |
 
 Policy: prefer no dependency, then a small one, then a feature-gated one.
 Licences must be permissive (MIT, Apache-2.0, BSD, public domain).
