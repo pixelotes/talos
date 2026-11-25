@@ -1,0 +1,133 @@
+# random.pick (docs/spec/basics.md).
+
+Given: draw = option 2
+[es] U: elige entre pizza, sushi y tacos
+     T: Elijo sushi.                              → answered · random.pick · options=pizza|sushi|tacos
+
+Given: draw = option 3
+[es] U: escoge uno: rojo, verde, azul
+     T: Elijo azul.                               → answered · random.pick · options=rojo|verde|azul
+
+Given: draw = option 1
+[es] U: decide por mi: ir al cine o quedarnos en casa
+     T: Elijo ir al cine.                         → answered · random.pick · options=ir al cine|quedarnos en casa
+
+Given: draw = option 3
+[es] U: sortéame a ana, luis y marta
+     T: Elijo marta.                              → answered · random.pick · options=ana|luis|marta
+
+Given: draw = option 2
+[es] U: no se que cenar, elige entre pasta, pizza o ensalada
+     T: Elijo pizza.                              → answered · random.pick · options=pasta|pizza|ensalada
+
+Given: draw = option 1
+[es] U: elige: té o café
+     T: Elijo té.                                 → answered · random.pick · options=té|café
+
+Given: draw = option 1
+[es] U: ayúdame a elegir entre pizza o sushi
+     T: Elijo pizza.                              → answered · random.pick · options=pizza|sushi
+
+Given: hint = en
+Given: draw = option 3
+[en] U: pick one: red, green, blue
+     T: I pick blue.                              → answered · random.pick · options=red|green|blue
+
+Given: draw = option 1
+[en] U: choose between tea and coffee
+     T: I pick tea.                               → answered · random.pick · options=tea|coffee
+
+Given: draw = option 2
+[en] U: decide for me: stay in or go out
+     T: I pick go out.                            → answered · random.pick · options=stay in|go out
+
+Given: draw = option 3
+[en] U: pick a name from Ana, Luis and Marta
+     T: I pick Marta.                             → answered · random.pick · options=Ana|Luis|Marta
+
+Given: draw = option 2
+[en] U: pick between pizza, sushi, tacos
+     T: I pick sushi.                             → answered · random.pick · options=pizza|sushi|tacos
+
+Given: draw = option 1
+[en] U: help me choose: pizza or sushi
+     T: I pick pizza.                             → answered · random.pick · options=pizza|sushi
+
+# Edge cases.
+
+Given: hint = none
+Given: draw = option 2
+[es] U: tira un dado para decidir entre ir al cine o cenar
+     T: Elijo cenar.                              → answered · random.pick · options=ir al cine|cenar
+
+Given: draw = option 2
+[es] U: tira una moneda para decidir entre pizza o sushi
+     T: Elijo sushi.                              → answered · random.pick · options=pizza|sushi
+
+Given: hint = en
+Given: draw = option 1
+[en] U: flip a coin to choose between tea and coffee
+     T: I pick tea.                               → answered · random.pick · options=tea|coffee
+
+# Asking back is v0.2: here a hint, `unhandled`.
+
+Given: hint = none
+[es] U: elige uno
+     T: Dime entre qué opciones elegir, por ejemplo: elige entre pizza, sushi y tacos.
+                                                  → unhandled · random.pick
+
+Given: hint = en
+[en] U: pick one
+     T: Tell me the options, for example: pick between pizza, sushi and tacos.
+                                                  → unhandled · random.pick
+
+Given: hint = none
+[es] U: ayúdame a elegir entre dos camisetas
+     T: Dime entre qué opciones elegir, por ejemplo: elige entre pizza, sushi y tacos.
+                                                  → unhandled · random.pick · options=dos camisetas
+
+Given: hint = en
+[en] U: pick a color
+     T: Tell me the options, for example: pick between pizza, sushi and tacos.
+                                                  → unhandled · random.pick
+
+Given: hint = none
+[es] U: elige entre pizza
+     T: Solo me das una opción: pizza.            → answered · random.pick · options=pizza
+
+Given: hint = en
+Given: draw = option 2
+[en] U: choose between tea or tea or coffee
+     T: I pick coffee.                            → answered · random.pick · options=tea|coffee
+
+[en] U: choose between tea or tea
+     T: There's only one option: tea.             → answered · random.pick · options=tea
+
+Given: hint = none
+Given: draw = option 3
+[es] U: elige entre pan y queso o jamón
+     T: Elijo jamón (entre pan, queso y jamón).   → answered · random.pick · options=pan|queso|jamón
+
+Given: draw = option 2
+[es] U: elige entre 1 y 3
+     T: Elijo 3.                                  → answered · random.pick · options=1|3
+
+Given: draw = 2
+[es] U: elige un número entre 1 y 3
+     T: 2.                                        → answered · random.number · high=3 low=1
+
+# "pizza or sushi?" and "qué es mejor, pizza o sushi" are the reflector's S16
+
+# (deflected), not this skill; without it they are the catch-all.
+
+Given: hint = en
+[en] U: pizza or sushi?
+     T: I don't have preferences. Do you?         → deflected · ask-opinion
+
+Given: hint = none
+[es] U: qué es mejor, pizza o sushi
+     T: No tengo opiniones, ni de eso ni de nada. ¿Tú qué opinas?
+                                                  → deflected · ask-opinion
+
+[es] U: qué cenamos
+     T: No te he entendido.                       → unhandled · catch-all

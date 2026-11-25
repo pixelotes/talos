@@ -1,0 +1,389 @@
+# clock.until (docs/spec/basics.md, and docs/spec/conversation.md 2.3 for
+# times on a named day). Each exchange is its own conversation.
+#
+# Direction comes from the verb: "falta", "until" look forward; "hace",
+# "desde", "since" look back. A date without a year is the next occurrence
+# (today included) for "until" and the most recent one for "since". The
+# target on the outcome line is the resolved date, or `YYYY-MM-DD HH:MM` for
+# a time.
+#
+# v0.1 never asks back, so these spec exchanges end in a hint and
+# `unhandled · clock.until` instead of a question: "cuánto falta para mi
+# cumpleaños", "how long until" and "how long until 3/4" (the second turns,
+# "el 9 de agosto" and "the 4th of March", are the direct questions below).
+#
+# Left out, with the reason:
+#   "how long is the flight to Lisbon": not a date computation; no rule of
+#     clock matches, and the spec's outcome is a bare `unhandled`.
+#
+# Given: now defaults to 2027-03-14 18:42 Europe/Madrid.
+
+[es] U: cuánto falta para navidad
+     T: Faltan 286 días para Navidad (sábado, 25 de diciembre de 2027).
+                                                  → answered · clock.until · target=2027-12-25
+
+[es] U: cuanto falta para las 7
+     T: Faltan 18 minutos.                        → answered · clock.until · target=2027-03-14 19:00
+
+[es] U: dias que faltan para nochevieja
+     T: Faltan 292 días para Nochevieja (viernes, 31 de diciembre de 2027).
+                                                  → answered · clock.until · target=2027-12-31
+
+[es] U: cuanto falta para medianoche
+     T: Faltan 5 horas y 18 minutos (mañana, 00:00).
+                                                  → answered · clock.until · target=2027-03-15 00:00
+
+[es] U: cuánto hace desde el 1 de enero de 2000
+     T: Hace 27 años, 2 meses y 13 días, desde el sábado, 1 de enero de 2000.
+                                                  → answered · clock.until · target=2000-01-01
+
+[es] U: cuántos días faltan para el viernes
+     T: Faltan 5 días (viernes, 19 de marzo de 2027).
+                                                  → answered · clock.until · target=2027-03-19
+
+[es] U: cuanto queda para pascua
+     T: Faltan 14 días para el Domingo de Resurrección (domingo, 28 de marzo de 2027).
+                                                  → answered · clock.until · target=2027-03-28
+
+[es] U: cuánto falta para año nuevo
+     T: Faltan 293 días para Año Nuevo (sábado, 1 de enero de 2028).
+                                                  → answered · clock.until · target=2028-01-01
+
+[es] U: cuánto falta para reyes
+     T: Faltan 298 días para Reyes (jueves, 6 de enero de 2028).
+                                                  → answered · clock.until · target=2028-01-06
+
+[es] U: cuánto falta para san valentín
+     T: Faltan 337 días para San Valentín (lunes, 14 de febrero de 2028).
+                                                  → answered · clock.until · target=2028-02-14
+
+[es] U: cuánto falta para halloween
+     T: Faltan 231 días para Halloween (domingo, 31 de octubre de 2027).
+                                                  → answered · clock.until · target=2027-10-31
+
+[es] U: cuánto falta para nochebuena
+     T: Faltan 285 días para Nochebuena (viernes, 24 de diciembre de 2027).
+                                                  → answered · clock.until · target=2027-12-24
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+
+[en] U: how long until Christmas?
+     T: 286 days until Christmas (Saturday 25 December 2027).
+                                                  → answered · clock.until · target=2027-12-25
+
+[en] U: how long until 9pm
+     T: 2 hours and 18 minutes to go.             → answered · clock.until · target=2027-03-14 21:00
+
+[en] U: how many days until July 4th
+     T: 112 days to go (Sunday 4 July 2027).      → answered · clock.until · target=2027-07-04
+
+[en] U: how long until midnight
+     T: 5 hours and 18 minutes to go (tomorrow, 00:00).
+                                                  → answered · clock.until · target=2027-03-15 00:00
+
+[en] U: how long since July 20, 1969
+     T: 57 years, 7 months and 22 days since Sunday 20 July 1969.
+                                                  → answered · clock.until · target=1969-07-20
+
+[en] U: days until Friday
+     T: 5 days to go (Friday 19 March 2027).      → answered · clock.until · target=2027-03-19
+
+[en] U: how long until Easter
+     T: 14 days until Easter Sunday (Sunday 28 March 2027).
+                                                  → answered · clock.until · target=2027-03-28
+
+[en] U: how long until New Year's Eve
+     T: 292 days until New Year's Eve (Friday 31 December 2027).
+                                                  → answered · clock.until · target=2027-12-31
+
+[en] U: how long until Valentine's Day
+     T: 337 days until Valentine's Day (Monday 14 February 2028).
+                                                  → answered · clock.until · target=2028-02-14
+
+[en] U: how long until Halloween
+     T: 231 days until Halloween (Sunday 31 October 2027).
+                                                  → answered · clock.until · target=2027-10-31
+
+# Edge cases of the spec.
+
+Given: hint = none
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: cuánto falta para las 18:00
+     T: Faltan 23 horas y 18 minutos (mañana, 18:00).
+                                                  → answered · clock.until · target=2027-03-15 18:00
+
+[es] U: cuánto falta para el domingo
+     T: Hoy es domingo. El próximo domingo es dentro de 7 días (21 de marzo de 2027).
+                                                  → answered · clock.until · target=2027-03-21
+
+[es] U: cuánto falta para mañana
+     T: Falta 1 día (lunes, 15 de marzo de 2027).
+                                                  → answered · clock.until · target=2027-03-15
+
+[es] U: cuánto falta para el 30
+     T: Faltan 16 días (martes, 30 de marzo de 2027).
+                                                  → answered · clock.until · target=2027-03-30
+
+[es] U: cuánto falta para el 3/4
+     T: Faltan 20 días (sábado, 3 de abril de 2027).
+                                                  → answered · clock.until · target=2027-04-03
+
+[es] U: cuánto falta para el 31 de abril
+     T: El 31 de abril no existe.                 → answered · clock.until · target=el 31 de abril
+
+[es] U: cuánto falta para mi cumpleaños
+     T: Necesito una fecha, una hora o un día conocido: «cuánto falta para Navidad» o «cuánto falta para las 9».
+                                                  → unhandled · clock.until · target=mi cumpleaños
+
+[es] U: cuánto falta
+     T: Necesito una fecha, una hora o un día conocido: «cuánto falta para Navidad» o «cuánto falta para las 9».
+                                                  → unhandled · clock.until
+
+[es] U: cuánto falta para el 9 de agosto
+     T: Faltan 148 días (lunes, 9 de agosto de 2027).
+                                                  → answered · clock.until · target=2027-08-09
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: how long until 3/4
+     T: That date could be 3 April or 4 March. Please write it out in words.
+                                                  → unhandled · clock.until · target=3/4
+
+[en] U: how long until the 4th of March
+     T: 356 days to go (Saturday 4 March 2028).   → answered · clock.until · target=2028-03-04
+
+[en] U: how long since 4 March
+     T: 10 days since Thursday 4 March 2027.      → answered · clock.until · target=2027-03-04
+
+[en] U: how long until
+     T: I need a date, a time or a well-known day: “how long until Christmas” or “how long until 9pm”.
+                                                  → unhandled · clock.until
+
+Given: now = 2027-03-16 10:00 America/New_York
+[en] U: how long until next Friday
+     T: 3 days to go (Friday 19 March 2027).      → answered · clock.until · target=2027-03-19
+
+[en] U: how long until Friday next week
+     T: 10 days to go (Friday 26 March 2027).     → answered · clock.until · target=2027-03-26
+
+# "Since" and "until" on the same words.
+Given: now = 2027-03-14 18:42 America/New_York
+# A past date with "until" is reported as past.
+[en] U: how long until July 20, 1969
+     T: That was 57 years, 7 months and 22 days ago.
+                                                  → answered · clock.until · target=1969-07-20
+
+[en] U: how long since Christmas
+     T: 79 days since Christmas (Friday 25 December 2026).
+                                                  → answered · clock.until · target=2026-12-25
+
+[en] U: how long since 15 March
+     T: 364 days since Sunday 15 March 2026.      → answered · clock.until · target=2026-03-15
+
+[en] U: how long since 14 March
+     T: That's today (Sunday 14 March 2027).      → answered · clock.until · target=2027-03-14
+
+[en] U: how long since Friday
+     T: 2 days since Friday 12 March 2027.        → answered · clock.until · target=2027-03-12
+
+[en] U: how long since Easter
+     T: 343 days since Easter Sunday (Sunday 5 April 2026).
+                                                  → answered · clock.until · target=2026-04-05
+
+[en] U: how long since February 29
+     T: 3 years and 14 days since Thursday 29 February 2024.
+                                                  → answered · clock.until · target=2024-02-29
+
+[en] U: how long until yesterday
+     T: That was 1 day ago.                       → answered · clock.until · target=2027-03-13
+
+[en] U: how long until today
+     T: That's today (Sunday 14 March 2027).      → answered · clock.until · target=2027-03-14
+
+[en] U: how long since 9pm
+     T: For “since” I need a date, not a time: “how long since July 20, 1969”.
+                                                  → unhandled · clock.until · target=9pm
+
+Given: hint = none
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: cuánto hace desde navidad
+     T: Hace 79 días, desde Navidad (viernes, 25 de diciembre de 2026).
+                                                  → answered · clock.until · target=2026-12-25
+
+[es] U: cuánto hace desde el 3/4
+     T: Hace 345 días, desde el viernes, 3 de abril de 2026.
+                                                  → answered · clock.until · target=2026-04-03
+
+[es] U: cuánto hace desde ayer
+     T: Hace 1 día, desde el sábado, 13 de marzo de 2027.
+                                                  → answered · clock.until · target=2027-03-13
+
+# A year or more is years, months and days; less is days (365 and 366).
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: how long until 13 March 2028
+     T: 365 days to go (Monday 13 March 2028).    → answered · clock.until · target=2028-03-13
+
+[en] U: how long until 14 March 2028
+     T: 1 year to go (Tuesday 14 March 2028).     → answered · clock.until · target=2028-03-14
+
+[en] U: how long until 15 March 2028
+     T: 1 year and 1 day to go (Wednesday 15 March 2028).
+                                                  → answered · clock.until · target=2028-03-15
+
+[en] U: how long until 14 March 2030
+     T: 3 years to go (Thursday 14 March 2030).   → answered · clock.until · target=2030-03-14
+
+[en] U: how long since March 14, 2026
+     T: 1 year since Saturday 14 March 2026.      → answered · clock.until · target=2026-03-14
+
+[en] U: how long since March 15, 2026
+     T: 364 days since Sunday 15 March 2026.      → answered · clock.until · target=2026-03-15
+
+# Month ends, a leap day and the new year.
+Given: hint = none
+Given: now = 2027-12-31 18:42 Europe/Madrid
+[es] U: cuánto falta para año nuevo
+     T: Falta 1 día para Año Nuevo (sábado, 1 de enero de 2028).
+                                                  → answered · clock.until · target=2028-01-01
+
+[es] U: cuánto falta para nochevieja
+     T: Es hoy (viernes, 31 de diciembre de 2027).
+                                                  → answered · clock.until · target=2027-12-31
+
+[es] U: cuánto falta para el 1 de enero de 2029
+     T: Faltan 1 año y 1 día (lunes, 1 de enero de 2029).
+                                                  → answered · clock.until · target=2029-01-01
+
+Given: now = 2028-02-28 18:42 Europe/Madrid
+[es] U: cuánto falta para el 1 de marzo
+     T: Faltan 2 días (miércoles, 1 de marzo de 2028).
+                                                  → answered · clock.until · target=2028-03-01
+
+Given: now = 2027-02-28 18:42 Europe/Madrid
+[es] U: cuánto falta para el 1 de marzo
+     T: Falta 1 día (lunes, 1 de marzo de 2027).  → answered · clock.until · target=2027-03-01
+
+[es] U: cuánto falta para el 29 de febrero
+     T: Faltan 1 año y 1 día (martes, 29 de febrero de 2028).
+                                                  → answered · clock.until · target=2028-02-29
+
+Given: now = 2027-01-31 18:42 Europe/Madrid
+[es] U: cuánto falta para el 28 de febrero
+     T: Faltan 28 días (domingo, 28 de febrero de 2027).
+                                                  → answered · clock.until · target=2027-02-28
+
+# Times: a time that is now or has passed means tomorrow's; midnight at 00:00
+# is a whole day away; the clock is the local one, to the minute.
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: cuánto falta para las 18:42
+     T: Falta 1 día (mañana, 18:42).              → answered · clock.until · target=2027-03-15 18:42
+
+[es] U: cuánto falta para las 18:43
+     T: Falta 1 minuto.                           → answered · clock.until · target=2027-03-14 18:43
+
+[es] U: cuánto falta para las 5
+     T: Faltan 10 horas y 18 minutos (mañana, 5:00).
+                                                  → answered · clock.until · target=2027-03-15 05:00
+
+[es] U: cuánto falta para las 12
+     T: Faltan 5 horas y 18 minutos (mañana, 00:00).
+                                                  → answered · clock.until · target=2027-03-15 00:00
+
+[es] U: cuánto falta para mediodía
+     T: Faltan 17 horas y 18 minutos (mañana, 12:00).
+                                                  → answered · clock.until · target=2027-03-15 12:00
+
+Given: now = 2027-03-14 18:42:59 Europe/Madrid
+[es] U: cuánto falta para las 19:00
+     T: Faltan 18 minutos.                        → answered · clock.until · target=2027-03-14 19:00
+
+Given: now = 2027-03-14 23:59 Europe/Madrid
+[es] U: cuánto falta para medianoche
+     T: Falta 1 minuto (mañana, 00:00).           → answered · clock.until · target=2027-03-15 00:00
+
+Given: now = 2027-03-15 00:00 Europe/Madrid
+[es] U: cuánto falta para medianoche
+     T: Falta 1 día (mañana, 00:00).              → answered · clock.until · target=2027-03-16 00:00
+
+[es] U: cuánto falta para la 1
+     T: Falta 1 hora.                             → answered · clock.until · target=2027-03-15 01:00
+
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: cuánto falta para las 3 y media
+     T: Faltan 8 horas y 48 minutos (mañana, 3:30).
+                                                  → answered · clock.until · target=2027-03-15 03:30
+
+[es] U: cuánto falta para las cuatro menos cuarto de la tarde
+     T: Faltan 21 horas y 3 minutos (mañana, 15:45).
+                                                  → answered · clock.until · target=2027-03-15 15:45
+
+[es] U: cuánto falta para mañana por la tarde
+     T: Faltan 22 horas y 18 minutos (mañana, 17:00).
+                                                  → answered · clock.until · target=2027-03-15 17:00
+
+[es] U: cuánto falta para mañana a las 9 de la mañana
+     T: Faltan 14 horas y 18 minutos (mañana, 9:00).
+                                                  → answered · clock.until · target=2027-03-15 09:00
+
+[es] U: cuánto falta para pasado mañana a las 8
+     T: Faltan 1 día, 13 horas y 18 minutos (martes, 16 de marzo de 2027, 8:00).
+                                                  → answered · clock.until · target=2027-03-16 08:00
+
+[es] U: cuánto falta para esta noche
+     T: Faltan 2 horas y 18 minutos.              → answered · clock.until · target=2027-03-14 21:00
+
+[es] U: cuánto falta para hoy a las 5 de la tarde
+     T: Eso fue hace 1 hora y 42 minutos.         → answered · clock.until · target=2027-03-14 17:00
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: how long until half past three
+     T: 8 hours and 48 minutes to go (tomorrow, 03:30).
+                                                  → answered · clock.until · target=2027-03-15 03:30
+
+[en] U: how long until tomorrow afternoon
+     T: 22 hours and 18 minutes to go (tomorrow, 17:00).
+                                                  → answered · clock.until · target=2027-03-15 17:00
+
+[en] U: how long until 7pm
+     T: 18 minutes to go.                         → answered · clock.until · target=2027-03-14 19:00
+
+[en] U: how long until quarter to seven
+     T: 3 minutes to go.                          → answered · clock.until · target=2027-03-14 18:45
+
+[en] U: how long until tomorrow at 9am
+     T: 14 hours and 18 minutes to go (tomorrow, 09:00).
+                                                  → answered · clock.until · target=2027-03-15 09:00
+
+[en] U: how long until noon
+     T: 17 hours and 18 minutes to go (tomorrow, 12:00).
+                                                  → answered · clock.until · target=2027-03-15 12:00
+
+[en] U: how long until tonight
+     T: 2 hours and 18 minutes to go.             → answered · clock.until · target=2027-03-14 21:00
+
+# Weekday arithmetic: a bare weekday that is today is a week away, with the
+# reply saying so; "this" includes today.
+Given: hint = none
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: cuánto falta para el lunes
+     T: Falta 1 día (lunes, 15 de marzo de 2027).
+                                                  → answered · clock.until · target=2027-03-15
+
+[es] U: cuánto falta para este domingo
+     T: Es hoy (domingo, 14 de marzo de 2027).    → answered · clock.until · target=2027-03-14
+
+[es] U: cuánto falta para el próximo domingo
+     T: Faltan 7 días (domingo, 21 de marzo de 2027).
+                                                  → answered · clock.until · target=2027-03-21
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: days until Sunday
+     T: Today is Sunday. The next Sunday is in 7 days (21 March 2027).
+                                                  → answered · clock.until · target=2027-03-21
+
+[en] U: how long until next Sunday
+     T: 7 days to go (Sunday 21 March 2027).      → answered · clock.until · target=2027-03-21

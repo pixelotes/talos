@@ -1,0 +1,123 @@
+# random.dice (docs/spec/basics.md).
+
+Given: draw = 4
+[es] U: tira un dado
+     T: Ha salido un 4.                           → answered · random.dice · count=1 sides=6
+
+Given: draw = 3, 5
+[es] U: 2d6
+     T: 3 y 5: total 8.                           → answered · random.dice · count=2 sides=6
+
+Given: draw = 6, 1
+[es] U: lanza dos dados
+     T: 6 y 1: total 7.                           → answered · random.dice · count=2 sides=6
+
+Given: draw = 17
+[es] U: tirame un d20
+     T: Ha salido un 17.                          → answered · random.dice · count=1 sides=20
+
+Given: draw = 5, 2, 8
+[es] U: tira 3d8+2
+     T: 5, 2 y 8, más 2: total 17.                → answered · random.dice · count=3 modifier=2 sides=8
+
+Given: draw = 1, 1, 6, 3
+[es] U: tira 4 dados de 6 caras
+     T: 1, 1, 6 y 3: total 11.                    → answered · random.dice · count=4 sides=6
+
+Given: draw = 2, 2
+[es] U: tira los dados
+     T: Dos dados: 2 y 2, total 4.                → answered · random.dice · count=2 sides=6
+
+Given: hint = en
+Given: draw = 4
+[en] U: roll a die
+     T: It came up 4.                             → answered · random.dice · count=1 sides=6
+
+Given: draw = 3, 5
+[en] U: roll 2d6
+     T: 3 and 5: total 8.                         → answered · random.dice · count=2 sides=6
+
+Given: draw = 6, 1
+[en] U: roll two dice
+     T: 6 and 1: total 7.                         → answered · random.dice · count=2 sides=6
+
+Given: draw = 17
+[en] U: d20
+     T: It came up 17.                            → answered · random.dice · count=1 sides=20
+
+Given: draw = 5, 2, 8
+[en] U: throw 3d8+2
+     T: 5, 2 and 8, plus 2: total 17.             → answered · random.dice · count=3 modifier=2 sides=8
+
+Given: draw = 1, 1, 6, 3
+[en] U: roll 4 six-sided dice
+     T: 1, 1, 6 and 3: total 11.                  → answered · random.dice · count=4 sides=6
+
+Given: draw = 2, 2
+[en] U: roll the dice
+     T: Two dice: 2 and 2, total 4.               → answered · random.dice · count=2 sides=6
+
+# Edge cases.
+
+Given: hint = none
+[es] U: tira 0d6
+     T: Tengo que tirar al menos un dado.         → unhandled · random.dice · count=0 sides=6
+
+Given: hint = en
+[en] U: roll a d1
+     T: A die needs at least 2 sides.             → unhandled · random.dice · count=1 sides=1
+
+[en] U: roll 101d6
+     T: I can roll up to 100 dice at once.        → unhandled · random.dice · count=101 sides=6
+
+Given: hint = none
+[es] U: tira un d1000000
+     T: Los dados pueden tener como mucho 1000 caras.
+                                                  → unhandled · random.dice · count=1 sides=1000000
+
+Given: draw = 5
+[es] U: tira un dado de 7 caras
+     T: Ha salido un 5.                           → answered · random.dice · count=1 sides=7
+
+Given: hint = en
+Given: draw = 2
+[en] U: roll 1d6-10
+     T: It came up 2, minus 10: total -8.         → answered · random.dice · count=1 modifier=-10 sides=6
+
+Given: draw = 3, 5, 2, 6, 1, 4, 4, 2, 6, 5, 1, 3
+[en] U: roll 12d6
+     T: Total 42.                                 → answered · random.dice · count=12 sides=6
+
+[en] U: roll 4d6 and keep the highest 3
+     T: I only roll plain dice such as 4d6 or 2d8+1.
+                                                  → unhandled · random.dice
+
+[en] U: roll a d6 and a d20
+     T: Ask me for one kind of die at a time.     → unhandled · random.dice
+
+Given: hint = none
+[es] U: tira un d6 y un d20
+     T: Pídeme un solo tipo de dado cada vez.     → unhandled · random.dice
+
+[es] U: tira 4d6 quedándote con los 3 mejores
+     T: Solo tiro dados simples, como 4d6 o 2d8+1.
+                                                  → unhandled · random.dice
+
+Given: draw = 4, 2
+[es] U: 2D6 + 3
+     T: 4 y 2, más 3: total 9.                    → answered · random.dice · count=2 modifier=3 sides=6
+
+Given: draw = 6
+[es] U: tira un dado por favor
+     T: Ha salido un 6.                           → answered · random.dice · count=1 sides=6
+
+Given: hint = en
+Given: draw = 1
+[en] U: please roll a six-sided die
+     T: It came up 1.                             → answered · random.dice · count=1 sides=6
+
+# Not a roll: a game, not specified yet.
+
+Given: hint = none
+[es] U: juega a los dados
+     T: No te he entendido.                       → unhandled · catch-all

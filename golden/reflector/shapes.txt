@@ -1,0 +1,545 @@
+# Sentence shapes S1-S26 of docs/spec/reflector.md section 2, one
+# conversation per example, so each hears its rule's canonical reply. The
+# wording is illustrative in the spec; the status and the shape are
+# normative.
+
+# S1 · Opinion (`opinion`)
+
+Given: hint = es
+[es] U: creo que el teletrabajo ha venido para quedarse
+     T: ¿Crees que el teletrabajo ha venido para quedarse? ¿Por qué lo dices?
+                                                  → deflected · opinion
+
+Given: hint = es
+[es] U: para mí la tortilla tiene que llevar cebolla
+     T: Para ti la tortilla tiene que llevar cebolla.
+                                                  → deflected · opinion
+
+Given: hint = es
+[es] U: a mi modo de ver la reunión de hoy sobraba
+     T: Esa es tu postura. Yo no tengo opinión en eso.
+                                                  → deflected · opinion
+
+Given: hint = en
+[en] U: I reckon the new manager won't last a year
+     T: You reckon the new manager won't last a year? What makes you say so?
+                                                  → deflected · opinion
+
+Given: hint = en
+[en] U: in my opinion jazz is overrated
+     T: In your view, jazz is overrated.          → deflected · opinion
+
+# S2 · Assertion about the world (`assertion`)
+
+Given: hint = es
+[es] U: en Cádiz se come el mejor pescado de España
+     T: Puede ser. Yo eso ni lo afirmo ni lo niego.
+                                                  → deflected · assertion
+
+Given: hint = es
+[es] U: los lunes el tráfico es peor
+     T: Puede ser. Yo eso ni lo afirmo ni lo niego.
+                                                  → deflected · assertion
+
+Given: hint = en
+[en] U: cats can't taste sweet things
+     T: Could be. I can't vouch for it either way.
+                                                  → deflected · assertion
+
+Given: hint = en
+[en] U: the trains are always worse in autumn
+     T: Always?                                   → deflected · generalisation
+
+# S3 · Plan or intention (`plan`)
+
+Given: hint = es
+[es] U: el año que viene voy a dejar el curro
+     T: ¿Vas a dejar el curro? ¿Y eso?            → deflected · plan
+
+Given: hint = es
+[es] U: mañana me cojo el día libre
+     T: Mañana te coges el día libre, entonces.   → deflected · plan
+
+Given: hint = es
+[es] U: estoy pensando en apuntarme a la EOI
+     T: Así que te lo estás planteando.           → deflected · plan
+
+Given: hint = en
+[en] U: I'm going to repaint the kitchen this weekend
+     T: You're going to repaint the kitchen this weekend?
+                                                  → deflected · plan
+
+Given: hint = en
+[en] U: I'm thinking of learning German
+     T: Learning German, then. What's behind that?
+                                                  → deflected · plan
+
+# S4 · Wish (`wish`)
+
+Given: hint = es
+[es] U: ojalá me tocara la lotería
+     T: ¿Ojalá te tocara la lotería? ¿Y qué harías?
+                                                  → deflected · wish
+
+Given: hint = es
+[es] U: me gustaría tener un piso con terraza
+     T: Te gustaría tener un piso con terraza. Queda dicho.
+                                                  → deflected · wish
+
+Given: hint = es
+[es] U: tengo unas ganas de que llegue agosto…
+     T: Queda dicho.                              → deflected · wish
+
+Given: hint = en
+[en] U: I wish I could take a year off
+     T: You wish you could take a year off? Say more.
+                                                  → deflected · wish
+
+Given: hint = en
+[en] U: I'm dying to see that film
+     T: You're dying to see that film? Say more.  → deflected · wish
+
+# S5 · Self-description or state (`self`)
+
+Given: hint = es
+[es] U: soy profe de instituto
+     T: Profe de instituto, entonces.             → deflected · self
+
+Given: hint = es
+[es] U: estoy agotada
+     T: Vaya. Poco puedo hacer yo con eso, pero aquí sigo.
+                                                  → deflected · self
+
+Given: hint = es
+[es] U: me encuentro un poco pachucho
+     T: Vaya. Poco puedo hacer yo con eso, pero aquí sigo.
+                                                  → deflected · self
+
+Given: hint = en
+[en] U: I'm a night-shift nurse
+     T: A night-shift nurse, then.                → deflected · self
+
+Given: hint = en
+[en] U: I'm exhausted
+     T: Ah. Not much I can do about that, but I'm still here.
+                                                  → deflected · self
+
+# S6 · Past event (`past`)
+
+Given: hint = es
+[es] U: ayer estuve en el Prado
+     T: Ayer estuviste en el Prado. ¿Y luego?     → deflected · past
+
+Given: hint = es
+[es] U: el finde me quedé sin batería en pleno monte
+     T: El finde te quedaste sin batería en pleno monte. ¿Y luego?
+                                                  → deflected · past
+
+Given: hint = en
+[en] U: I went to a gig last night
+     T: You went to a gig last night? And then?   → deflected · past
+
+Given: hint = en
+[en] U: I've just moved house
+     T: You've just moved house. How did that come about?
+                                                  → deflected · past
+
+# S7 · Like or dislike (`taste`)
+
+Given: hint = es
+[es] U: me mola un montón el flamenco
+     T: ¿Qué tiene el flamenco que te mola tanto?
+                                                  → deflected · taste
+
+Given: hint = es
+[es] U: no soporto a la gente que habla alto en el tren
+     T: No soportas a la gente que habla alto en el tren. Queda dicho.
+                                                  → deflected · taste
+
+Given: hint = en
+[en] U: I love rainy Sundays
+     T: What is it about rainy Sundays?           → deflected · taste
+
+Given: hint = en
+[en] U: I can't stand coriander
+     T: What is it about coriander?               → deflected · taste
+
+# S8 · Comparison or preference (`compare`)
+
+Given: hint = es
+[es] U: prefiero la sierra a la playa
+     T: La sierra antes que la playa. Yo ahí no me meto.
+                                                  → deflected · compare
+
+Given: hint = es
+[es] U: el metro es mil veces mejor que el bus
+     T: Mejor el metro que el bus, según tú. ¿Por qué?
+                                                  → deflected · compare
+
+Given: hint = en
+[en] U: I prefer tea to coffee
+     T: Tea over coffee, then. I don't take sides.
+                                                  → deflected · compare
+
+Given: hint = en
+[en] U: vinyl sounds better than streaming
+     T: Better than streaming, you say? What makes the difference?
+                                                  → deflected · compare
+
+# S9 · Hypothetical (`hypothetical`)
+
+Given: hint = es
+[es] U: si yo fuera rico me compraría una casa en Asturias
+     T: Si tú fueras rico, ¿y qué más?            → deflected · hypothetical
+
+Given: hint = es
+[es] U: ¿y si mañana no sale el sol?
+     T: Imaginar no es lo mío. ¿Tú qué crees que pasaría?
+                                                  → deflected · hypothetical
+
+Given: hint = en
+[en] U: if I won the lottery I'd quit tomorrow
+     T: If you won the lottery, what then?        → deflected · hypothetical
+
+Given: hint = en
+[en] U: what if cats could talk?
+     T: I don't do what-ifs. What do you think would happen?
+                                                  → deflected · hypothetical
+
+# S10 · Generalisation (`generalisation`)
+
+Given: hint = es
+[es] U: nadie me hace caso en las reuniones
+     T: ¿Nadie? ¿Ni una sola persona?             → deflected · generalisation
+
+Given: hint = es
+[es] U: siempre llego tarde a todo
+     T: ¿Siempre? Alguna excepción habrá.         → deflected · generalisation
+
+Given: hint = en
+[en] U: nobody reads the documentation
+     T: Nobody at all?                            → deflected · generalisation
+
+Given: hint = en
+[en] U: everyone's glued to their phone these days
+     T: Everyone? That's a lot of people.         → deflected · generalisation
+
+# S11 · Uncertainty (`uncertain`)
+
+Given: hint = es
+[es] U: no sé, igual sí
+     T: Igual sí. Lo dejamos en el aire.          → deflected · uncertain
+
+Given: hint = es
+[es] U: a lo mejor me apunto a clases de baile
+     T: A lo mejor. Lo dejamos en el aire.        → deflected · uncertain
+
+Given: hint = en
+[en] U: dunno really
+     T: Fair enough.                              → deflected · uncertain
+
+Given: hint = en
+[en] U: maybe I'll call her tomorrow
+     T: Maybe, then. Your call.                   → deflected · uncertain
+
+# S12 · Complaint (`complaint`)
+
+Given: hint = es
+[es] U: estoy hasta las narices del ruido de las obras
+     T: Hasta las narices del ruido de las obras. Vaya tela.
+                                                  → deflected · complaint
+
+Given: hint = es
+[es] U: qué rollo de lunes
+     T: Vaya. ¿Tan malo está siendo?              → deflected · complaint
+
+Given: hint = en
+[en] U: I'm sick of these trains being late
+     T: You're sick of these trains being late. That bad?
+                                                  → deflected · complaint
+
+Given: hint = en
+[en] U: ugh, Mondays
+     T: That bad?                                 → deflected · complaint
+
+# S13 · Self-directed "why" (`why-me`)
+
+Given: hint = es
+[es] U: ¿por qué siempre me toca a mí fregar?
+     T: ¿Por qué siempre te toca a ti fregar? Eso no lo sé yo. ¿Tú qué crees?
+                                                  → deflected · why-me
+
+Given: hint = es
+[es] U: ¿por qué me lío tanto con las fechas?
+     T: ¿Por qué te lías tanto con las fechas? Eso no lo sé yo. ¿Tú qué crees?
+                                                  → deflected · why-me
+
+Given: hint = en
+[en] U: why do I always leave things to the last minute?
+     T: I couldn't tell you. What's your own guess?
+                                                  → deflected · why-me
+
+Given: hint = en
+[en] U: why can't I ever say no to people
+     T: I couldn't tell you. What's your own guess?
+                                                  → deflected · why-me
+
+# S14 · Third party (`third-party`)
+
+Given: hint = es
+[es] U: mi hermana se ha comprado una moto
+     T: ¿Tu hermana se ha comprado una moto? ¿Y eso?
+                                                  → deflected · third-party
+
+Given: hint = es
+[es] U: mi jefe dice que tengo que venir el sábado
+     T: ¿Tu jefe dice que tienes que venir el sábado? ¿Y eso?
+                                                  → deflected · third-party
+
+Given: hint = en
+[en] U: my sister's moving to Leeds
+     T: Your sister's moving to Leeds? And what do you make of that?
+                                                  → deflected · third-party
+
+Given: hint = en
+[en] U: my boss wants the report by Friday
+     T: Your boss wants the report by Friday? And what do you make of that?
+                                                  → deflected · third-party
+
+# S15 · Statement about Talos (`about-talos`)
+
+Given: hint = es
+[es] U: hablas como un contestador automático
+     T: Es posible. Contesto con frases hechas, eso es verdad.
+                                                  → deflected · about-talos
+
+Given: hint = es
+[es] U: eres muy formal, ¿no?
+     T: Es posible. Contesto con frases hechas, eso es verdad.
+                                                  → deflected · about-talos
+
+Given: hint = en
+[en] U: you sound like a phone menu
+     T: Could be. What makes you say so?          → deflected · about-talos
+
+Given: hint = en
+[en] U: you're very literal
+     T: Could be. What makes you say so?          → deflected · about-talos
+
+# S16 · Question about Talos's opinions or tastes (`ask-opinion`)
+
+Given: hint = es
+[es] U: ¿qué opinas del reguetón?
+     T: No tengo opiniones, ni de eso ni de nada. ¿Tú qué opinas?
+                                                  → deflected · ask-opinion
+
+Given: hint = es
+[es] U: ¿cuál es tu peli favorita?
+     T: No tengo gustos de ningún tipo. ¿Y tú?    → deflected · ask-opinion
+
+Given: hint = en
+[en] U: do you like jazz?
+     T: I don't have likes or dislikes. Do you?   → deflected · ask-opinion
+
+Given: hint = en
+[en] U: what would you do in my place?
+     T: I wouldn't do anything; I don't make choices. What are you leaning towards?
+                                                  → deflected · ask-opinion
+
+# S17 · Question about Talos's experience or inner life (`ask-experience`)
+
+Given: hint = es
+[es] U: ¿te aburres cuando no te escribe nadie?
+     T: No. Entre mensaje y mensaje no hago nada, ni siquiera aburrirme.
+                                                  → deflected · ask-experience
+
+Given: hint = es
+[es] U: ¿has estado alguna vez en Lisboa?
+     T: No he estado en ninguna parte ni he hecho nada: soy un programa.
+                                                  → deflected · ask-experience
+
+Given: hint = en
+[en] U: do you ever dream?
+     T: No. Between messages I'm not doing anything at all.
+                                                  → deflected · ask-experience
+
+Given: hint = en
+[en] U: have you got any friends?
+     T: No. I'm a program; I don't have any of that.
+                                                  → deflected · ask-experience
+
+# S18 · Compliment (`compliment`)
+
+Given: hint = es
+[es] U: eres un crack
+     T: Gracias. Hago lo que puedo con lo que tengo.
+                                                  → deflected · compliment
+
+Given: hint = es
+[es] U: me caes bien, Talos
+     T: Gracias. Hago lo que puedo con lo que tengo.
+                                                  → deflected · compliment
+
+Given: hint = en
+[en] U: good job
+     T: Thanks.                                   → deflected · compliment
+
+Given: hint = en
+[en] U: you're actually pretty useful
+     T: Thanks.                                   → deflected · compliment
+
+# S19 · Insult (`insult`)
+
+Given: hint = es
+[es] U: eres más tonto que una piedra
+     T: Seguramente me quedo corto en muchas cosas.
+                                                  → deflected · insult
+
+Given: hint = es
+[es] U: cállate ya
+     T: Vale. Solo hablo cuando me escribes.      → deflected · insult
+
+Given: hint = en
+[en] U: you're useless
+     T: There's a lot I can't do, that's true.    → deflected · insult
+
+Given: hint = en
+[en] U: shut up
+     T: Sure. I only speak when spoken to.        → deflected · insult
+
+# S20 · Apology (`apology`)
+
+Given: hint = es
+[es] U: perdona, me he equivocado
+     T: No pasa nada.                             → deflected · apology
+
+Given: hint = es
+[es] U: lo siento, he estado un poco borde
+     T: No pasa nada.                             → deflected · apology
+
+Given: hint = en
+[en] U: sorry, typo
+     T: No problem.                               → deflected · apology
+
+Given: hint = en
+[en] U: sorry for being rude earlier
+     T: No problem.                               → deflected · apology
+
+# S21 · Agreement (`agree`)
+
+Given: hint = es
+[es] U: exacto, eso es
+     T: Pues eso.                                 → deflected · agree
+
+Given: hint = es
+[es] U: estoy de acuerdo contigo
+     T: Pues eso.                                 → deflected · agree
+
+Given: hint = en
+[en] U: exactly
+     T: Right, then.                              → deflected · agree
+
+Given: hint = en
+[en] U: you're spot on there
+     T: Right, then.                              → deflected · agree
+
+# S22 · Disagreement or correction (`disagree`)
+# Given (not reproducible here): the previous turn was answered by relations.is_a from the store.
+
+Given: hint = es
+[es] U: te equivocas
+     T: ¿No? Vale.                                → deflected · disagree
+
+Given: hint = es
+[es] U: qué va, no estoy de acuerdo
+     T: ¿No? Vale.                                → deflected · disagree
+
+Given: hint = en
+[en] U: that's wrong
+     T: Fair enough.                              → deflected · disagree
+
+Given: hint = en
+[en] U: I disagree
+     T: Fair enough.                              → deflected · disagree
+
+# S23 · Exclamation or laughter (`exclaim`)
+
+Given: hint = es
+[es] U: jajajaja
+     T: Jaja.                                     → deflected · exclaim
+
+Given: hint = es
+[es] U: ¡ostras!
+     T: ¿Qué pasa?                                → deflected · exclaim
+
+Given: hint = es
+[es] U: madre mía…
+     T: ¿Qué pasa?                                → deflected · exclaim
+
+Given: hint = en
+[en] U: lol
+     T: Ha.                                       → deflected · exclaim
+
+Given: hint = en
+[en] U: no way!
+     T: What happened?                            → deflected · exclaim
+
+# S24 · Backchannel (`backchannel`)
+
+Given: hint = es
+[es] U: mmm
+     T: Aquí sigo.                                → deflected · backchannel
+
+Given: hint = es
+[es] U: bueno, pues nada
+     T: Pues nada.                                → deflected · backchannel
+
+Given: hint = en
+[en] U: hmm
+     T: Take your time.                           → deflected · backchannel
+
+Given: hint = en
+[en] U: I see
+     T: Right.                                    → deflected · backchannel
+
+# S25 · Presence check (`presence`)
+
+Given: hint = es
+[es] U: ¿estás ahí?
+     T: Aquí estoy.                               → deflected · presence
+
+Given: hint = es
+[es] U: probando, probando
+     T: Funciono. Adelante.                       → deflected · presence
+
+Given: hint = en
+[en] U: are you there?
+     T: I'm here.                                 → deflected · presence
+
+Given: hint = en
+[en] U: testing 1 2 3
+     T: Working. Go ahead.                        → deflected · presence
+
+# S26 · "You don't understand" (`misunderstood`)
+
+Given: hint = es
+[es] U: no me estás entendiendo
+     T: Es probable. Entiendo pocas formas de decir las cosas; si lo dices de otra manera, igual acierto.
+                                                  → deflected · misunderstood
+
+Given: hint = es
+[es] U: eso no es lo que te he preguntado
+     T: Es probable. Entiendo pocas formas de decir las cosas; si lo dices de otra manera, igual acierto.
+                                                  → deflected · misunderstood
+
+Given: hint = en
+[en] U: you're not listening
+     T: Fair: I only catch some ways of putting things. Try saying it differently?
+                                                  → deflected · misunderstood
+
+Given: hint = en
+[en] U: that's not what I asked
+     T: Fair: I only catch some ways of putting things. Try saying it differently?
+                                                  → deflected · misunderstood
+
+Given: hint = none

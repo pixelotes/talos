@@ -1,0 +1,105 @@
+# The boundary: what is unhandled and never reflected (docs/spec/reflector.md 4).
+
+# 4.1 Factual questions with no answer
+# Given (not reproducible here): an empty store; no network skills.
+
+Given: hint = es
+[es] U: ¿cuál es la capital de Perú?
+     T: No lo sé.                                 → unhandled · unknown-fact
+
+Given: hint = es
+[es] U: ¿sabes quién ganó la liga el año pasado?
+     T: Eso no lo sé.                             → unhandled · unknown-fact
+
+Given: hint = es
+[es] U: ¿por qué los gatos ronronean?
+     T: No lo sé.                                 → unhandled · unknown-fact
+
+Given: hint = en
+[en] U: who wrote Middlemarch?
+     T: I don't know that.                        → unhandled · unknown-fact
+
+Given: hint = en
+[en] U: I wonder how tall the Shard is
+     T: I don't know that.                        → unhandled · unknown-fact
+
+Given: hint = en
+[en] U: how do you make sourdough?
+     T: I don't know that.                        → unhandled · unknown-fact
+
+# 4.2 Requests for generated text
+
+Given: hint = es
+[es] U: escríbeme algo bonito para el cumple de mi madre
+     T: No sé escribir textos nuevos.             → unhandled · generative
+
+Given: hint = es
+[es] U: dime algo que me anime
+     T: No sé escribir textos nuevos.             → unhandled · generative
+
+Given: hint = en
+[en] U: say something funny
+     T: I can't write new text.                   → unhandled · generative
+
+Given: hint = en
+[en] U: write a limerick about my cat
+     T: I can't write new text.                   → unhandled · generative
+
+# 4.3 Capabilities Talos lacks
+# Given (not reproducible here): the weather skill is not installed.
+
+Given: hint = es
+[es] U: ¿va a llover mañana en Bilbao?
+     T: Eso todavía no lo sé hacer.               → unhandled · not-yet
+
+Given: hint = en
+[en] U: is it going to rain tomorrow?
+     T: I can't check the weather.                → unhandled · not-yet
+
+# 4.4 Gibberish, fragments, single characters
+
+Given: hint = es
+[es] U: ñlkjh
+     T: No te he entendido.                       → unhandled · noise
+
+Given: hint = es
+[es] U: k
+     T: No te he entendido.                       → unhandled · noise
+
+Given: hint = en
+[en] U: ?
+     T: I didn't understand that.                 → unhandled · noise
+
+Given: hint = en
+[en] U: jjjjjjj
+     T: I didn't understand that.                 → unhandled · noise
+
+# 4.5 Other languages
+
+Given: hint = es
+[es] U: bon dia, quina hora és?
+     T: Solo hablo español e inglés.              → unhandled · other-language
+
+Given: hint = es
+[es] U: obrigado pela ajuda
+     T: Solo hablo español e inglés.              → unhandled · other-language
+
+Given: hint = en
+[en] U: wie spät ist es?
+     T: I only speak Spanish and English.         → unhandled · other-language
+
+Given: hint = en
+[en] U: grazie mille
+     T: I only speak Spanish and English.         → unhandled · other-language
+
+# 4.7 The bare catch-all
+
+Given: hint = es
+[es] U: lo de ayer con lo otro
+     T: No te he entendido.                       → unhandled · catch-all
+
+Given: hint = en
+[en] U: the thing with the other thing from before
+     T: I didn't understand that.                 → unhandled · catch-all
+
+Given: hint = none

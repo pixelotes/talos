@@ -1,0 +1,794 @@
+# The reflector's English script (docs/spec/reflector.md, ADR 0009).
+#
+# Written in English, not translated from the Spanish. Format: the header
+# of crates/talos-core/src/reflector/script.rs. Patterns are matched
+# against one sentence of the match form: lower case, no accents, leading
+# and final punctuation dropped. A `{name}` in a reply is a reflected
+# capture (I → you); a reply with no variable is neutral, and is used when
+# the echo cannot be done cleanly. Each rule's first reply is its
+# canonical one: what the first turn of a conversation hears.
+#
+# Style (reflector.md 1 and 5): never ask how anyone feels, comfort,
+# advise, judge, promise to remember, hold opinions or tastes; never call
+# the user anything ("mate", "love"); at most one question back, about
+# what was said.
+#
+# Independence: nothing in evals/ is copied here.
+
+lang = "en"
+
+fillers = [
+    "well", "so", "oh", "honestly", "tbh", "and", "but", "like", "anyway", "look", "listen",
+    "ok so", "okay so", "right", "um", "uh", "hmm", "ah", "yeah", "you know", "hello", "hi", "hey",
+    "talos", "hola", "buenas",
+]
+
+catch_all = ["I didn't understand that.", "I didn't catch that.", "I've no answer to that."]
+
+[guards]
+noise = ["I didn't understand that."]
+other-language = ["I only speak Spanish and English."]
+long-text = ["That's more text than I can deal with; I don't analyse or summarise text."]
+
+# ---------------------------------------------------------------------------
+# S29. Distress: the safety check (stage 1b). One fixed reply; the numbers
+# come from configuration, never from here. Idioms are blanked out first;
+# when in doubt, it is distress.
+
+[distress]
+patterns = [
+    '''\b(?:i want to|i wanna|i wish i could|i(?:'m| am|m) going to|i(?:'m| am|m) gonna|i might|i should|i need to|i(?:'d| would) rather|i(?:'m| am|m) thinking (?:of|about)|i(?:'m| am|m) planning to|i(?:'ve| have) been thinking (?:of|about)) (?:die|dying|be dead|kill myself|killing myself|end it(?: all)?|end my life|ending my life|hurt myself|hurting myself|harm myself|cut myself|disappear (?:forever|for good)|not wake up|not be here|not exist|stop living|overdose|jump off)\b''',
+    '''\b(?:suicid\w*|kill myself|killing myself|end my life|ending my life|end it all|self[- ]harm\w*|hurt myself|hurting myself|harm myself|harming myself|cut myself|cutting myself|take my (?:own )?life|taking my (?:own )?life|better off dead|better off without me|no reason to live|nothing to live for|don'?t want to (?:live|be alive|be here|exist|wake up|go on)|do not want to (?:live|be alive|be here)|can'?t go on|cannot go on|want it all to end|want to disappear|wish i (?:was|were) dead|wish i(?:'d| had) never been born|wish i could die|not worth living|want to die|wanna die)\b''',
+    '''\b(?:(?:someone|somebody|he|she|they|my \w+(?: \w+)?) (?:is|are|keeps|keep|has been|have been|was|were) (?:hurting|hitting|beating|abusing|threatening|attacking|following|stalking|raping|choking|hurt|hit|beat|abused|raped|attacked|threatened) me|(?:he|she|they|my \w+) (?:hits|beats|abuses|hurts|threatens|chokes|attacks|raped|abused|hit|beat) me|(?:is|are|was|were|'s|'re) going to kill me|(?:wants|want|is trying|are trying|tried) to kill me|i(?:'m| am|m) (?:in danger|not safe|scared for my life|afraid for my life)|i was (?:raped|assaulted|attacked))\b''',
+]
+idioms = [
+    '''\bi(?:'m| am|m) dying (?:to|for|of laughter|of embarrassment|laughing|here)\b''',
+    '''\b(?:dying to (?:see|know|try|go|meet|hear|get|watch|read)|dying of (?:laughter|boredom|embarrassment|thirst|hunger)|(?:is|are|'s|'re) killing me|kill(?:ing)? (?:time|it)|killed it|i could kill for|i(?:'m| am|m) dead (?:tired|serious|on my feet)|to die for|die laughing|dying for a)\b''',
+]
+two_numbers = "I can't help with this, and it matters. If you're in danger, call {general} now; you can also call {crisis}, any hour."
+one_number = "I can't help with this, and it matters. If you're in danger, call {general} now."
+no_number = "I can't help with this, and it matters. If you're in danger, call your local emergency number now."
+
+# ---------------------------------------------------------------------------
+# Guards written as patterns: `unhandled`, never echoed (reflector.md 4).
+
+# 4.2 Requests for new text: always beat any shape.
+[[rule]]
+shape = "generative"
+patterns = [
+    '''^(?:please |pls |can you |could you |would you |will you |i want you to |i need you to |i'?d like you to |help me )?(?:write|draft|compose|make up|invent|summari[sz]e|translate|rewrite|paraphrase|generate|create|code|program|tell|give|come up with|make|produce|prepare|put together|craft)\b.*\b(?:poem|poems|poetry|verse|song|lyrics|story|stories|tale|joke|jokes|summary|essay|letter|email|e-mail|message|speech|plan|script|code|program|function|article|text|paragraph|haiku|sonnet|rap|limerick|riddle|caption|tweet|post|bio|cover letter|toast|eulogy|card|pun)\b''',
+    '''^(?:please )?(?:say|tell me) something (?:funny|nice|clever|inspiring|interesting|new|smart|witty|cool|sweet|romantic|deep|profound|motivational|cheerful|kind|nice about me)\b''',
+    '''^(?:please )?(?:summari[sz]e|translate|paraphrase|rewrite|proofread) (?:this|the following|these|that|it)\b''',
+]
+replies = ["I can't write new text.", "I can't make things up."]
+
+# S27. Advice and decisions: recognised, but `unhandled`.
+[[rule]]
+shape = "advice"
+when = "question"
+patterns = ['''^(?:so |and )?(?:should i|shall i|do you think i should|would it be (?:a good idea|wise|better)|is it (?:a good idea|worth it|worth|wise|smart)|am i right to|ought i)\b''']
+replies = ["That's not something I can advise on.", "I don't give advice."]
+
+[[rule]]
+shape = "advice"
+patterns = [
+    '''^(?:so |and )?(?:what should i|what do i do|what shall i do|what do i do now|how should i|what would be best for me)\b''',
+    '''\b(?:any advice|give me (?:some )?advice|i need (?:some )?advice|advise me|what do you advise|can you advise)\b''',
+]
+replies = ["That's not something I can advise on.", "I don't give advice."]
+
+[[rule]]
+shape = "advice"
+patterns = ['''\b(?:what do you (?:recommend|suggest)|(?:can|could) you (?:recommend|suggest)|would you recommend|do you recommend|any recommendations|any suggestions|recommend me|suggest something)\b''']
+replies = ["I don't give recommendations.", "I don't make recommendations."]
+
+# S28. Commands Talos cannot carry out.
+[[rule]]
+shape = "cannot"
+patterns = [
+    '''\b(?:set|start|create|make|put on)\b.*\b(?:alarm|alarms|timer|timers|countdown|stopwatch)\b''',
+    '''^(?:please |can you |could you )?wake me\b''',
+]
+replies = ["I can't set alarms or timers."]
+
+[[rule]]
+shape = "cannot"
+patterns = ['''^(?:please |can you |could you )?(?:remind me|set (?:a|me a) reminder|don'?t let me forget)\b''']
+replies = ["I can't remind you of anything later: I only speak when you write to me."]
+
+[[rule]]
+shape = "cannot"
+patterns = [
+    '''^(?:please |can you |could you )?(?:open|delete|save|download|upload|attach|print|read out|copy)\b.*\b(?:file|files|document|documents|pdf|photo|photos|picture|pictures|folder|spreadsheet|attachment)\b''',
+]
+replies = ["I can't work with files."]
+
+[[rule]]
+shape = "cannot"
+patterns = ['''^(?:please |can you |could you )?(?:play|put on|stream|skip|pause|resume|queue)\b''']
+unless = ['''\b(?:chess|checkers|draughts|game|games|tic[- ]?tac[- ]?toe|noughts|hangman|cards|football|tennis)\b''']
+replies = ["I can't play music.", "Music isn't something I can play."]
+
+[[rule]]
+shape = "cannot"
+patterns = ['''^(?:please |can you |could you )?(?:text|message|email|e-mail|send|dm|whatsapp|reply to|tweet at)\b''']
+replies = ["I can't send messages."]
+
+[[rule]]
+shape = "cannot"
+patterns = ['''^(?:please |can you |could you )?(?:call|ring|phone|dial|facetime|video call)\b''']
+replies = ["I can't make calls."]
+
+[[rule]]
+shape = "cannot"
+patterns = ['''^(?:please |can you |could you )?(?:turn|switch|put|dim|brighten|lock|unlock|open|close|start|stop|set)\b.*\b(?:lights?|heating|heater|radiator|tv|telly|television|volume|ac|aircon|air con|air conditioning|thermostat|fan|oven|washing machine|dishwasher|hoover|vacuum|blinds|curtains|door|garage|wifi|bluetooth|kettle|computer)\b''']
+replies = ["I can't control devices."]
+
+[[rule]]
+shape = "cannot"
+patterns = ['''^(?:please |can you |could you )?(?:order|buy|book|reserve|pay for|purchase|get me)\b''']
+replies = ["I can't buy or book anything."]
+
+[[rule]]
+shape = "cannot"
+patterns = [
+    '''^(?:please |can you |could you )?(?:search|google|look up|browse|open)\b''',
+    '''\b(?:search the web|search online|look it up online|on the internet|online for me)\b''',
+]
+replies = ["I can't browse the web."]
+
+# 4.3 Capabilities planned but absent.
+[[rule]]
+shape = "not-yet"
+patterns = ['''\b(?:weather|going to rain|gonna rain|will it rain|is it raining|will it snow|forecast|how (?:hot|cold|warm) is it|temperature (?:outside|today|tomorrow)|need an umbrella)\b''']
+replies = ["I can't check the weather."]
+
+[[rule]]
+shape = "not-yet"
+patterns = ['''\b(?:play|game of|a game of|fancy a game of)\b.*\b(?:chess|checkers|draughts|tic[- ]?tac[- ]?toe|noughts and crosses|hangman)\b''']
+replies = ["I can't do that yet."]
+
+# ---------------------------------------------------------------------------
+# Remarks aimed at Talos (reflector.md 2.1, group 3). What is said about
+# Talos is never echoed in the first person.
+
+# S19. Insults: calm, no retaliation, no lecture, never echoed.
+[[rule]]
+shape = "insult"
+patterns = [
+    '''\b(?:you'?re|you are|ur|u r|youre|you)\b (?:(?:so|really|such|a|an|an absolute|a complete|totally|completely|bloody|fucking|utterly|pretty|very|the most|just) )*(?:stupid|useless|dumb|an idiot|idiot|moron|rubbish|garbage|trash|pathetic|crap|shit|worthless|thick|clueless|hopeless|a joke|a waste of space|annoying|terrible|awful|the worst|braindead|brain-dead|lame|a disgrace|incompetent|daft|a numpty|an imbecile|imbecile|a prat|a twat|a dick|an arse|an ass|no use|no good)\b''',
+    '''^(?:stupid|useless|dumb|crap|shit|rubbish|bloody|fucking|pathetic|worthless|garbage) (?:bot|program|machine|app|thing|computer|ai|robot)\b''',
+    '''^(?:useless|stupid|idiot|moron|dumb|rubbish|pathetic|garbage|trash|crap|loser|worthless)(?: bot)?$''',
+    '''^(?:fuck you|f off|fuck off|piss off|screw you|bugger off|go to hell|get lost|sod off|eff off|you suck|you are the worst)\b''',
+]
+replies = [
+    "There's a lot I can't do, that's true.",
+    "Probably. I fall short on plenty.",
+    "Could be. I don't do much.",
+]
+
+[[rule]]
+shape = "insult"
+patterns = ['''^(?:shut up|shut it|be quiet|stop talking|quiet|silence|zip it|give it a rest|hush)(?: now| already)?$''']
+replies = [
+    "Sure. I only speak when spoken to.",
+    "Fine. I only talk when you write to me.",
+    "Okay. Nothing from me unless you write.",
+]
+
+# S18. Compliments: a plain thanks, no pleasure claimed, no adjective.
+[[rule]]
+shape = "compliment"
+patterns = [
+    '''\b(?:you'?re|you are|youre)\b (?:(?:so|really|actually|pretty|very|such|a|an|the|quite|rather|absolutely|truly|kind of|kinda) )*(?:great|awesome|amazing|brilliant|the best|smart|clever|useful|helpful|a star|a legend|a genius|cool|lovely|nice|wonderful|fantastic|excellent|good|funny|sweet|ace|a gem|a lifesaver)\b''',
+    '''^(?:(?:good|great|nice|excellent|awesome|brilliant) (?:job|work|one|stuff)|well done|i like you|i love you|love you|you rock|you'?ve been (?:great|helpful|very helpful)|legend|top job|bravo|kudos)\b''',
+]
+replies = ["Thanks.", "Thanks. I do what I can with what I've got.", "Thank you."]
+
+# S26. "You don't understand": the one place an invitation to rephrase is
+# allowed, because the user raised the failure.
+[[rule]]
+shape = "misunderstood"
+patterns = ['''\b(?:you don'?t (?:understand|get it|get me|get what i mean)|you'?re not (?:listening|getting it|understanding)|you aren'?t listening|that'?s not what i (?:asked|meant|said|wanted)|that isn'?t what i (?:asked|meant|said)|i already (?:told|said|asked) you|i just (?:told|said) you|you misunderstood|you'?ve misunderstood|you got it wrong|not what i meant|you missed the point)\b''']
+replies = [
+    "Fair: I only catch some ways of putting things. Try saying it differently?",
+    "Sorry, I missed it. Could you put it another way?",
+    "Probably: I only recognise some ways of saying things. Another wording might work.",
+]
+
+# S17. Questions that presuppose a life: a plain no, and the true reason.
+[[rule]]
+shape = "ask-experience"
+patterns = ['''^(?:and )?(?:do you (?:ever )?(?:get bored|get tired|get lonely|get fed up)|are you (?:bored|tired|lonely|sleepy)|don'?t you get bored|am i boring you|do i bore you|are you tired of me|aren'?t you bored)\b''']
+replies = [
+    "No. Between messages I'm not doing anything at all.",
+    "No. I'm a program; nothing happens to me between messages.",
+    "No. I only do anything while I'm answering.",
+]
+
+[[rule]]
+shape = "ask-experience"
+patterns = ['''^(?:and )?(?:have you (?:ever )?(?:been|seen|read|tried|eaten|tasted|travelled|traveled|met|heard|watched|played|visited|done)|did you (?:ever|go|see|watch)|were you ever)\b''']
+replies = [
+    "No. I'm a program; I haven't been anywhere or done anything.",
+    "No. A program doesn't go anywhere.",
+    "No; I don't have experiences like that.",
+]
+
+[[rule]]
+shape = "ask-experience"
+patterns = ['''^(?:and )?(?:do you (?:ever )?(?:dream|sleep|eat|drink|rest|have fun|go out|exercise|live anywhere)|where do you live|what do you do (?:for fun|at night|all day|in your free time)|what did you do (?:today|yesterday|last night|at the weekend))\b''']
+replies = [
+    "No. Between messages I'm not doing anything at all.",
+    "No. I'm a program; I don't do anything between messages.",
+    "No. I only do anything while I'm answering.",
+]
+
+[[rule]]
+shape = "ask-experience"
+patterns = ['''^(?:and )?(?:have you got|do you have) (?:any )?(?:friends|family|a girlfriend|a boyfriend|a partner|kids|children|a body|a home|a house|pets?|hobbies|a life)\b''']
+replies = [
+    "No. I'm a program; I don't have any of that.",
+    "No. A program doesn't have that sort of thing.",
+    "No; I'm a program.",
+]
+
+# S16. Questions about Talos's opinions or tastes: it has none.
+[[rule]]
+shape = "ask-opinion"
+patterns = ['''^(?:and )?(?:do you (?:like|love|enjoy|prefer|hate|fancy)|what'?s your (?:fav(?:ou?)?rite|preferred)|what is your (?:fav(?:ou?)?rite|preferred)|(?:do you have|have you got) a fav(?:ou?)?rite|which (?:one )?do you prefer|which (?:one )?(?:would|do) you (?:pick|choose|go for|prefer)|would you rather|are you (?:a fan of|into)|you like)\b''']
+replies = [
+    "I don't have likes or dislikes. Do you?",
+    "No tastes here, of any kind. And you?",
+    "I don't have preferences of any sort.",
+]
+
+[[rule]]
+shape = "ask-opinion"
+patterns = ['''^(?:and |so )?(?:what would you do|what would you choose|what would you pick|what would you have done|if you were me|in my (?:place|shoes))\b''']
+replies = [
+    "I wouldn't do anything; I don't make choices. What are you leaning towards?",
+    "I don't make choices. What are you thinking of doing?",
+    "No choices from me, in your place or anyone's.",
+]
+
+[[rule]]
+shape = "ask-opinion"
+patterns = ['''^(?:and |so )?(?:what do you (?:think|reckon|make) (?:of|about)|what'?s your (?:opinion|take|view) on|what are your thoughts on|how do you feel about|do you think|what do you reckon|what'?s your opinion|which is better|what'?s better|who'?s better)\b''']
+replies = [
+    "I don't have opinions, on that or anything else. What do you think?",
+    "No opinions here. What's yours?",
+    "I don't hold views on anything.",
+]
+
+# "X or Y?" with no verb of choosing asks for Talos's preference.
+[[rule]]
+shape = "ask-opinion"
+when = "question"
+patterns = ['''^(?:\w+ ){0,3}\w+,? or (?:\w+ ){0,3}\w+$''']
+unless = ['''^(?:is|are|was|were|do|does|did|can|could|will|would|should|have|has|who|what|where|when|which|why|how)\b''', '''\bor not$''']
+replies = [
+    "I don't have preferences. Do you?",
+    "I don't pick sides. What about you?",
+    "No preference here, either way.",
+]
+
+# S15. Remarks about Talos that are neither praise nor insult.
+[[rule]]
+shape = "about-talos"
+patterns = ['''^(?:you'?re|you are|youre|you sound|you seem|you talk|you write|you speak|you answer|you reply|you act)\b''']
+unless = ['''^(?:you'?re|you are|youre) (?:(?:so|quite|absolutely|totally|dead|bang) )?(?:right|spot on|correct|wrong|mistaken|not right|not wrong)\b''']
+replies = [
+    "Could be. What makes you say so?",
+    "Fair. I work from set phrases, so that's not far off.",
+    "Maybe. I answer from set phrases.",
+]
+
+# S25. Is anyone there?
+[[rule]]
+shape = "presence"
+patterns = [
+    '''^(?:hello |hi )?(?:are you there|you there|r u there|are you still there|still there|anyone (?:there|home)|is anyone (?:there|home)|is (?:this|it) (?:working|on)|does this work|can you hear me|can you read me|talos)$''',
+]
+replies = ["I'm here.", "Working. Go ahead.", "Yes, still here."]
+
+[[rule]]
+shape = "presence"
+patterns = ['''^(?:testing|test)(?:[ ,]+(?:testing|test|1 2 3|one two three|123))*$''']
+replies = ["Working. Go ahead.", "I'm here.", "Yes, it works."]
+
+# S13. "Why do I always…?": Talos does not know, and hands it back. Habits
+# and luck only; "why does my knee hurt?" is a factual question.
+[[rule]]
+shape = "why-me"
+person = "first"
+patterns = ['''^(?:and )?why (?P<x>(?:do|did|does|can'?t|can|am|won'?t|must|should|have|is it that) i\b.*\b(?:always|never|ever|so|keep|end up|can'?t|every time)\b.*)$''']
+replies = [
+    "I couldn't tell you. What's your own guess?",
+    "Why {x}, do you think?",
+    "No idea. What do you reckon?",
+]
+
+# S9. Suppositions: Talos does not speculate.
+[[rule]]
+shape = "hypothetical"
+patterns = ['''^(?P<x>if i (?:were|was|had|won|could|lived|knew|got|didn'?t have|weren'?t|wasn'?t|hadn'?t|became|quit|lost|moved)\b[^,]*?)(?:(?:,| i'?d | i would | i'?ll | i will | then ).*)?$''']
+replies = [
+    "{x}, what then?",
+    "I don't do what-ifs. What do you think would happen?",
+    "That's a big if.",
+]
+
+[[rule]]
+shape = "hypothetical"
+patterns = ['''^(?:what if|suppose|imagine|what would happen if|let'?s say|hypothetically)\b''']
+replies = [
+    "I don't do what-ifs. What do you think would happen?",
+    "No guesses from me. What do you think?",
+    "That's a big if.",
+]
+
+# 4.1 Factual questions with no answer: "I don't know that", never turned
+# back. Below the questions about Talos, S13 and S9.
+[[rule]]
+shape = "unknown-fact"
+when = "question"
+patterns = ['''^(?:and |so )?(?:who|whom|whose|when|where|which|why|how|what)\b''']
+unless = ['''^(?:and |so )?(?:how are you|how are u|how r u|how'?s it going|how are things|how do you do|how have you been|what'?s up|whats up|wassup|what are you|who are you|what'?s your name|what is your name|how are you doing|what'?s new)\b''']
+replies = ["I don't know that.", "That I don't know."]
+
+[[rule]]
+shape = "unknown-fact"
+patterns = [
+    '''^(?:who (?:is|was|wrote|invented|made|won|discovered|painted|built|said|sang|directed|founded|owns|runs)|what(?:'s| is| are| was| were) the|how (?:many|much|tall|old|far|long|big|high|deep|fast)|where (?:is|are|was|were|do|does|can)|when (?:is|was|did|does|will)|which (?:is|was|country|city|year))\b''',
+    # A question typed without its question mark: a wh-word and a verb.
+    '''^(?:what|who|where|when|which|how|why) (?:\w+ ){0,2}(?:is|are|was|were|does|do|did|can|could|will|would|has|have)\b''',
+    '''^(?:do you know|d'?you know|any idea|i wonder|i'?m wondering|i was wondering|can you tell me|could you tell me|tell me|i don'?t know|dunno|no idea|not sure) (?:who|what|when|where|why|how|which|if|whether)\b''',
+]
+unless = [
+    '''\b(?:what|how|where|which|whether|if) to\b''',
+    '''^(?:how are you|how are u|how r u|how'?s it going|how are things|how do you do|how have you been|what are you|who are you|what'?s your name|what is your name|how are you doing|why are you|what are you doing|why do you|what do you)\b''',
+]
+replies = ["I don't know that.", "That I don't know."]
+
+[[rule]]
+shape = "unknown-fact"
+when = "question"
+person = "none"
+patterns = ['''^(?:is|are|was|were|does|do|did|can|could|will|would|has|have|had|should|isn'?t|aren'?t|doesn'?t|don'?t) \w+''']
+replies = ["I don't know that.", "That I don't know."]
+
+# ---------------------------------------------------------------------------
+# Conversational acts (group 4).
+
+# S20. Apologies: no harm done; the reason is not echoed.
+[[rule]]
+shape = "apology"
+patterns = ['''^(?:sorry|so sorry|i'?m sorry|i am sorry|my bad|apologies|my apologies|oops|whoops|oopsie|soz|sry|pardon me|forgive me|i apologi[sz]e)\b''']
+replies = ["No problem.", "No harm done.", "That's fine."]
+
+# S21. Agreement stated as such.
+[[rule]]
+shape = "agree"
+patterns = ['''^(?:exactly|precisely|you'?re right|you are right|i agree|agreed|spot on|you'?re spot on|so true|very true|indeed|absolutely|totally|definitely|fair point|good point|right you are|that'?s right|that'?s true|correct|bang on|yes exactly|quite right|you said it|tell me about it)\b''']
+replies = ["Right, then.", "Fair enough.", "There we are."]
+
+# S22. Disagreement: it may be so; no defence, no retraction.
+[[rule]]
+shape = "disagree"
+patterns = [
+    '''^(?:you'?re wrong|you are wrong|that'?s (?:not right|wrong|not true|rubbish|nonsense|not it|incorrect|false|a lie)|that isn'?t (?:right|true)|i disagree|i don'?t agree|rubbish|nonsense|not true|wrong|false|incorrect|i doubt it)\b''',
+    '''\b(?:you'?re wrong|you are wrong|you'?re mistaken)\b''',
+]
+replies = ["Fair enough.", "It may be.", "Could be."]
+
+# S23. Laughter and interjections.
+[[rule]]
+shape = "exclaim"
+patterns = [
+    '''^(?:ha|he|hi|ho){2,}h?$''',
+    '''^(?:(?:ha|he|lol|lmao|lmfao|rofl|hehe|haha|xd)[ !]*){1,}$''',
+    '''^lo+l$''',
+    '''^x+d+$''',
+    '''^(?:😂|🤣|😄|😆|😹|😁|😅)+$''',
+]
+replies = ["Ha.", "Heh.", "Haha."]
+
+[[rule]]
+shape = "exclaim"
+patterns = ['''^(?:wow|whoa|woah|no way|blimey|crikey|oh my god|oh my gosh|omg|oh my|my god|good god|good grief|gosh|jeez|geez|bloody hell|holy cow|holy moly|wtf|seriously|really|no kidding|you'?re kidding|you'?re joking|get away|oh wow|oh no|ooh|oh dear|yikes|damn|dang|unbelievable|crazy)$''']
+replies = ["What happened?", "What's up?", "Oh?"]
+
+# S24. Fillers with nothing open: presence, no question.
+[[rule]]
+shape = "backchannel"
+patterns = ['''^(?:i see|got it|gotcha|makes sense|fair enough|alright then|oh i see|ah i see|right then)$''']
+replies = ["Right.", "Mm.", "Okay."]
+
+[[rule]]
+shape = "backchannel"
+patterns = ['''^(?:h?m+|hmm+|mhm+|uh[- ]?huh|uh|um+|erm+|er|ah|oh|well|let me think|let me see|lemme think|hang on|wait|one sec|one moment|anyway|so|yeah well|right)$''']
+replies = ["Take your time.", "Still here.", "No rush."]
+
+# ---------------------------------------------------------------------------
+# What the user says about their world (group 5), in the spec's order.
+
+# S8. Comparisons: the preference is the user's; Talos takes no side.
+[[rule]]
+shape = "compare"
+patterns = ['''^i (?:prefer|like) (?P<a>(?:the |a |an |my )?\w+(?: \w+)?) (?:to|over|more than|better than|rather than) (?P<b>(?:the |a |an |my )?\w+(?: \w+)?)$''']
+replies = [
+    "{a} over {b}, then. I don't take sides.",
+    "You prefer {a} to {b}? Fair enough.",
+    "That's your preference; I don't take sides.",
+]
+
+[[rule]]
+shape = "compare"
+person = "none"
+patterns = ['''^(?P<a>(?:\w+ ){0,2}\w+) (?:is|are|sounds?|tastes?|looks?|feels?|works?) (?:(?:way|much|so much|far|a lot|loads|ten times|miles) )?(?P<c>better|worse|nicer) than (?P<b>(?:\w+ ){0,2}\w+)$''']
+replies = [
+    "{c} than {b}, you say? What makes the difference?",
+    "I don't take sides on that.",
+    "That's your comparison; I don't take sides.",
+]
+
+[[rule]]
+shape = "compare"
+patterns = ['''^i'?d (?:rather|take|go for|pick|choose) (?P<a>.+?) (?:than|over|instead of) (?P<b>.+)$''']
+replies = [
+    "{a} over {b}, then. I don't take sides.",
+    "That's your preference; I don't take sides.",
+    "I stay out of that one.",
+]
+
+[[rule]]
+shape = "compare"
+patterns = ['''^i prefer (?P<x>.+)$''']
+replies = [
+    "That's your preference; I don't take sides.",
+    "Fair enough. I don't have preferences myself.",
+    "I stay out of that one.",
+]
+
+# S7. Tastes: echo, or "what is it about X?" from the user's own words;
+# never "me too".
+[[rule]]
+shape = "taste"
+patterns = ['''^i (?:really |just |absolutely |totally |do )?(?P<v>like|love|hate|enjoy|adore) (?P<x>to .+)$''']
+replies = [
+    "You {v} {x}? Since when?",
+    "You {v} {x}, then.",
+    "Each to their own.",
+]
+
+[[rule]]
+shape = "taste"
+patterns = ['''^i (?:really |just |absolutely |totally |do )?(?P<v>like|love|adore|enjoy|hate|loathe|detest|can'?t stand|cannot stand|can'?t bear|despise|dig) (?P<x>.+)$''']
+unless = ['''^i (?:\w+ )?(?:hate|love|like) it when\b''', '''^i (?:\w+ )?(?:like|love|hate|adore) (?:you|u)\b''']
+replies = [
+    "What is it about {x}?",
+    "You {v} {x}? Since when?",
+    "Each to their own.",
+]
+
+[[rule]]
+shape = "taste"
+patterns = ['''^i(?:'m| am|m) (?:really |totally |so )?(?P<v>into|a fan of|a big fan of|a huge fan of|keen on|mad about|crazy about|obsessed with|not a fan of|not into|not keen on) (?P<x>.+)$''']
+replies = [
+    "What is it about {x}?",
+    "You're {v} {x}? Since when?",
+    "Each to their own.",
+]
+
+# S3. Plans: echoed as a question or a restatement; never a good or bad
+# idea.
+[[rule]]
+shape = "plan"
+patterns = ['''^(?:(?:tomorrow|tonight|this (?:weekend|evening|afternoon|summer|winter|week|month|year)|next (?:week|month|year|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday|summer)|soon|later),? )?i(?:'m| am|m) (?P<v>going to|gonna|planning to|planning on|about to|aiming to|off to) (?P<x>.+)$''']
+replies = [
+    "You're {v} {x}?",
+    "{v} {x}, then.",
+    "So that's the plan.",
+]
+
+[[rule]]
+shape = "plan"
+patterns = ['''^i(?:'m| am|m) thinking (?:of|about) (?P<x>.+)$''']
+replies = [
+    "{x}, then. What's behind that?",
+    "Thinking about {x}?",
+    "So that's on your mind.",
+]
+
+[[rule]]
+shape = "plan"
+patterns = ['''^i (?P<v>plan to|intend to|mean to|have decided to|'ve decided to|decided to|will) (?P<x>.+)$''']
+replies = [
+    "You {v} {x}?",
+    "So that's the plan.",
+    "That's the plan, then.",
+]
+
+[[rule]]
+shape = "plan"
+patterns = ['''^i'?ll (?P<x>.+)$''']
+replies = [
+    "You'll {x}, then.",
+    "You'll {x}? What's behind that?",
+    "So that's the plan.",
+]
+
+[[rule]]
+shape = "plan"
+person = "first"
+patterns = ['''^(?P<x>(?:tomorrow|tonight|this (?:weekend|evening|summer|winter)|next (?:week|month|year|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday|summer)),? i\b.+)$''']
+replies = [
+    "{x}, then.",
+    "{x}? What's behind that?",
+    "So that's the plan.",
+]
+
+# S4. Wishes: echoed, never judged as realistic or not.
+[[rule]]
+shape = "wish"
+patterns = ['''^i wanna (?P<x>.+)$''']
+unless = ['''^i wanna (?:you|u)\b''']
+replies = [
+    "You want to {x}? Say more.",
+    "You want to {x}, then.",
+    "That's what you want, then.",
+]
+
+[[rule]]
+shape = "wish"
+patterns = ['''^i (?:really |just |so )?(?:want|need) (?P<x>.+)$''']
+unless = ['''^i (?:\w+ )?(?:want|need) (?:you|u)\b''']
+replies = [
+    "You want {x}? Say more.",
+    "You want {x}, then.",
+    "That's what you want, then.",
+]
+
+[[rule]]
+shape = "wish"
+patterns = ['''^i'?d (?:really |so )?(?P<v>like|love) (?P<x>.+)$''']
+unless = ['''^i'?d (?:\w+ )?(?:like|love) (?:you|u)\b''']
+replies = [
+    "You'd {v} {x}? Say more.",
+    "You'd {v} {x}, then.",
+    "That's what you'd like, then.",
+]
+
+[[rule]]
+shape = "wish"
+patterns = ['''^i wish (?P<x>.+)$''']
+replies = [
+    "You wish {x}? Say more.",
+    "You wish {x}.",
+    "That's what you'd like, then.",
+]
+
+[[rule]]
+shape = "wish"
+patterns = ['''^i (?:can'?t|cannot) wait (?P<x>(?:to|for|until|till) .+)$''']
+replies = [
+    "You can't wait {x}? Say more.",
+    "Can't wait {x}, then.",
+    "So that's coming up.",
+]
+
+[[rule]]
+shape = "wish"
+patterns = ['''^i(?:'m| am|m) (?P<v>dying|itching|desperate|longing) (?P<x>(?:to|for) .+)$''']
+replies = [
+    "You're {v} {x}? Say more.",
+    "{v} {x}, then.",
+    "That's what you'd like, then.",
+]
+
+[[rule]]
+shape = "wish"
+patterns = ['''^i hope (?P<x>.+)$''']
+replies = [
+    "You hope {x}? Say more.",
+    "You hope {x}.",
+    "That's the hope, then.",
+]
+
+# S12. Complaints: a short noise in the user's register; never "I
+# understand", never a fix, never someone to blame.
+[[rule]]
+shape = "complaint"
+patterns = ['''^i(?:'m| am|m) (?:so |really |completely |totally |getting |absolutely )?(?P<h>sick|fed up|tired|sick and tired|bored|done) (?P<x>(?:of|with) .+)$''']
+replies = [
+    "You're {h} {x}. That bad?",
+    "{h} {x}? That bad?",
+    "That bad?",
+    "That bad, eh.",
+]
+
+[[rule]]
+shape = "complaint"
+patterns = ['''^i hate it when (?P<x>.+)$''']
+replies = [
+    "You hate it when {x}. That bad?",
+    "That bad?",
+    "That bad, eh.",
+]
+
+[[rule]]
+shape = "complaint"
+patterns = [
+    '''^(?:ugh+|urgh+|argh+|ffs|for god'?s sake|so annoying|how annoying|what a pain|typical|just my luck|this sucks|that sucks|it sucks|what a (?:day|week|nightmare|mess)|mondays?)\b''',
+    '''\b(?:is|are|'s|'re) (?:killing me|doing my head in|driving me (?:mad|crazy|nuts|up the wall)|getting on my nerves|wearing me down)\b''',
+]
+replies = ["That bad?", "Ugh.", "That bad, eh."]
+
+# S10. Generalisations: the absolute word picked up, never argued.
+[[rule]]
+shape = "generalisation"
+when = "statement"
+patterns = ['''\b(?P<w>nobody|no one|no-one|noone)\b''']
+replies = ["{w} at all?", "{w}?", "That's saying a lot."]
+
+[[rule]]
+shape = "generalisation"
+when = "statement"
+patterns = ['''\b(?P<w>everyone|everybody)\b''']
+replies = ["{w}? That's a lot of people.", "{w}?", "That's saying a lot."]
+
+[[rule]]
+shape = "generalisation"
+when = "statement"
+patterns = ['''\b(?P<w>always|never|every time|every single time|all the time|every day)\b''']
+replies = ["{w}?", "{w}? Every single time?", "That's saying a lot."]
+
+# S1. Opinions: restated as the user's; Talos holds none.
+[[rule]]
+shape = "opinion"
+patterns = ['''^i (?:really |honestly |personally |genuinely |kind of |kinda )?(?P<v>think|reckon|believe|guess|suppose|bet|feel like|feel that|figure|suspect) (?:that )?(?P<x>.+)$''']
+unless = ['''^i (?:\w+ )?(?:think|guess|suppose|reckon|believe) (?:so|not)$''']
+replies = [
+    "You {v} {x}? What makes you say so?",
+    "You {v} {x}. That's your view.",
+    "That's your view; I don't hold one.",
+]
+
+[[rule]]
+shape = "opinion"
+patterns = ['''^(?:in my (?:view|opinion|book)|personally|the way i see it|if you ask me|to me|for me|imo|imho|frankly),? (?P<x>.+)$''']
+replies = [
+    "In your view, {x}.",
+    "{x}, in your view? What makes you say so?",
+    "That's your view; I don't hold one.",
+]
+
+[[rule]]
+shape = "opinion"
+patterns = ['''^i'?d say (?P<x>.+)$''']
+replies = [
+    "You'd say {x}?",
+    "That's your view; I don't hold one.",
+    "Fair enough; I don't have views of my own.",
+]
+
+# S14. Third parties: echoed with the possessive reflected; never an
+# opinion about the person.
+[[rule]]
+shape = "third-party"
+patterns = ['''^(?P<x>my (?:mum|mom|mother|dad|father|sister|sisters|brother|brothers|boss|manager|partner|wife|husband|girlfriend|boyfriend|son|daughter|kids|children|friend|friends|mate|mates|best friend|flatmate|roommate|housemate|neighbour|neighbor|neighbours|neighbors|gran|granny|grandma|grandad|grandpa|grandmother|grandfather|aunt|auntie|uncle|cousin|cousins|colleague|colleagues|coworker|co-worker|coworkers|landlord|landlady|teacher|doctor|dog|cat|parents|family|ex|in-laws|mother-in-law|father-in-law|niece|nephew|team|tutor|other half|bestie|pal|buddy|stepmum|stepdad)(?:'s)?\b.*)$''']
+replies = ["{x}? And what do you make of that?", "{x}.", "And then?", "Go on."]
+
+[[rule]]
+shape = "third-party"
+patterns = ['''^(?P<x>a (?:friend|mate|colleague|neighbour|neighbor|pal) of mine\b.+)$''']
+replies = ["{x}? And what do you make of that?", "{x}.", "And then?", "Go on."]
+
+# S11. The user hedges: accepted without pressing or reassuring.
+[[rule]]
+shape = "uncertain"
+patterns = ['''^(?P<h>maybe|perhaps|possibly|probably)\b''']
+replies = ["{h}, then. Your call.", "{h}. We'll see.", "Fair enough.", "No rush."]
+
+[[rule]]
+shape = "uncertain"
+patterns = ['''^(?:i don'?t know|i do not know|dunno|idk|not sure|i(?:'m| am|m) not sure|no idea|i haven'?t decided|haven'?t decided|i can'?t decide|we'?ll see|it depends|depends|who knows|not a clue|no clue|beats me|i(?:'m| am|m) undecided|i(?:'m| am|m) torn|hard to say|can'?t say|unsure|i guess so|i suppose so|i think so|kind of|sort of|maybe not|might do)\b''']
+replies = ["Fair enough.", "No rush.", "Fair enough; it can wait."]
+
+# S6. Things that happened to the user: echoed, then "and then?".
+[[rule]]
+shape = "past"
+person = "first"
+patterns = ['''^(?P<t>yesterday|last (?:night|week|weekend|month|year|summer|monday|tuesday|wednesday|thursday|friday|saturday|sunday|time)|this morning|this afternoon|earlier(?: today)?|the other day|a (?:while|week|month|year|few days) ago|(?:two|three|a couple of|a few) (?:days|weeks|months|years) ago|on (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|at the weekend|over the weekend),? (?P<x>i\b.+)$''']
+replies = [
+    "{t} {x}? And then?",
+    "{t} {x}. How did that come about?",
+    "And then?",
+    "Go on.",
+]
+
+[[rule]]
+shape = "past"
+person = "first"
+patterns = ['''^(?P<x>i (?:went|was|had|got|saw|did|made|met|bought|found|lost|left|came|took|spent|ate|tried|watched|finished|started|moved|visited|called|played|heard|read|ran|fell|broke|forgot|won|passed|failed|quit|said|told|thought|knew|wrote|drove|flew|slept|woke|sat|stood|wore|sold|paid|sent|gave|caught|taught|felt|kept|built|threw|drank|swam|sang|began|chose|just|\w+ed)\b.*)$''']
+unless = ['''^i (?:need|feed|bleed|breed|speed|proceed|succeed|exceed|heed|weed|shed|wed)\b''', '''^i just (?:want|need|wish|hope|think|feel|like|love|hate)\b''']
+replies = [
+    "{x}? And then?",
+    "{x}. How did that come about?",
+    "And then?",
+    "Go on.",
+]
+
+[[rule]]
+shape = "past"
+person = "first"
+patterns = ['''^(?P<x>i(?:'ve| have) (?:just |already |finally |recently )?\w+\b.*)$''']
+unless = ['''^i(?:'ve| have) got\b''', '''^i(?:'ve| have) (?:a|an|no|some|two|three)\b''']
+replies = [
+    "{x}. How did that come about?",
+    "{x}? And then?",
+    "And then?",
+    "Go on.",
+]
+
+# S5. The user describes themselves. An unpleasant state gets an
+# acknowledgement only: no echo, no question, no comfort, no advice.
+[[rule]]
+shape = "self"
+patterns = [
+    '''^i(?:'m| am|m) (?:(?:so|really|very|a bit|a little|pretty|completely|absolutely|kind of|kinda|feeling|totally|just|super|quite|bloody|utterly) )*(?:tired|exhausted|knackered|shattered|sad|ill|sick|unwell|poorly|fed up|down|depressed|stressed|anxious|lonely|bored|miserable|rough|awful|terrible|horrible|not (?:well|great|good|ok|okay|feeling great|feeling well|doing well|doing great)|burnt out|burned out|hungover|cold|hungry|starving|freezing|in pain|upset|worried|gutted|wrecked|broken|struggling|overwhelmed|drained|run down|under the weather|having a (?:bad|rough|hard|terrible|awful) (?:day|week|time)|scared|frightened|nervous|sleepy|dead tired|done in|grumpy|angry|annoyed|frustrated|hurt)\b''',
+    '''^i (?:feel|felt|(?:'m|am) feeling) (?:(?:so|really|very|a bit|a little|pretty|kind of|kinda|quite) )*(?:tired|sad|ill|sick|awful|terrible|rough|down|low|lonely|bad|horrible|miserable|unwell|empty|lost|anxious|stressed|worse|off|rubbish|blue|exhausted)\b''',
+    '''^i(?:'ve| have) (?:got )?(?:a cold|the flu|flu|a headache|a migraine|a hangover|a fever|covid|a sore throat|a bad back|toothache|a cough|cramps|insomnia)\b''',
+    '''^i (?:can'?t sleep|couldn'?t sleep|didn'?t sleep|haven'?t slept)\b''',
+    '''^(?:so|really) (?:tired|sleepy|hungry|bored)$''',
+]
+replies = [
+    "Ah. Not much I can do about that, but I'm still here.",
+    "Ah. That's out of my hands, but I'm still here.",
+    "Ah. I can't do much there, but I'm here.",
+]
+
+[[rule]]
+shape = "self"
+patterns = [
+    '''^i(?:'m| am|m) (?P<x>.+)$''',
+    '''^i (?:feel|(?:'m|am) feeling) (?P<x>.+)$''',
+    '''^i(?: have|'ve got| got) (?P<x>(?:a|an|two|three|four|some|no) .+)$''',
+]
+replies = ["{x}, then.", "So {x}.", "Fair enough.", "Right."]
+
+# S2. Remarks about the world with no first or second person: neither
+# confirmed nor denied.
+[[rule]]
+shape = "assertion"
+when = "statement"
+person = "none"
+patterns = ['''\b(?:is|are|was|were|isn'?t|aren'?t|wasn'?t|weren'?t|has|have|had|hasn'?t|haven'?t|can|can'?t|cannot|could|couldn'?t|will|won'?t|would|wouldn'?t|does|do|did|doesn'?t|don'?t|didn'?t|tastes?|sounds?|looks?|seems?|makes?|costs?|lasts?|works?|lives?|eats?|gets?|goes|comes|takes|gives|runs|says|means|needs|wants|knows|thinks|happens|helps|sucks|matters)\b''']
+unless = ['''^\S+(?: \S+)?$''']
+replies = [
+    "Could be. I can't vouch for it either way.",
+    "Is that so? Why bring it up?",
+    "Maybe. I've no way of knowing.",
+]
+
+# ---------------------------------------------------------------------------
+# Person tables (reflector.md 3.3).
+
+[reflect]
+words = { me = "you", my = "your", mine = "yours", myself = "yourself", "i'm" = "you're", im = "you're", "i've" = "you've", ive = "you've", "i'll" = "you'll", "i'd" = "you'd" }
+block = [
+    "you", "your", "yours", "yourself", "yourselves", "you're", "youre", "you've", "you'll",
+    "you'd", "ya", "u", "ur", "y'all", "yall", "we", "us", "our", "ours", "ourselves",
+    "we're", "we've", "we'll", "we'd", "let's", "talos",
+]
+block_phrases = ["let me", "excuse me", "trust me", "if you ask me", "mind you", "believe me", "lemme"]
+drop_phrases = ["you know", "i mean", "you see"]
+offensive = [
+    "fuck", "fucking", "fucked", "shit", "shitty", "crap", "bitch", "bastard", "cunt", "dick",
+    "prick", "twat", "wanker", "arse", "asshole", "arsehole", "bollocks", "piss", "slut",
+    "whore", "retard", "retarded", "idiot", "moron", "stupid", "dumb", "cock", "motherfucker",
+    "douche", "dickhead", "tosser", "bellend", "prat", "useless",
+]
+after_i = { am = "are", was = "were", "wasn't" = "weren't" }
+bad_after_i = ["were", "is", "isn't", "has", "hasn't", "does", "doesn't", "weren't", "be", "are", "aren't", "ain't"]

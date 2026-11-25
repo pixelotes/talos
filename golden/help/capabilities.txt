@@ -1,0 +1,34 @@
+# help.capabilities (docs/spec/basics.md).
+#
+# DEPENDS ON THE INSTALLED SKILLS: the list is generated from the manifests,
+# so these expected replies list only what is installed in the worktree this
+# was written in (smalltalk, help). At integration the integrator re-blesses
+# them (TALOS_BLESS=1) with the full catalogue; the outcome lines do not
+# change. Phrasing coverage lives in the unit tests of help.rs, which do not
+# depend on the installed set.
+
+[es] U: qué sabes hacer
+     T: Esto es lo que sé hacer:
+        · saludar y despedirme
+        · decir quién y qué soy
+        · ayudarte a usar lo que sé hacer
+        · la hora, la fecha y cuánto falta para algo
+        · cuentas, porcentajes y conversiones de unidades
+        · tirar dados y monedas, elegir entre opciones y dar números al azar
+        · decir un refrán o una frase de la suerte
+                                                  → answered · help.capabilities
+
+[en] U: what can you do?
+     T: Here's what I can do:
+        · say hello and goodbye
+        · say who and what I am
+        · help you use what I can do
+        · the time, the date and how long until something
+        · arithmetic, percentages and unit conversion
+        · roll dice, flip coins, pick among options and give random numbers
+        · give a saying or a fortune
+                                                  → answered · help.capabilities
+
+# Not a help request: generation is always unhandled.
+[en] U: help me write a cover letter
+     T: I can't write new text.                   → unhandled · generative

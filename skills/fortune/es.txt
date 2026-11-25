@@ -1,0 +1,52 @@
+# Dichos de la skill `fortune`, uno por línea. Texto original, escrito en español;
+# los refranes tradicionales anónimos van al final. Las líneas que empiezan por # y
+# las vacías se ignoran.
+La sopa fría sabe mejor a quien llegó tarde y con hambre.
+Ningún mapa dibuja el camino que todavía nadie ha pisado.
+La paciencia es un reloj que no hace ruido.
+Un tornillo flojo avisa mucho antes de que caiga la estantería.
+El puente más corto es el que ya está construido.
+Quien cuenta las nubes no se entera de que llueve en otra parte.
+Con la lista hecha, la compra pesa menos.
+Cada escalón sube un poco, aunque nadie lo mire.
+El horno no se apura porque el pan tenga prisa.
+Una cuerda bien atada vale más que cien nudos bonitos.
+Lo que se deja para mañana suele madrugar menos que uno.
+La sombra de un árbol viejo se planta hace cuarenta años.
+Ni el río más ancho empezó siendo otra cosa que una gota.
+Una puerta cerrada también enseña dónde está la pared.
+La brújula no discute: señala y calla.
+El que afila el cuchillo antes, corta el pan sin romperlo.
+El mejor paraguas es el que ya estaba en la mochila.
+Un reloj parado acierta dos veces al día, y no se lo cree.
+El mar se aprende nadando, la montaña subiendo, y el pozo con la cuerda.
+Cuando todos miran la luna, alguien tiene que mirar el suelo.
+La harina y el agua no saben que serán pan; aun así lo hacen.
+Quien guarda el hilo, cose cuando hace falta.
+Una piedra en el zapato manda más que un monte lejano.
+La lluvia cae pareja, pero la cosecha no.
+El silencio también es una respuesta, aunque de letra pequeña.
+Un camino largo se mide en pasos, no en kilómetros.
+El que apunta lo que presta, recupera más de lo que pierde.
+La última gota llena el vaso sin haber sido la más grande.
+A buen cartero, buena carta; a mal tiempo, paraguas.
+Los lunes son martes que todavía no se han peinado.
+Un cuaderno en blanco aguanta mejor que un cuaderno tachado.
+El viento no tiene dueño, pero tiene rumbo.
+Más pesa lo que se arrastra que lo que se lleva en brazos.
+La cerradura más segura es la que se recuerda cerrar.
+Entre el dicho y el hecho hay un trecho, y el trecho es de tierra.
+Una vela no pierde luz por encenderse de otra.
+La lupa aumenta lo que mira, no lo que importa.
+Quien siembra tomates en abril comerá ensalada en agosto.
+El camino de vuelta siempre parece más corto.
+Un pájaro en la ventana no da noticias, pero acompaña.
+A caballo regalado no le mires el diente.
+Quien mucho abarca, poco aprieta.
+No hay mal que por bien no venga.
+Más vale tarde que nunca.
+De tal palo, tal astilla.
+Camarón que se duerme se lo lleva la corriente.
+Al que madruga, Dios le ayuda.
+Perro ladrador, poco mordedor.
+En casa del herrero, cuchillo de palo.

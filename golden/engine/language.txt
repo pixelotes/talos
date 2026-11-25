@@ -14,14 +14,14 @@
 [en] U: hola
      T: Hi!                                       → answered · smalltalk.greet
 [es] U: escríbeme un poema
-     T: No sé hacer eso.                          → unhandled · catch-all
+     T: No sé escribir textos nuevos.             → unhandled · generative
 
 # A fresh conversation with no evidence takes the default, and the first
 # evidence afterwards decides.
 Given: default language = en
 
 [en] U: ok
-     T: I can't do that.                          → unhandled · catch-all
+     T: I didn't understand that.                 → unhandled · catch-all
 [es] U: hola
      T: ¡Hola, buenas!                            → answered · smalltalk.greet
 [es] U: hi
@@ -31,7 +31,7 @@ Given: default language = es
 
 # More English than Spanish: English.
 [en] U: hola, what time is it
-     T: I can't do that.                          → unhandled · catch-all
+     T: It's 18:42.                               → answered · clock.now
 
 # The caller's hint wins, and the other language's rules still recognise
 # the message (ADR 0011).

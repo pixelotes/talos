@@ -1,0 +1,55 @@
+# smalltalk.how_are_you (docs/spec/basics.md): a factual status, never a mood.
+# "hola, qué tal" and "hey, how are you doing" drop the greeting prefix.
+
+[es] U: ¿qué tal estás?
+     T: Funcionando con normalidad.               → answered · smalltalk.how_are_you
+
+[es] U: como andas
+     T: Funcionando con normalidad.               → answered · smalltalk.how_are_you
+
+[es] U: hola, qué tal
+     T: Funcionando con normalidad.               → answered · smalltalk.how_are_you
+
+[es] U: ¿todo bien?
+     T: Funcionando con normalidad.               → answered · smalltalk.how_are_you
+
+[es] U: cómo va todo
+     T: Funcionando con normalidad.               → answered · smalltalk.how_are_you
+
+[es] U: oye, cómo te encuentras hoy
+     T: Funcionando con normalidad.               → answered · smalltalk.how_are_you
+
+[es] U: hola, ¿qué tal?
+     T: Funcionando con normalidad.               → answered · smalltalk.how_are_you
+
+[en] U: how are you?
+     T: Running normally.                         → answered · smalltalk.how_are_you
+
+[en] U: how's it going
+     T: Running normally.                         → answered · smalltalk.how_are_you
+
+[en] U: hey, how are you doing
+     T: Running normally.                         → answered · smalltalk.how_are_you
+
+[en] U: what's up
+     T: Running normally.                         → answered · smalltalk.how_are_you
+
+[en] U: you ok?
+     T: Running normally.                         → answered · smalltalk.how_are_you
+
+[en] U: how are things with you
+     T: Running normally.                         → answered · smalltalk.how_are_you
+
+[en] U: how are you? i'm tired
+     T: Running normally.                         → answered · smalltalk.how_are_you
+
+[es] U: ¿cómo te sientes?
+     T: No tengo sentimientos. Funciono con normalidad.
+                                                  → answered · smalltalk.how_are_you
+
+[en] U: how are you feeling today?
+     T: I don't have feelings. I'm running normally.
+                                                  → answered · smalltalk.how_are_you
+
+# "tienes sentimientos" is identity.nature, "cómo está el tiempo" weather and
+# "cómo se dice …" translate.word: other skills.

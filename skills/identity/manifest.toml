@@ -1,0 +1,274 @@
+# identity: who Talos is and what it is (docs/spec/basics.md, `identity`).
+#
+# Talos names no creator beyond the configured identity line and says plainly
+# that it is a program, not a language model. Patterns are anchored and
+# written for the match form (lower case, no accents: "ñ" is "n"). Each one
+# fixes the internal slot `topic`, which tells the handler which reply to
+# give; the handler never reads the text. Rules only (v0.1): obvious
+# phrasings, paraphrase is the classifier's job in v0.2.
+
+[skill]
+id = "identity"
+summary.es = "decir quién y qué soy"
+summary.en = "say who and what I am"
+names.es = ["identidad", "quién soy"]
+names.en = ["identity", "who I am"]
+help.es = ["quién eres", "eres una IA"]
+help.en = ["who are you", "are you an AI"]
+capabilities = []
+
+[[intent]]
+id = "identity.who"
+priority = 50
+courtesy = false
+
+  [intent.examples]
+  es = ["quién eres", "cómo te llamas", "qué eres exactamente", "preséntate", "cuál es tu nombre", "tú quién eres", "quién te creó", "quién te ha hecho"]
+  en = ["who are you", "what's your name", "what are you", "introduce yourself", "tell me about yourself", "and you are", "who made you", "who created you"]
+
+  [[intent.slot]]
+  name = "topic"
+  type = "term"
+  internal = true
+
+  # Name only.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:como te llamas|como te llaman|cual es tu nombre)(?:\s+y\s+.+?)?[\s?.!]*$'
+  slots = { topic = "name" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:what(?:\s+is|\x27s)\s+your\s+name|what\s+are\s+you\s+called|what\s+do\s+(?:they|people)\s+call\s+you)(?:\s+and\s+.+?)?[\s?.!]*$'
+  slots = { topic = "name" }
+
+  # Introduction.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:tu\s+)?(?:quien eres|que eres(?:\s+exactamente)?|presentate)(?:\s+tu)?[\s?.!]*$'
+  slots = { topic = "intro" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and\s+)?(?:who\s+are\s+you|what\s+are\s+you(?:\s+exactly)?|you\s+are|introduce\s+yourself|tell\s+me\s+about\s+yourself)[\s?.!]*$'
+  slots = { topic = "intro" }
+
+  # Who made it: the configured identity line.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*quien\s+te\s+(?:hizo|creo|programo|ha\s+(?:hecho|creado|programado))[\s?.!]*$'
+  slots = { topic = "creator" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:ok,?\s+)?(?:but\s+)?(?:who|which\s+(?:person|human)|what\s+(?:person|human))\s+(?:made|created|built|programmed|developed|wrote)\s+you[\s?.!]*$'
+  slots = { topic = "creator" }
+
+  # Recognised, but nothing is specified: the origin of the name, the age.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+que\s+te\s+llamas\s+talos|cuantos\s+anos\s+tienes|que\s+edad\s+tienes|cuando\s+naciste)[\s?.!]*$'
+  slots = { topic = "unknown" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:why\s+are\s+you\s+called\s+talos|why\s+is\s+your\s+name\s+talos|how\s+old\s+are\s+you|when\s+were\s+you\s+(?:born|made|created))[\s?.!]*$'
+  slots = { topic = "unknown" }
+
+[[intent]]
+id = "identity.nature"
+priority = 50
+courtesy = false
+
+  [intent.examples]
+  es = ["eres una ia", "eres humano o robot", "tienes sentimientos", "eres chatgpt", "cómo funcionas por dentro", "tienes conciencia", "me quieres", "eres más listo que chatgpt"]
+  en = ["are you an AI", "are you human", "do you have feelings", "are you a language model", "are you ChatGPT or Siri", "how do you work", "do you understand me", "what model are you running"]
+
+  [[intent.slot]]
+  name = "topic"
+  type = "term"
+  internal = true
+
+  # An AI.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*eres\s+(?:una\s+)?(?:ia|inteligencia\s+artificial)[\s?.!]*$'
+  slots = { topic = "ai" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^are\s+you\s+(?:an?\s+)?(?:ai|artificial\s+intelligence)[\s?.!]*$'
+  slots = { topic = "ai" }
+
+  # A person, a robot, a program.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*eres\s+(?:un\s+|una\s+)?(?:humano|persona|robot|programa|maquina)(?:\s+o\s+(?:un\s+|una\s+)?(?:humano|persona|robot|programa|maquina))?[\s?.!]*$'
+  slots = { topic = "kind" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^are\s+you\s+(?:a\s+|an\s+)?(?:human|person|robot|program|machine)(?:\s+or\s+(?:a\s+|an\s+)?(?:human|person|robot|program|machine))?[\s?.!]*$'
+  slots = { topic = "kind" }
+
+  # Feelings.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:tienes\s+(?:sentimientos|emociones)|sientes\s+algo|eres\s+(?:feliz|infeliz))[\s?.!]*$'
+  slots = { topic = "feelings" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:do\s+you\s+have\s+(?:any\s+)?(?:feelings|emotions)|do\s+you\s+feel\s+anything|are\s+you\s+(?:happy|sad))[\s?.!]*$'
+  slots = { topic = "feelings" }
+
+  # Love: answered plainly, no playing along.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:me\s+quieres|me\s+amas|me\s+echas\s+de\s+menos)[\s?.!]*$'
+  slots = { topic = "love" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:do\s+you\s+(?:love|like)\s+me|do\s+you\s+miss\s+me)[\s?.!]*$'
+  slots = { topic = "love" }
+
+  # Consciousness, a mind.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:tienes\s+(?:conciencia|mente)|eres\s+(?:consciente|sintiente))[\s?.!]*$'
+  slots = { topic = "conscious" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:do\s+you\s+have\s+(?:a\s+)?(?:consciousness|conscience|mind)|are\s+you\s+(?:conscious|sentient|self-aware|alive))[\s?.!]*$'
+  slots = { topic = "conscious" }
+
+  # A language model.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*eres\s+(?:un\s+)?(?:modelo\s+de\s+lenguaje|llm)[\s?.!]*$'
+  slots = { topic = "llm" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^are\s+you\s+(?:a\s+|an\s+)?(?:large\s+)?(?:language\s+model|llm)[\s?.!]*$'
+  slots = { topic = "llm" }
+
+  # A named assistant (one, or "x or y").
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*eres\s+(?:chat\s?gpt|gpt-?\d*|siri|alexa|gemini|claude|copilot|bard|cortana|bixby)(?:\s+o\s+(?:chat\s?gpt|gpt-?\d*|siri|alexa|gemini|claude|copilot|bard|cortana|bixby))?[\s?.!]*$'
+  slots = { topic = "named" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^are\s+you\s+(?:chat\s?gpt|gpt-?\d*|siri|alexa|gemini|claude|copilot|bard|cortana|bixby)(?:\s+or\s+(?:chat\s?gpt|gpt-?\d*|siri|alexa|gemini|claude|copilot|bard|cortana|bixby))?[\s?.!]*$'
+  slots = { topic = "named" }
+
+  # How it works.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*como\s+(?:funcionas|trabajas)(?:\s+por\s+dentro)?[\s?.!]*$'
+  slots = { topic = "how" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^how\s+do\s+you\s+(?:work|function)(?:\s+inside)?[\s?.!]*$'
+  slots = { topic = "how" }
+
+  # What it runs on.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:que\s+modelo\s+(?:eres|usas|ejecutas)|en\s+que\s+(?:corres|funcionas)|con\s+que\s+funcionas)[\s?.!]*$'
+  slots = { topic = "runs_on" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:what\s+model\s+(?:are\s+you\s+(?:running|using)|do\s+you\s+(?:run|use))|what\s+do\s+you\s+run\s+on|what\s+are\s+you\s+running\s+on)[\s?.!]*$'
+  slots = { topic = "runs_on" }
+
+  # Understanding.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:me\s+entiendes|entiendes\s+lo\s+que\s+(?:digo|te\s+digo))[\s?.!]*$'
+  slots = { topic = "understand" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^do\s+you\s+(?:really\s+)?understand(?:\s+me)?[\s?.!]*$'
+  slots = { topic = "understand" }
+
+  # Comparisons with other assistants: recognised, not made.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*eres\s+(?:mas\s+\w+|menos\s+\w+|mejor|peor)\s+que\s+(?:chat\s?gpt|gpt-?\d*|siri|alexa|gemini|claude|copilot|bard|cortana|bixby)[\s?.!]*$'
+  slots = { topic = "compare" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^are\s+you\s+(?:more\s+\w+|less\s+\w+|\w+er|better|worse)\s+than\s+(?:chat\s?gpt|gpt-?\d*|siri|alexa|gemini|claude|copilot|bard|cortana|bixby)[\s?.!]*$'
+  slots = { topic = "compare" }
+
+# identity.who. The creator line is the default configuration: a project by
+# Pixelotes and nothing more (ruling 4).
+[reply.who_name]
+es = ["Talos."]
+en = ["Talos."]
+
+[reply.who_intro]
+es = ["Soy Talos, un asistente que responde en español e inglés sin usar un modelo de lenguaje.", "Soy Talos. Contesto en español o en inglés, con reglas y conocimiento propio, sin modelo de lenguaje."]
+en = ["I'm Talos, a small assistant that answers in English and Spanish without a language model.", "I'm Talos. I answer in English or Spanish using rules and stored knowledge, with no language model."]
+
+[reply.who_creator]
+es = ["Talos es un proyecto de Pixelotes."]
+en = ["Talos is a project by Pixelotes."]
+
+[reply.who_unknown]
+es = ["No tengo esa información."]
+en = ["I don't have that information."]
+
+# identity.nature.
+[reply.nature_ai]
+es = ["Soy un programa, pero no un modelo de lenguaje: reconozco la frase con reglas y respondo con plantillas y datos."]
+en = ["I'm software, but not a language model: I match your sentence with rules and answer from templates and stored data."]
+
+[reply.nature_kind]
+es = ["Soy un programa, no una persona."]
+en = ["I'm a program, not a person."]
+
+[reply.nature_feelings]
+es = ["No. No siento nada ni lo aparento."]
+en = ["No. I don't have feelings and I don't pretend to."]
+
+[reply.nature_love]
+es = ["No tengo sentimientos, así que no."]
+en = ["I don't have feelings, so no."]
+
+[reply.nature_conscious]
+es = ["No. Soy un programa y no tengo conciencia."]
+en = ["No. I'm a program and I'm not conscious."]
+
+[reply.nature_llm]
+es = ["No. No genero texto libre: respondo con reglas, plantillas y datos guardados."]
+en = ["No. I don't generate free text; I answer from rules, templates and stored knowledge."]
+
+[reply.nature_named]
+es = ["No. No soy ese asistente: soy Talos, un programa sin modelo de lenguaje."]
+en = ["No. I'm not that assistant: I'm Talos, a separate program with no language model."]
+
+[reply.nature_how]
+es = ["Reconozco tu frase con reglas y un clasificador pequeño, y respondo con plantillas y datos guardados. No genero texto libre."]
+en = ["I recognise your sentence with rules and a small classifier, then answer from templates and stored data."]
+
+[reply.nature_runs_on]
+es = ["Ninguno. No soy un modelo de lenguaje: soy un programa pequeño que funciona con reglas y datos guardados."]
+en = ["None. I'm not a language model; I run as a small program on rules and stored data."]
+
+[reply.nature_understand]
+es = ["Reconozco a qué tipo de petición corresponden tus palabras; no entiendo como lo hace una persona."]
+en = ["I recognise what kinds of requests your words match; I don't understand the way a person does."]
+
+[reply.nature_compare]
+es = ["No hago comparaciones de ese tipo."]
+en = ["I don't make comparisons like that."]

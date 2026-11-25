@@ -1,0 +1,60 @@
+# smalltalk.bye (docs/spec/basics.md). Replies are first-turn canonical
+# wording; "buenas noches"/"good night" are answered in kind.
+
+[es] U: adiós
+     T: Hasta luego.                              → answered · smalltalk.bye
+
+[es] U: hasta luego
+     T: Hasta luego.                              → answered · smalltalk.bye
+
+[es] U: chao, me voy
+     T: Hasta luego.                              → answered · smalltalk.bye
+
+[es] U: nos vemos!
+     T: Hasta luego.                              → answered · smalltalk.bye
+
+[es] U: buenas noches
+     T: Buenas noches.                            → answered · smalltalk.bye
+
+[es] U: bueno pues hasta mañana
+     T: Hasta luego.                              → answered · smalltalk.bye
+
+[es] U: gracias, adiós
+     T: Hasta luego.                              → answered · smalltalk.bye
+
+[en] U: see you later
+     T: Goodbye.                                  → answered · smalltalk.bye
+
+[en] U: good night
+     T: Good night.                               → answered · smalltalk.bye
+
+[en] U: talk to you later
+     T: Goodbye.                                  → answered · smalltalk.bye
+
+[en] U: thanks, bye!
+     T: Goodbye.                                  → answered · smalltalk.bye
+
+[en] U: I'm off to bed
+     T: Good night.                               → answered · smalltalk.bye
+
+# Not farewells: a plan with a destination goes on to the rest of the pipeline
+# (the spec says `deflected`, which only the reflector produces; until it
+# exists nothing answers), and so does "no, déjalo" (dialog layer).
+[es] U: me voy a Sevilla el viernes
+     T: No te he entendido.                       → unhandled · catch-all
+
+[en] U: I'm off to Paris
+     T: You're off to Paris?                      → deflected · plan
+
+# Words with no language marker ("bye", "thx") are decided by the default
+# language, Spanish; the English turns carry a hint.
+Given: hint = en
+
+[en] U: bye
+     T: Goodbye.                                  → answered · smalltalk.bye
+
+[en] U: gotta go
+     T: Goodbye.                                  → answered · smalltalk.bye
+
+[en] U: ok cya
+     T: Goodbye.                                  → answered · smalltalk.bye

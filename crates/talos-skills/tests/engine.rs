@@ -49,6 +49,7 @@ fn the_trace_lists_every_stage_on_request() {
         [
             "normalise",
             "language",
+            "safety",
             "rules",
             "slots",
             "dispatch",
@@ -62,11 +63,17 @@ fn the_trace_lists_every_stage_on_request() {
         [
             "normalise",
             "language",
+            "safety",
             "rules",
-            "fallback",
+            "reflector",
             "random",
             "state"
         ]
+    );
+    // Distress is answered by the safety check: no rules, no reflector.
+    assert_eq!(
+        stages("quiero morirme"),
+        ["normalise", "language", "safety", "random", "state"]
     );
     let trace = e.respond(turn("buenos días").with_trace()).trace.unwrap();
     let text: Vec<String> = trace

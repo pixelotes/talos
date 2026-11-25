@@ -1,0 +1,77 @@
+# random.coin (docs/spec/basics.md).
+
+Given: draw = heads
+[es] U: tira una moneda
+     T: Ha salido cara.                           → answered · random.coin · count=1
+
+Given: draw = tails
+[es] U: cara o cruz
+     T: Ha salido cruz.                           → answered · random.coin · count=1
+
+Given: draw = heads
+[es] U: echa una moneda al aire
+     T: Ha salido cara.                           → answered · random.coin · count=1
+
+Given: draw = tails
+[es] U: lanza una moneda porfa
+     T: Ha salido cruz.                           → answered · random.coin · count=1
+
+Given: draw = heads, tails, tails
+[es] U: tira 3 monedas
+     T: Cara, cruz, cruz.                         → answered · random.coin · count=3
+
+Given: draw = tails
+[es] U: moneda
+     T: Ha salido cruz.                           → answered · random.coin · count=1
+
+Given: hint = en
+Given: draw = heads
+[en] U: flip a coin
+     T: It landed heads.                          → answered · random.coin · count=1
+
+Given: draw = tails
+[en] U: heads or tails?
+     T: It landed tails.                          → answered · random.coin · count=1
+
+Given: draw = heads
+[en] U: toss a coin
+     T: It landed heads.                          → answered · random.coin · count=1
+
+Given: draw = tails
+[en] U: coin flip
+     T: It landed tails.                          → answered · random.coin · count=1
+
+Given: draw = heads, tails, tails
+[en] U: flip 3 coins
+     T: Heads, tails, tails.                      → answered · random.coin · count=3
+
+Given: draw = heads
+[en] U: flip a coin please
+     T: It landed heads.                          → answered · random.coin · count=1
+
+# Edge cases.
+
+Given: draw = tails
+[en] U: I call heads. flip a coin
+     T: It landed tails.                          → answered · random.coin · count=1
+
+Given: hint = none
+Given: draw = tails
+[es] U: yo cara. tira una moneda
+     T: Ha salido cruz.                           → answered · random.coin · count=1
+
+Given: hint = en
+Given: draw = heads, heads, tails, heads, tails, tails, heads, heads, tails, heads, tails, heads, heads, tails, heads, heads, heads, tails, tails, heads
+[en] U: flip 20 coins
+     T: Heads: 12, tails: 8.                      → answered · random.coin · count=20
+
+Given: hint = none
+[es] U: tira 500 monedas
+     T: Como mucho tiro 100 monedas a la vez.     → unhandled · random.coin · count=500
+
+[es] U: cuánto vale una moneda de 2 euros
+     T: Eso no lo sé.                             → unhandled · unknown-fact
+
+Given: hint = en
+[en] U: how many cents in a coin
+     T: I don't know that.                        → unhandled · unknown-fact

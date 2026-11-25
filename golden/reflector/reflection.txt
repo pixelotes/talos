@@ -1,0 +1,43 @@
+# Pronoun and person reflection (docs/spec/reflector.md 3).
+
+# 3.2 Spanish
+
+Given: hint = es
+[es] U: voy a cambiar de piso
+     T: ¿Vas a cambiar de piso? ¿Y eso?           → deflected · plan
+
+# 3.2 Spanish
+
+Given: hint = es
+[es] U: me siento fatal con todo esto
+     T: Vaya. Poco puedo hacer yo con eso, pero aquí sigo.
+                                                  → deflected · self
+
+# 3.2 Spanish
+
+Given: hint = es
+[es] U: para mí que mi cuñado me tiene manía
+     T: Para ti que tu cuñado te tiene manía.     → deflected · opinion
+
+Given: hint = es
+[es] U: voy a regalárselo a mi madre
+     T: Queda dicho.                              → deflected · plan
+
+# 3.3 English
+
+Given: hint = en
+[en] U: I was sure I'd locked the door
+     T: You were sure you'd locked the door? And then?
+                                                  → deflected · past
+
+Given: hint = en
+[en] U: me and my brother never agree on anything
+     T: Never?                                    → deflected · generalisation
+
+# 3.3 English
+
+Given: hint = en
+[en] U: I think you're wrong about that
+     T: Fair enough.                              → deflected · disagree
+
+Given: hint = none

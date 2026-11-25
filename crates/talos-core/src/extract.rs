@@ -8,9 +8,10 @@
 //! and "manana" are the same word. [`list`] reads the capture in the user's
 //! **original** spelling, because a term keeps its case and accents.
 //!
-//! What is here is what the v0.1 skills need. Times of day, durations and
-//! places are not yet extractors; full slot filling and asking back arrive
-//! in v0.2.
+//! What is here is what the v0.1 skills need. [`time_of_day`],
+//! [`duration_minutes`] and [`date_since`] are for skills that read a capture
+//! themselves (`clock`); places are not yet an extractor, and full slot
+//! filling and asking back arrive in v0.2.
 
 use crate::Lang;
 use crate::civil::{Date, Weekday, days_in_month};
@@ -816,6 +817,483 @@ pub fn term(original: &str) -> Value {
     Value::Text(trim_edges(original).to_owned())
 }
 
+// --- Times of day, durations, dates looking back ------------------------------
+
+/// A time of day read from text (docs/spec/conversation.md 2.3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TimeOfDay {
+    /// The hour, 0-23; for a bare hour (`definite == false`) as the user said
+    /// it, 1-12.
+    pub hour: u8,
+    /// The minute, 0-59.
+    pub minute: u8,
+    /// Whether the reading is certain: a 24-hour reading ("18:00", "las
+    /// 17h"), an am/pm, a day part, "mediodía". A bare hour ("las 7", "at
+    /// five") is not: it is the next time either reading occurs.
+    pub definite: bool,
+}
+
+impl TimeOfDay {
+    /// The next occurrence strictly after `now_minute` (minutes since local
+    /// midnight, 0-1439): the days ahead (0 today, 1 tomorrow) and the
+    /// minute of that day. A bare hour takes the sooner of its morning and
+    /// afternoon readings ("las 7" at 18:42 is 19:00 today, "las 5" is 05:00
+    /// tomorrow); a time that is now or has passed means tomorrow's.
+    #[must_use]
+    pub fn next_after(self, now_minute: u32) -> (u8, u32) {
+        let minute = u32::from(self.minute);
+        let first = if self.definite {
+            u32::from(self.hour) * 60 + minute
+        } else {
+            u32::from(self.hour % 12) * 60 + minute
+        };
+        let candidates = if self.definite {
+            vec![first]
+        } else {
+            vec![first, first + 720]
+        };
+        match candidates.iter().find(|c| **c > now_minute) {
+            Some(c) => (0, *c),
+            None => (1, candidates[0]),
+        }
+    }
+}
+
+/// A part of the day named without an hour.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Part {
+    Morning,
+    Afternoon,
+    Evening,
+    Small,
+}
+
+impl Part {
+    /// The representative hour (docs/spec/conversation.md 2.3).
+    fn representative(self) -> u8 {
+        match self {
+            Part::Morning => 9,
+            Part::Afternoon => 17,
+            Part::Evening => 21,
+            Part::Small => 3,
+        }
+    }
+
+    /// An hour said as 1-12 with this part of the day, on the 24-hour clock.
+    fn apply(self, hour: u8) -> u8 {
+        match (self, hour) {
+            (Part::Afternoon, h) if h < 12 => h + 12,
+            (Part::Evening | Part::Small, 12) => 0,
+            (Part::Evening, h) if (6..12).contains(&h) => h + 12,
+            (_, h) => h,
+        }
+    }
+}
+
+fn part_word(word: &str, lang: Lang) -> Option<Part> {
+    match (lang, word) {
+        (Lang::Es, "manana") | (Lang::En, "morning") => Some(Part::Morning),
+        (Lang::Es, "tarde") | (Lang::En, "afternoon") => Some(Part::Afternoon),
+        (Lang::Es, "noche") | (Lang::En, "evening" | "night") => Some(Part::Evening),
+        (Lang::Es, "madrugada") => Some(Part::Small),
+        _ => None,
+    }
+}
+
+/// An hour as a token: "7", "07:30", "17.30", "17h", "17h30", "siete".
+struct HourToken {
+    hour: i64,
+    minute: Option<i64>,
+    /// Just digits or a word: "7", "siete".
+    plain: bool,
+    /// Written with a leading zero ("07"): a 24-hour reading.
+    zero: bool,
+}
+
+/// One to `max` ASCII digits as a number.
+fn small_digits(text: &str, max: usize) -> Option<i64> {
+    if text.is_empty() || text.len() > max || !text.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    text.parse().ok()
+}
+
+fn hour_token(token: &str, lang: Lang) -> Option<HourToken> {
+    let make = |hour: i64, minute: Option<i64>, plain: bool, zero: bool| {
+        ((0..=23).contains(&hour) && minute.is_none_or(|m| (0..=59).contains(&m))).then_some(
+            HourToken {
+                hour,
+                minute,
+                plain,
+                zero,
+            },
+        )
+    };
+    let zero = |s: &str| s.len() == 2 && s.starts_with('0');
+    if let Some((a, b)) = token.split_once([':', '.']) {
+        let minute = small_digits(b, 2).filter(|_| b.len() == 2)?;
+        return make(small_digits(a, 2)?, Some(minute), false, zero(a));
+    }
+    if token.starts_with(|c: char| c.is_ascii_digit())
+        && let Some((a, b)) = token.split_once('h')
+    {
+        let minute = if b.is_empty() {
+            None
+        } else {
+            Some(small_digits(b, 2).filter(|_| b.len() == 2)?)
+        };
+        return make(small_digits(a, 2)?, minute, false, zero(a));
+    }
+    if let Some(hour) = small_digits(token, 2) {
+        return make(hour, None, true, zero(token));
+    }
+    let hour = number(token, lang).ok()?.to_i64()?;
+    make(hour, None, true, false)
+}
+
+/// A minute count after "y"/"menos"/"past"/"to": "media", "cuarto", a number.
+fn minute_spec(tokens: &[&str], lang: Lang) -> Option<i64> {
+    match (lang, tokens) {
+        (Lang::Es, ["media"]) | (Lang::En, ["half"]) => Some(30),
+        (Lang::Es, ["cuarto"]) | (Lang::En, ["quarter"]) => Some(15),
+        (_, []) => None,
+        _ => number(&tokens.join(" "), lang)
+            .ok()?
+            .to_i64()
+            .filter(|m| (1..=59).contains(m)),
+    }
+}
+
+/// The hour before `hour` on the 24-hour dial.
+fn hour_before(hour: i64) -> i64 {
+    (hour + 23) % 24
+}
+
+/// The hour token, the hour and the minute of a clock reading with no day
+/// part and no am/pm.
+fn clock_reading(rest: &[&str], lang: Lang) -> Option<(HourToken, i64, i64)> {
+    let plain = |t: &str| hour_token(t, lang).filter(|t| t.plain);
+    match (lang, rest) {
+        (_, [h]) => {
+            let t = hour_token(h, lang)?;
+            let (hour, minute) = (t.hour, t.minute.unwrap_or(0));
+            Some((t, hour, minute))
+        }
+        (Lang::Es, [h, "en", "punto"]) | (Lang::En, [h, "oclock"]) => {
+            let t = plain(h)?;
+            let hour = t.hour;
+            Some((t, hour, 0))
+        }
+        (Lang::Es, [h, "y", spec @ ..]) => {
+            let t = plain(h)?;
+            let (hour, minute) = (t.hour, minute_spec(spec, lang)?);
+            Some((t, hour, minute))
+        }
+        (Lang::Es, [h, "menos", spec @ ..]) => {
+            let t = plain(h)?;
+            let minute = minute_spec(spec, lang).filter(|m| *m != 30)?;
+            let hour = hour_before(t.hour);
+            Some((t, hour, 60 - minute))
+        }
+        (Lang::En, _) => {
+            if let Some(split) = rest.iter().position(|w| matches!(*w, "past" | "to"))
+                && split >= 1
+                && split + 2 == rest.len()
+            {
+                let t = plain(rest[split + 1])?;
+                let minute = minute_spec(&rest[..split], lang)?;
+                return Some(if rest[split] == "past" {
+                    let hour = t.hour;
+                    (t, hour, minute)
+                } else {
+                    let hour = hour_before(t.hour);
+                    (t, hour, 60 - minute)
+                });
+            }
+            // "three thirty", "three forty five".
+            let (h, spec) = rest.split_first()?;
+            let t = plain(h)?;
+            let minute = number(&spec.join(" "), lang)
+                .ok()?
+                .to_i64()
+                .filter(|m| (10..=59).contains(m))?;
+            let hour = t.hour;
+            Some((t, hour, minute))
+        }
+        _ => None,
+    }
+}
+
+/// Takes a trailing am/pm off the tokens, spaced or attached ("9pm",
+/// "3:30pm"): `Some(true)` for pm.
+fn split_meridiem(rest: &mut Vec<&str>) -> Option<bool> {
+    let meridiem = |s: &str| match s {
+        "am" => Some(false),
+        "pm" => Some(true),
+        _ => None,
+    };
+    let last = rest.last().copied()?;
+    if let Some(value) = meridiem(last) {
+        rest.pop();
+        return Some(value);
+    }
+    if last.len() > 2
+        && last.starts_with(|c: char| c.is_ascii_digit())
+        && let Some(value) = meridiem(&last[last.len() - 2..])
+    {
+        let n = rest.len();
+        rest[n - 1] = &last[..last.len() - 2];
+        return Some(value);
+    }
+    None
+}
+
+/// Takes a trailing day part off the tokens ("de la tarde", "in the
+/// afternoon", "at night", "esta noche"): the part, and whether it was all
+/// there was.
+fn split_part(rest: &mut Vec<&str>, lang: Lang) -> (Option<Part>, bool) {
+    let (part, keep) = match (lang, rest.as_slice()) {
+        (Lang::Es, [head @ .., "de" | "por" | "en", "la", p]) if part_word(p, lang).is_some() => {
+            (part_word(p, lang), head.len())
+        }
+        (Lang::Es, ["esta", p]) if *p != "manana" && part_word(p, lang).is_some() => {
+            (part_word(p, lang), 0)
+        }
+        (Lang::En, ["this", p] | [p]) if part_word(p, lang).is_some() => (part_word(p, lang), 0),
+        (Lang::En, [head @ .., "in", "the", p]) if part_word(p, lang).is_some() => {
+            (part_word(p, lang), head.len())
+        }
+        (Lang::En, [head @ .., "at", "night"]) => (Some(Part::Evening), head.len()),
+        (Lang::En, ["tonight"]) => (Some(Part::Evening), 0),
+        _ => return (None, false),
+    };
+    rest.truncate(keep);
+    (part, keep == 0)
+}
+
+/// Reads a time of day: "a las 15:30", "las 3 y media", "las cuatro menos
+/// cuarto", "las 5 de la tarde", "las 17h", "17.30", "mediodía", "medianoche",
+/// "esta noche"; "3:30 pm", "3.30pm", "half past three", "quarter to four",
+/// "ten to four", "three thirty", "5 in the afternoon", "9 at night", "noon",
+/// "midnight", "tonight". The text is the match form of a capture.
+///
+/// A bare hour ("las 7", "at five", "tres y media") is not definite: see
+/// [`TimeOfDay::next_after`]. A lone number with nothing around it ("5") is
+/// not a time, since it is as likely a day of the month; "las 5" and "at 5"
+/// are. A day part alone is read at its representative hour (docs/spec/
+/// conversation.md 2.3: morning 09:00, afternoon 17:00, evening 21:00,
+/// small hours 03:00).
+///
+/// # Errors
+///
+/// [`Problem::Unreadable`] for anything that is not a time of day.
+pub fn time_of_day(text: &str, lang: Lang) -> Result<TimeOfDay, Problem> {
+    let mut tokens: Vec<String> = words(text)
+        .into_iter()
+        .map(|w| {
+            if w.starts_with(|c: char| c.is_ascii_digit()) {
+                w.to_owned()
+            } else {
+                w.replace(['\'', '.'], "")
+            }
+        })
+        .collect();
+    // "p. m." and "a. m." arrive as two tokens.
+    if let [.., a, m] = tokens.as_slice()
+        && m == "m"
+        && (a == "a" || a == "p")
+    {
+        let joined = format!("{a}m");
+        tokens.truncate(tokens.len() - 2);
+        tokens.push(joined);
+    }
+    let mut start = 0;
+    let mut introduced = false;
+    while let Some(word) = tokens.get(start) {
+        match (lang, word.as_str()) {
+            (Lang::Es, "las" | "la") | (Lang::En, "at") => introduced = true,
+            (Lang::Es, "para" | "hasta" | "desde" | "a" | "sobre")
+            | (Lang::En, "until" | "till" | "by" | "for" | "around" | "since") => {}
+            _ => break,
+        }
+        start += 1;
+    }
+    let mut rest: Vec<&str> = tokens[start..].iter().map(String::as_str).collect();
+
+    let pm = split_meridiem(&mut rest);
+    let (part, alone) = split_part(&mut rest, lang);
+    if let (true, Some(part)) = (alone, part) {
+        return Ok(TimeOfDay {
+            hour: part.representative(),
+            minute: 0,
+            definite: true,
+        });
+    }
+    let fixed = |hour| {
+        Ok(TimeOfDay {
+            hour,
+            minute: 0,
+            definite: true,
+        })
+    };
+    match (lang, rest.as_slice()) {
+        (Lang::Es, ["mediodia"]) | (Lang::En, ["noon"]) => return fixed(12),
+        (Lang::Es, ["medianoche"]) | (Lang::En, ["midnight"]) => return fixed(0),
+        _ => {}
+    }
+    let (token, hour, minute) = clock_reading(&rest, lang).ok_or(Problem::Unreadable)?;
+    if rest.len() == 1 && token.plain && !introduced && pm.is_none() && part.is_none() {
+        return Err(Problem::Unreadable);
+    }
+    let mut hour = u8::try_from(hour).map_err(|_| Problem::Unreadable)?;
+    if let Some(part) = part {
+        hour = part.apply(hour);
+    } else if let Some(pm) = pm {
+        hour = match (pm, hour) {
+            (true, h) if h < 12 => h + 12,
+            (false, 12) => 0,
+            (_, h) => h,
+        };
+    }
+    let definite = part.is_some() || pm.is_some() || hour == 0 || hour >= 13 || token.zero;
+    Ok(TimeOfDay {
+        hour,
+        minute: u8::try_from(minute).map_err(|_| Problem::Unreadable)?,
+        definite,
+    })
+}
+
+/// The minutes in a unit word of a duration, if it is one.
+fn duration_unit(word: &str, lang: Lang) -> Option<i64> {
+    match (lang, word) {
+        (Lang::Es, "minuto" | "minutos" | "min")
+        | (Lang::En, "minute" | "minutes" | "min" | "mins") => Some(1),
+        (Lang::Es, "hora" | "horas") | (Lang::En, "hour" | "hours" | "hr" | "hrs") => Some(60),
+        (Lang::Es, "dia" | "dias") | (Lang::En, "day" | "days") => Some(1_440),
+        (Lang::Es, "semana" | "semanas") | (Lang::En, "week" | "weeks") => Some(10_080),
+        _ => None,
+    }
+}
+
+/// The longest duration read: about nineteen years, in minutes.
+const MAX_DURATION_MINUTES: i64 = 10_000_000;
+
+/// Reads a forward duration, in whole minutes: "dentro de 3 horas", "en 20
+/// minutos", "una hora y media", "media hora", "2 horas y 30 minutos", "2
+/// días"; "in 8 hours", "in an hour and a half", "half an hour", "90
+/// minutes", "1.5 hours". The leading "dentro de"/"en"/"in" is optional. The
+/// text is the match form of a capture.
+///
+/// # Errors
+///
+/// [`Problem::Unreadable`] when it is not a duration, is not a whole number
+/// of minutes, or is over nineteen years.
+pub fn duration_minutes(text: &str, lang: Lang) -> Result<i64, Problem> {
+    let all = words(text);
+    let tokens: &[&str] = match (lang, all.as_slice()) {
+        (Lang::Es, ["dentro", "de", rest @ ..] | ["en", rest @ ..])
+        | (Lang::En, ["in", rest @ ..]) => rest,
+        _ => &all,
+    };
+    let mut total: i64 = 0;
+    let mut last_unit: Option<i64> = None;
+    let mut amount: Vec<&str> = Vec::new();
+    for word in tokens {
+        if let Some(unit) = duration_unit(word, lang) {
+            let count = match amount.as_slice() {
+                [] | ["un" | "una" | "a" | "an"] => Number::from_int(1),
+                ["media" | "medio" | "half"] | ["half", "an" | "a"] => half(),
+                words => number(&words.join(" "), lang)?,
+            };
+            let minutes = count
+                .times(Number::from_int(unit))
+                .and_then(Number::to_i64)
+                .filter(|m| *m > 0)
+                .ok_or(Problem::Unreadable)?;
+            total = total.checked_add(minutes).ok_or(Problem::Unreadable)?;
+            last_unit = Some(unit);
+            amount.clear();
+        } else if matches!((lang, *word), (Lang::Es, "y") | (Lang::En, "and")) && amount.is_empty()
+        {
+            // "2 horas y 30 minutos", "una hora y media".
+        } else {
+            amount.push(word);
+        }
+    }
+    match (amount.as_slice(), last_unit) {
+        ([], Some(_)) => {}
+        (["media" | "medio" | "half"] | ["a", "half"], Some(unit)) if unit >= 2 => {
+            total += unit / 2;
+        }
+        _ => return Err(Problem::Unreadable),
+    }
+    if total <= 0 || total > MAX_DURATION_MINUTES {
+        return Err(Problem::Unreadable);
+    }
+    Ok(total)
+}
+
+/// How many leading words of a date phrase are articles or prepositions.
+fn lead_len(all: &[&str], lang: Lang) -> usize {
+    all.iter()
+        .take_while(|w| match lang {
+            Lang::Es => matches!(**w, "el" | "la" | "para" | "hasta" | "desde" | "a"),
+            Lang::En => matches!(
+                **w,
+                "on" | "the" | "for" | "until" | "till" | "since" | "by"
+            ),
+        })
+        .count()
+}
+
+/// Like [`date`], for a verb that looks back ("since", "desde"): a date
+/// without a year is the **most recent** occurrence on or before today
+/// rather than the next one (docs/spec/basics.md, clock conventions), and a
+/// bare weekday ("desde el viernes", "since Friday") is the latest such day
+/// before today. Everything else reads as [`date`] does.
+///
+/// # Errors
+///
+/// As [`date`].
+pub fn date_since(text: &str, lang: Lang, today: Date) -> Result<Value, Problem> {
+    let found = date(text, lang, today)?;
+    let Value::Date {
+        date: next,
+        year_given: false,
+    } = found
+    else {
+        return Ok(found);
+    };
+    let all = words(text);
+    let tokens = &all[lead_len(&all, lang)..];
+    if let (1, Some((weekday, Which::Next))) = (tokens.len(), weekday_phrase(tokens, lang)) {
+        return Ok(relative(resolve_weekday(today, weekday, Which::Last)));
+    }
+    if next <= today {
+        return Ok(found);
+    }
+    let day_number = match (lang, tokens) {
+        (Lang::Es, ["dia", d]) | (Lang::En, [d]) => day_word(d, lang).is_some(),
+        _ => false,
+    };
+    let previous = if day_number {
+        let first = Date::new(today.year(), today.month(), 1).ok_or(Problem::Unreadable)?;
+        (0..14)
+            .filter_map(|back| first.add_months(-back))
+            .filter_map(|month| Date::new(month.year(), month.month(), next.day()))
+            .find(|date| *date <= today)
+    } else if matches!(tokens, [word] if numeric(word, lang, today).is_some())
+        || matches!(named_month(tokens, lang, today), Some(Ok(_)))
+    {
+        (1..10)
+            .filter_map(|back| Date::new(next.year() - back, next.month(), next.day()))
+            .find(|date| *date <= today)
+    } else {
+        return Ok(found);
+    };
+    previous.map(relative).ok_or(Problem::DoesNotExist)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1096,5 +1574,205 @@ mod tests {
         // A conjunction inside a word is not one.
         assert_eq!(items("yogur o huevos").0, ["yogur", "huevos"]);
         assert_eq!(term("  «hola»? ").to_string(), "«hola»");
+    }
+}
+
+#[cfg(test)]
+mod clock_tests {
+    use super::*;
+
+    fn clock(text: &str, lang: Lang) -> Option<(u8, u8, bool)> {
+        time_of_day(text, lang)
+            .ok()
+            .map(|t| (t.hour, t.minute, t.definite))
+    }
+
+    #[test]
+    fn spanish_times_of_day() {
+        let cases = [
+            ("las 7", Some((7, 0, false))),
+            ("a las 15:30", Some((15, 30, true))),
+            ("las 18:00", Some((18, 0, true))),
+            ("las 3 y media", Some((3, 30, false))),
+            ("tres y media", Some((3, 30, false))),
+            ("las tres y cuarto", Some((3, 15, false))),
+            ("las cuatro menos cuarto", Some((3, 45, false))),
+            ("las cuatro menos diez", Some((3, 50, false))),
+            ("las cuatro menos veinte", Some((3, 40, false))),
+            ("las cuatro menos cuarto de la tarde", Some((15, 45, true))),
+            ("la una menos diez de la tarde", Some((12, 50, true))),
+            ("las 5 de la tarde", Some((17, 0, true))),
+            ("las 9 de la noche", Some((21, 0, true))),
+            ("a las 8 de la manana", Some((8, 0, true))),
+            ("las doce de la noche", Some((0, 0, true))),
+            ("las 3 de la madrugada", Some((3, 0, true))),
+            ("las 17h", Some((17, 0, true))),
+            ("las 17h30", Some((17, 30, true))),
+            ("17.30", Some((17, 30, true))),
+            ("las 07:30", Some((7, 30, true))),
+            ("las 5 en punto", Some((5, 0, false))),
+            ("para las 7", Some((7, 0, false))),
+            ("mediodia", Some((12, 0, true))),
+            ("a medianoche", Some((0, 0, true))),
+            ("por la tarde", Some((17, 0, true))),
+            ("por la manana", Some((9, 0, true))),
+            ("esta noche", Some((21, 0, true))),
+            ("las 5 p. m.", Some((17, 0, true))),
+            // Not times.
+            ("de madrugada", None),
+            ("5", None),
+            ("el 30", None),
+            ("3/4", None),
+            ("manana", None),
+            ("las 25", None),
+            ("las 7:75", None),
+            ("las cuatro menos media", None),
+            ("navidad", None),
+        ];
+        for (text, expected) in cases {
+            assert_eq!(clock(text, Lang::Es), expected, "{text}");
+        }
+    }
+
+    #[test]
+    fn english_times_of_day() {
+        let cases = [
+            ("9pm", Some((21, 0, true))),
+            ("3:30 pm", Some((15, 30, true))),
+            ("3.30pm", Some((15, 30, true))),
+            ("15:30", Some((15, 30, true))),
+            ("at five", Some((5, 0, false))),
+            ("at 5", Some((5, 0, false))),
+            ("half past three", Some((3, 30, false))),
+            ("quarter past three", Some((3, 15, false))),
+            ("quarter to four", Some((3, 45, false))),
+            ("ten to four", Some((3, 50, false))),
+            ("twenty five past three", Some((3, 25, false))),
+            ("three thirty", Some((3, 30, false))),
+            ("5 in the afternoon", Some((17, 0, true))),
+            ("9 at night", Some((21, 0, true))),
+            ("12 at night", Some((0, 0, true))),
+            ("12 am", Some((0, 0, true))),
+            ("12 pm", Some((12, 0, true))),
+            ("12 a.m.", Some((0, 0, true))),
+            ("7 oclock", Some((7, 0, false))),
+            ("7 o'clock", Some((7, 0, false))),
+            ("noon", Some((12, 0, true))),
+            ("midnight", Some((0, 0, true))),
+            ("tonight", Some((21, 0, true))),
+            ("this afternoon", Some((17, 0, true))),
+            ("morning", Some((9, 0, true))),
+            ("in the morning", Some((9, 0, true))),
+            // Not times.
+            ("5", None),
+            ("five", None),
+            ("the 3rd", None),
+            ("3/4", None),
+            ("tomorrow", None),
+            ("christmas", None),
+            ("25:00", None),
+        ];
+        for (text, expected) in cases {
+            assert_eq!(clock(text, Lang::En), expected, "{text}");
+        }
+    }
+
+    #[test]
+    fn a_bare_hour_is_the_next_time_it_occurs() {
+        let at = |h, m, definite| TimeOfDay {
+            hour: h,
+            minute: m,
+            definite,
+        };
+        let now = 18 * 60 + 42;
+        assert_eq!(at(7, 0, false).next_after(now), (0, 19 * 60));
+        assert_eq!(at(5, 0, false).next_after(now), (1, 5 * 60));
+        assert_eq!(at(6, 0, false).next_after(now), (1, 6 * 60));
+        assert_eq!(at(12, 0, false).next_after(now), (1, 0));
+        assert_eq!(at(18, 0, true).next_after(now), (1, 18 * 60));
+        // Now exactly is not "after": a full day.
+        assert_eq!(at(6, 42, false).next_after(now), (1, 6 * 60 + 42));
+        assert_eq!(at(18, 42, true).next_after(now), (1, 18 * 60 + 42));
+        assert_eq!(at(0, 0, true).next_after(now), (1, 0));
+        assert_eq!(at(0, 0, true).next_after(0), (1, 0));
+        assert_eq!(at(23, 59, true).next_after(0), (0, 23 * 60 + 59));
+    }
+
+    #[test]
+    fn durations() {
+        let cases = [
+            ("dentro de 3 horas", Lang::Es, Some(180)),
+            ("en 20 minutos", Lang::Es, Some(20)),
+            ("dentro de una hora y media", Lang::Es, Some(90)),
+            ("media hora", Lang::Es, Some(30)),
+            ("dentro de 2 horas y 30 minutos", Lang::Es, Some(150)),
+            ("dentro de dos dias", Lang::Es, Some(2_880)),
+            ("1,5 horas", Lang::Es, Some(90)),
+            ("tres semanas", Lang::Es, Some(30_240)),
+            ("in 8 hours", Lang::En, Some(480)),
+            ("in an hour and a half", Lang::En, Some(90)),
+            ("in half an hour", Lang::En, Some(30)),
+            ("90 minutes", Lang::En, Some(90)),
+            ("in 1.5 hours", Lang::En, Some(90)),
+            ("in 2 hours 30 minutes", Lang::En, Some(150)),
+            ("in two and a half hours", Lang::En, Some(150)),
+            ("in a minute", Lang::En, Some(1)),
+            // Not durations.
+            ("dentro de 3", Lang::Es, None),
+            ("dentro de 0 horas", Lang::Es, None),
+            ("dentro de 1,3333 horas", Lang::Es, None),
+            ("in new york", Lang::En, None),
+            ("in 12-hour format", Lang::En, None),
+            ("in 99999999 hours", Lang::En, None),
+            ("en formato de 12 horas", Lang::Es, None),
+            ("in 3 fortnights", Lang::En, None),
+        ];
+        for (text, lang, expected) in cases {
+            assert_eq!(duration_minutes(text, lang).ok(), expected, "{text}");
+        }
+    }
+
+    fn since(text: &str, lang: Lang, today: (i32, u8, u8)) -> Option<String> {
+        let today = Date::new(today.0, today.1, today.2).unwrap();
+        date_since(text, lang, today)
+            .ok()
+            .and_then(|v| v.as_date())
+            .map(|d| d.to_string())
+    }
+
+    #[test]
+    fn since_takes_the_most_recent_occurrence() {
+        let t = (2027, 3, 14);
+        let cases = [
+            ("4 march", Lang::En, Some("2027-03-04")),
+            ("14 march", Lang::En, Some("2027-03-14")),
+            ("15 march", Lang::En, Some("2026-03-15")),
+            ("july 20", Lang::En, Some("2026-07-20")),
+            ("july 20, 1969", Lang::En, Some("1969-07-20")),
+            ("el 25 de diciembre", Lang::Es, Some("2026-12-25")),
+            ("el 3/4", Lang::Es, Some("2026-04-03")),
+            ("el 1 de enero de 2000", Lang::Es, Some("2000-01-01")),
+            ("friday", Lang::En, Some("2027-03-12")),
+            ("el domingo", Lang::Es, Some("2027-03-07")),
+            ("this friday", Lang::En, Some("2027-03-19")),
+            ("the 20th", Lang::En, Some("2027-02-20")),
+            ("the 14th", Lang::En, Some("2027-03-14")),
+            ("yesterday", Lang::En, Some("2027-03-13")),
+            ("hace dos semanas", Lang::Es, Some("2027-02-28")),
+            ("el 31 de abril", Lang::Es, None),
+            ("navidad", Lang::Es, None),
+        ];
+        for (text, lang, expected) in cases {
+            assert_eq!(since(text, lang, t).as_deref(), expected, "{text}");
+        }
+        // 29 February: the last one that exists.
+        assert_eq!(
+            since("29 february", Lang::En, (2027, 3, 14)).as_deref(),
+            Some("2024-02-29")
+        );
+        assert_eq!(
+            since("31 de diciembre", Lang::Es, (2027, 1, 1)).as_deref(),
+            Some("2026-12-31")
+        );
     }
 }

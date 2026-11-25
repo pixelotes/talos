@@ -1,0 +1,171 @@
+# calc.percent (docs/spec/basics.md, `calc`).
+
+# Examples
+
+[es] U: el 15% de 80
+     T: El 15 % de 80 es 12.                      → answered · calc.percent · amount=80 percent=15
+
+[es] U: qué porcentaje es 20 de 50
+     T: 20 es el 40 % de 50.                      → answered · calc.percent · part=20 whole=50
+
+[es] U: 80 mas un 15%
+     T: 80 más un 15 % es 92.                     → answered · calc.percent · amount=80 percent=+15
+
+[es] U: 50 euros con un 20% de descuento
+     T: Con un 20 % de descuento, 50 € se quedan en 40 €.
+                                                  → answered · calc.percent · amount=50 percent=-20
+
+[es] U: de 50 a 65 cuánto ha subido en porcentaje
+     T: Ha subido un 30 %.                        → answered · calc.percent · from=50 to=65
+
+[es] U: 20 es el 40% de qué numero
+     T: 20 es el 40 % de 50.                      → answered · calc.percent · part=20 percent=40
+
+[es] U: la propina del 10% de 45
+     T: La propina es 4,5; en total, 49,5.        → answered · calc.percent · amount=45 percent=10
+
+[es] U: el 12,5% de 80
+     T: El 12,5 % de 80 es 10.                    → answered · calc.percent · amount=80 percent=12.5
+
+[es] U: 15 por ciento de 200
+     T: El 15 % de 200 es 30.                     → answered · calc.percent · amount=200 percent=15
+
+[es] U: sube 80 un 15%
+     T: 80 más un 15 % es 92.                     → answered · calc.percent · amount=80 percent=+15
+
+[es] U: baja 80 un 15%
+     T: 80 menos un 15 % es 68.                   → answered · calc.percent · amount=80 percent=-15
+
+[es] U: 80 menos un 20%
+     T: 80 menos un 20 % es 64.                   → answered · calc.percent · amount=80 percent=-20
+
+[es] U: cuánto es el 15% de 80
+     T: El 15 % de 80 es 12.                      → answered · calc.percent · amount=80 percent=15
+
+Given: hint = en
+
+[en] U: what is 15% of 80
+     T: 15% of 80 is 12.                          → answered · calc.percent · amount=80 percent=15
+
+[en] U: what percent is 20 of 50
+     T: 20 is 40% of 50.                          → answered · calc.percent · part=20 whole=50
+
+[en] U: increase 80 by 15%
+     T: 80 plus 15% is 92.                        → answered · calc.percent · amount=80 percent=+15
+
+[en] U: $50 with 20% off
+     T: $50 with 20% off is $40.                  → answered · calc.percent · amount=50 percent=-20
+
+[en] U: percent change from 50 to 65
+     T: That's a 30% increase.                    → answered · calc.percent · from=50 to=65
+
+[en] U: 20 is 40% of what
+     T: 20 is 40% of 50.                          → answered · calc.percent · part=20 percent=40
+
+[en] U: 20% tip on 45
+     T: The tip is 9; the total is 54.            → answered · calc.percent · amount=45 percent=20
+
+[en] U: what percentage of 200 is 50?
+     T: 50 is 25% of 200.                         → answered · calc.percent · part=50 whole=200
+
+[en] U: 12.5 percent of 80
+     T: 12.5% of 80 is 10.                        → answered · calc.percent · amount=80 percent=12.5
+
+[en] U: what percentage is 20 of 50
+     T: 20 is 40% of 50.                          → answered · calc.percent · part=20 whole=50
+
+[en] U: 20% off $50
+     T: $50 with 20% off is $40.                  → answered · calc.percent · amount=50 percent=-20
+
+[en] U: decrease 80 by 25%
+     T: 80 minus 25% is 60.                       → answered · calc.percent · amount=80 percent=-25
+
+Given: hint = none
+
+
+# Edge cases
+
+[es] U: el 0% de 80
+     T: El 0 % de 80 es 0.                        → answered · calc.percent · amount=80 percent=0
+
+Given: hint = en
+
+[en] U: 150% of 80
+     T: 150% of 80 is 120.                        → answered · calc.percent · amount=80 percent=150
+
+Given: hint = none
+
+[es] U: el 15% de -80
+     T: El 15 % de -80 es -12.                    → answered · calc.percent · amount=-80 percent=15
+
+Given: hint = en
+
+[en] U: what percent is 5 of 0
+     T: A percentage of zero is undefined.        → answered · calc.percent · part=5 whole=0
+
+Given: hint = none
+
+[es] U: de 0 a 5 cuánto ha subido en porcentaje
+     T: Subir desde 0 no se puede expresar en porcentaje.
+                                                  → answered · calc.percent · from=0 to=5
+
+Given: hint = en
+
+[en] U: percent change from 80 to 60
+     T: That's a 25% decrease.                    → answered · calc.percent · from=80 to=60
+
+[en] U: percent change from 7 to 7
+     T: There is no change.                       → answered · calc.percent · from=7 to=7
+
+[en] U: decrease 100 by 100%
+     T: 100 minus 100% is 0.                      → answered · calc.percent · amount=100 percent=-100
+
+Given: hint = none
+
+[es] U: el 15% de 99,99
+     T: El 15 % de 99,99 es ≈ 15.                 → answered · calc.percent · amount=99.99 percent=15
+     (14,9985 rounded to two decimals is 15,00, shown as ≈ 15)
+
+[es] U: descuento del 30% sobre 59,90
+     T: Con un 30 % de descuento, 59,9 se quedan en 41,93.
+                                                  → answered · calc.percent · amount=59.9 percent=-30
+
+[es] U: 100 más el 21% de IVA
+     T: 100 más un 21 % de IVA es 121.            → answered · calc.percent · amount=100 percent=+21
+     (the user gave the rate)
+
+Given: hint = en
+
+[en] U: 80 + 15%
+     T: 80 plus 15% is 92.                        → answered · calc.percent · amount=80 percent=+15
+     (a trailing percent after a plus is read as an increase)
+
+[en] U: 100 plus 21% VAT
+     T: 100 plus 21% VAT is 121.                  → answered · calc.percent · amount=100 percent=+21
+
+[en] U: 20 is 0% of what
+     T: No number does: 0% of anything is 0.      → answered · calc.percent · part=20 percent=0
+
+[en] U: percent change from -50 to -25
+     T: That's a 50% increase.                    → answered · calc.percent · from=-50 to=-25
+
+Given: hint = none
+
+[es] U: añade el iva a 100
+     T: Dime el porcentaje, por ejemplo «100 más el 21% de IVA»: no supongo ninguna tasa.
+                                                  → unhandled · calc.percent · amount=100
+     (no rate is assumed (v0.1: a hint instead of a question))
+
+Given: hint = en
+
+[en] U: what's 50% of
+     T: Give me the percentage and the amount, for example "15% of 80".
+                                                  → unhandled · calc.percent · percent=50
+     (missing amount (v0.1: a hint instead of a question))
+
+Given: hint = none
+
+[es] U: interés compuesto de 1000 al 3% durante 5 años
+     T: No te he entendido.                       → unhandled · catch-all
+     (not supported)
+

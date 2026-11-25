@@ -110,21 +110,16 @@ Given: default language = en
 Given: default language = es
 
 # Not a bare greeting: a greeting followed by something else is left to the
-# rule that recognises the rest; with no such rule yet, nothing answers.
+# rule that recognises the rest.
 [es] U: hola, qué hora es
-     T: No sé hacer eso.                          → unhandled · catch-all
+     T: Son las 18:42.                            → answered · clock.now
 
-[es] U: buenas noches
-     T: No sé hacer eso.                          → unhandled · catch-all
+# "buenas noches" and "good night" are farewells (see bye.txt).
 
-[es] U: hola, ¿qué tal?
-     T: No sé hacer eso.                          → unhandled · catch-all
-
-[en] U: good night
-     T: I can't do that.                          → unhandled · catch-all
+# "hola, ¿qué tal?" is smalltalk.how_are_you (see how_are_you.txt).
 
 [en] U: hello, what's 3 times 4
-     T: I can't do that.                          → unhandled · catch-all
+     T: 3 × 4 = 12.                               → answered · calc.arithmetic · expression=3*4
 
 # A courtesy followed by a recognised request is dropped: here the request
 # is itself a greeting.

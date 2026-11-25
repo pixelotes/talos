@@ -1,0 +1,35 @@
+# With no scripted draws, the configured seed alone decides: a turn replays
+# identically for the same seed, conversation, turn number and text.
+
+Given: seed = 7
+[es] U: tira un dado
+     T: Ha salido un 2.                           → answered · random.dice · count=1 sides=6
+
+[es] U: tira 3d8+2
+     T: 6, 2 y 3, más 2: total 13.                → answered · random.dice · count=3 modifier=2 sides=8
+
+[es] U: tira 20 monedas
+     T: Caras: 8, cruces: 12.                     → answered · random.coin · count=20
+
+[es] U: elige entre pizza, sushi y tacos
+     T: Elijo sushi.                              → answered · random.pick · options=pizza|sushi|tacos
+
+[es] U: 5 números del 1 al 49 sin repetir
+     T: 28, 25, 6, 11, 7.                         → answered · random.number · count=5 distinct=yes high=49 low=1
+
+[es] U: numero entre 0,5 y 2,5
+     T: 1,51.                                     → answered · random.number · high=2.5 low=0.5
+
+Given: seed = 8
+Given: hint = en
+[en] U: roll 2d6
+     T: 4 and 3: total 7.                         → answered · random.dice · count=2 sides=6
+
+[en] U: flip 3 coins
+     T: Heads, heads, tails.                      → answered · random.coin · count=3
+
+[en] U: pick one: red, green, blue
+     T: I pick green.                             → answered · random.pick · options=red|green|blue
+
+[en] U: random number between 1 and 10
+     T: 9.                                        → answered · random.number · high=10 low=1

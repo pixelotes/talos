@@ -1,0 +1,225 @@
+# calc.convert (docs/spec/basics.md, `calc`).
+
+# Examples
+
+[es] U: 5 km a millas
+     T: 5 km son ≈ 3,11 mi.                       → answered · calc.convert · amount=5 from=km to=mi
+
+[es] U: convierte 100 grados fahrenheit a celsius
+     T: 100 °F son ≈ 37,78 °C.                    → answered · calc.convert · amount=100 from=°F to=°C
+
+[es] U: cuantos litros son 3 galones
+     T: 3 gal (EE. UU.) son ≈ 11,36 l.            → answered · calc.convert · amount=3 from=gal to=l
+
+[es] U: pasa 2 gb a mb
+     T: 2 GB son 2000 MB (2 GiB son 2048 MiB).    → answered · calc.convert · amount=2 from=GB to=MB
+
+[es] U: cuántos segundos hay en una hora
+     T: 1 hora son 3600 segundos.                 → answered · calc.convert · amount=1 from=h to=s
+
+[es] U: 100 km/h en mph
+     T: 100 km/h son ≈ 62,14 mph.                 → answered · calc.convert · amount=100 from=km/h to=mph
+
+[es] U: una libra en gramos
+     T: 1 lb son ≈ 453,59 g.                      → answered · calc.convert · amount=1 from=lb to=g
+
+[es] U: cuantos cm son 5 pulgadas
+     T: 5 in son 12,7 cm.                         → answered · calc.convert · amount=5 from=in to=cm
+
+[es] U: cuánto son 3 semanas en días
+     T: 3 semanas son 21 días.                    → answered · calc.convert · amount=3 from=week to=day
+
+Given: hint = en
+
+[en] U: convert 10 miles to km
+     T: 10 mi is ≈ 16.09 km.                      → answered · calc.convert · amount=10 from=mi to=km
+
+[en] U: 72 f to c
+     T: 72 °F is ≈ 22.22 °C.                      → answered · calc.convert · amount=72 from=°F to=°C
+
+[en] U: how many ounces in a pound
+     T: 1 lb is 16 oz.                            → answered · calc.convert · amount=1 from=lb to=oz
+
+[en] U: 5 feet in cm
+     T: 5 ft is 152.4 cm.                         → answered · calc.convert · amount=5 from=ft to=cm
+
+[en] U: 3 gallons in liters
+     T: 3 US gal is ≈ 11.36 L.                    → answered · calc.convert · amount=3 from=gal to=l
+
+[en] U: how many seconds in a day
+     T: 1 day is 86,400 seconds.                  → answered · calc.convert · amount=1 from=day to=s
+
+[en] U: 60 mph to km/h
+     T: 60 mph is ≈ 96.56 km/h.                   → answered · calc.convert · amount=60 from=mph to=km/h
+
+[en] U: 25 c to f
+     T: 25 °C is 77 °F.                           → answered · calc.convert · amount=25 from=°C to=°F
+
+Given: hint = none
+
+
+# Edge cases
+
+[es] U: convierte 20 grados a fahrenheit
+     T: 20 °C son 68 °F (he entendido grados Celsius).
+                                                  → answered · calc.convert · amount=20 from=°C to=°F
+     (a bare grados is the temperature unit that is not the target)
+
+Given: hint = en
+
+[en] U: 70 degrees to celsius
+     T: 70 °F is ≈ 21.11 °C (I took degrees as Fahrenheit).
+                                                  → answered · calc.convert · amount=70 from=°F to=°C
+
+Given: hint = none
+
+[es] U: convierte 20 grados
+     T: ¿A qué unidad: Celsius, Fahrenheit o Kelvin?
+                                                  → unhandled · calc.convert · amount=20 from=grados
+     (no target (v0.1: a hint instead of a question))
+
+Given: hint = en
+
+[en] U: convert 5 km
+     T: Convert it to what? For example "5 km in miles".
+                                                  → unhandled · calc.convert · amount=5 from=km
+     (no target (v0.1: a hint instead of a question))
+
+Given: hint = none
+
+[es] U: 0 grados celsius a kelvin
+     T: 0 °C son 273,15 K.                        → answered · calc.convert · amount=0 from=°C to=K
+
+Given: hint = en
+
+[en] U: -300 c to k
+     T: -300 °C is below absolute zero, so it has no Kelvin value.
+                                                  → answered · calc.convert · amount=-300 from=°C to=K
+
+[en] U: -40 c to f
+     T: -40 °C is -40 °F.                         → answered · calc.convert · amount=-40 from=°C to=°F
+
+Given: hint = none
+
+[es] U: 5 kg a metros
+     T: Kilogramos (masa) y metros (longitud) son magnitudes distintas: no se pueden convertir.
+                                                  → answered · calc.convert · amount=5 from=kg to=m
+
+Given: hint = en
+
+[en] U: convert 3 liters to hours
+     T: Liters (volume) and hours (time) are different kinds of quantity, so I can't convert between them.
+                                                  → answered · calc.convert · amount=3 from=l to=h
+
+Given: hint = none
+
+[es] U: 5 flurbos a metros
+     T: No conozco la unidad «flurbos».           → unhandled · calc.convert · amount=5 from=flurbos to=metros
+
+[es] U: 100 euros a dolares
+     T: No convierto monedas: no tengo cotizaciones.
+                                                  → unhandled · calc.convert · amount=100 from=euros to=dolares
+
+Given: hint = en
+
+[en] U: 5 m2 to ft2
+     T: I don't convert areas. I handle length, mass, temperature, volume, time, data size and speed.
+                                                  → unhandled · calc.convert · amount=5 from=m2 to=ft2
+
+[en] U: 100 Mbps to MB/s
+     T: I don't convert data rates. I handle data sizes, but not per-second rates.
+                                                  → unhandled · calc.convert · amount=100 from=Mbps to=MB/s
+
+[en] U: 10 psi to bar
+     T: I don't convert that kind of quantity. I handle length, mass, temperature, volume, time, data size and speed.
+                                                  → unhandled · calc.convert · amount=10 from=psi to=bar
+     (known, but not a supported category)
+
+Given: hint = none
+
+[es] U: 2,5 km a m
+     T: 2,5 km son 2500 m.                        → answered · calc.convert · amount=2.5 from=km to=m
+     (decimal comma)
+
+[es] U: 1.000 m a km
+     T: 1000 m son 1 km (he leído 1.000 como 1000).
+                                                  → answered · calc.convert · amount=1000 from=m to=km
+     (Spanish thousands dot; the reading is shown)
+
+Given: hint = en
+
+[en] U: 1,000 m to km
+     T: 1,000 m is 1 km.                          → answered · calc.convert · amount=1000 from=m to=km
+
+[en] U: 2.5 km to m
+     T: 2.5 km is 2,500 m.                        → answered · calc.convert · amount=2.5 from=km to=m
+
+Given: hint = none
+
+[es] U: 8 Mb a MB
+     T: 8 Mb (megabits) son 1 MB (megabytes).     → answered · calc.convert · amount=8 from=Mb to=MB
+     (a capital M with a lower-case b is bits, B is bytes)
+
+Given: hint = en
+
+[en] U: 1 gb in mb
+     T: 1 GB is 1,000 MB (1 GiB is 1,024 MiB).    → answered · calc.convert · amount=1 from=GB to=MB
+     (decimal by default, binary pair named)
+
+Given: hint = none
+
+[es] U: 5 km a km
+     T: 5 km son 5 km.                            → answered · calc.convert · amount=5 from=km to=km
+     (same unit: still answered)
+
+[es] U: 1 mm a km
+     T: 1 mm son 0,000001 km.                     → answered · calc.convert · amount=1 from=mm to=km
+     (exact and tiny: not rounded to zero and not marked)
+
+[es] U: un millón de km a mm
+     T: 1.000.000 km son 1.000.000.000.000 mm.    → answered · calc.convert · amount=1000000 from=km to=mm
+
+Given: hint = en
+
+[en] U: 1e30 km to mm
+     T: 1 × 10^30 km is 1 × 10^36 mm.             → answered · calc.convert · amount=1000000000000000000000000000000 from=km to=mm
+     (beyond 30 digits: scientific)
+
+Given: hint = none
+
+[es] U: cuántos metros son 5 millas náuticas
+     T: 5 mn son 9260 m.                          → answered · calc.convert · amount=5 from=nmi to=m
+
+[es] U: cuántos días son 2 años
+     T: 2 años son ≈ 730,49 días (de media).      → answered · calc.convert · amount=2 from=year to=day
+     (years have no fixed length in days; the average is used and said)
+
+[es] U: cuántos meses son 2 años
+     T: 2 años son 24 meses.                      → answered · calc.convert · amount=2 from=year to=month
+     (months and years convert exactly)
+
+Given: hint = en
+
+[en] U: 100 f to k
+     T: 100 °F is ≈ 310.93 K.                     → answered · calc.convert · amount=100 from=°F to=K
+
+[en] U: what is 3 times 4 in miles
+     T: 3 × 4 = 12.                               → answered · calc.arithmetic · expression=3*4
+     (the arithmetic is answered; there is nothing to convert from)
+
+[en] U: 1 tb in gib
+     T: 1 TB is ≈ 931.32 GiB.                     → answered · calc.convert · amount=1 from=TB to=GiB
+     (mixed decimal and binary: no twin note)
+
+[en] U: 0.5 h to min
+     T: 0.5 hours is 30 minutes.                  → answered · calc.convert · amount=0.5 from=h to=min
+
+[en] U: 2 knots to km/h
+     T: 2 kn is ≈ 3.7 km/h.                       → answered · calc.convert · amount=2 from=kn to=km/h
+
+[en] U: 1 stone to kg
+     T: I don't know the unit "stone".            → unhandled · calc.convert · amount=1 from=stone to=kg
+     (an unknown unit)
+
+Given: hint = none
+

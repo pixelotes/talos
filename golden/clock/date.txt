@@ -1,0 +1,211 @@
+# clock.date (docs/spec/basics.md). Each exchange is its own conversation.
+#
+# Replies always carry the weekday and the year. The resolved date is the
+# slot on the outcome line, in ISO, where the spec writes the user's words
+# ("day=mañana"); with no day given the slot is absent.
+#
+# v0.1 never asks back, so the spec's "Do you mean 3 April or 4 March?" is an
+# `unhandled` hint that names the two readings (see the end of the file).
+#
+# Left out, with the reason:
+#   "cuándo es mi cumpleaños" / "when is my birthday": the spec's outcome is a
+#     bare `unhandled` with no intent, which no clock rule produces.
+#   "qué fecha es en Tokio": timezones.time_in.
+#
+# Given: now defaults to 2027-03-14 18:42 Europe/Madrid.
+
+[es] U: qué fecha es hoy
+     T: Hoy es domingo, 14 de marzo de 2027.      → answered · clock.date · day=2027-03-14
+
+[es] U: a cuántos estamos
+     T: Estamos a 14 de marzo de 2027.            → answered · clock.date
+
+[es] U: qué día es hoy
+     T: Hoy es domingo, 14 de marzo de 2027.      → answered · clock.date · day=2027-03-14
+
+[es] U: fecha de hoy
+     T: Hoy es domingo, 14 de marzo de 2027.      → answered · clock.date · day=2027-03-14
+
+[es] U: ¿Cuál es la fecha?
+     T: Hoy es domingo, 14 de marzo de 2027.      → answered · clock.date
+
+[es] U: en qué día estamos
+     T: Hoy es domingo, 14 de marzo de 2027.      → answered · clock.date
+
+[es] U: que dia es mañana
+     T: Mañana es lunes, 15 de marzo de 2027.     → answered · clock.date · day=2027-03-15
+
+[es] U: qué fecha fue ayer
+     T: Ayer fue sábado, 13 de marzo de 2027.     → answered · clock.date · day=2027-03-13
+
+[es] U: y dentro de 100 días qué fecha será
+     T: Será martes, 22 de junio de 2027.         → answered · clock.date · day=2027-06-22
+
+[es] U: qué fecha es pasado mañana
+     T: Será martes, 16 de marzo de 2027.         → answered · clock.date · day=2027-03-16
+
+[es] U: qué fecha fue hace dos semanas
+     T: Fue domingo, 28 de febrero de 2027.       → answered · clock.date · day=2027-02-28
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+
+[en] U: what's the date today
+     T: Today is Sunday 14 March 2027.            → answered · clock.date · day=2027-03-14
+
+[en] U: what is today's date
+     T: Today is Sunday 14 March 2027.            → answered · clock.date · day=2027-03-14
+
+[en] U: date
+     T: Today is Sunday 14 March 2027.            → answered · clock.date
+
+[en] U: what's tomorrow's date?
+     T: Tomorrow is Monday 15 March 2027.         → answered · clock.date · day=2027-03-15
+
+[en] U: what was the date yesterday
+     T: Yesterday was Saturday 13 March 2027.     → answered · clock.date · day=2027-03-13
+
+[en] U: tell me the date please
+     T: Today is Sunday 14 March 2027.            → answered · clock.date
+
+[en] U: what's the date two weeks ago
+     T: It was Sunday 28 February 2027.           → answered · clock.date · day=2027-02-28
+
+[en] U: what's the date in 100 days
+     T: It will be Tuesday 22 June 2027.          → answered · clock.date · day=2027-06-22
+
+[en] U: what's the date the day after tomorrow
+     T: It will be Tuesday 16 March 2027.         → answered · clock.date · day=2027-03-16
+
+# Partial dates and ISO.
+
+Given: hint = none
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: en qué año estamos
+     T: Estamos en 2027.                          → answered · clock.date
+
+[es] U: en qué mes estamos
+     T: En marzo.                                 → answered · clock.date
+
+[es] U: la fecha en formato iso
+     T: 2027-03-14.                               → answered · clock.date
+
+[es] U: qué fecha es mañana en formato iso
+     T: 2027-03-15.                               → answered · clock.date · day=2027-03-15
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: what year is it
+     T: It's 2027.                                → answered · clock.date
+
+[en] U: what month is it
+     T: It's March.                               → answered · clock.date
+
+[en] U: today's date in ISO format
+     T: Today is Sunday 14 March 2027.            → answered · clock.date · day=2027-03-14
+
+# "Next Friday" is the first Friday after today and the reply says which. The
+# spec's follow-up "y el viernes de la semana que viene" leans on the previous
+# turn; asked in full it is the same request.
+Given: hint = none
+Given: now = 2027-03-16 10:00 Europe/Madrid
+[es] U: qué fecha es el próximo viernes
+     T: Será viernes, 19 de marzo de 2027.        → answered · clock.date · day=2027-03-19
+
+[es] U: qué fecha es el viernes de la semana que viene
+     T: Será viernes, 26 de marzo de 2027.        → answered · clock.date · day=2027-03-26
+
+Given: hint = en
+Given: now = 2027-03-19 10:00 America/New_York
+[en] U: what's the date next Friday?
+     T: It will be Friday 26 March 2027.          → answered · clock.date · day=2027-03-26
+
+[en] U: what's the date this Friday
+     T: Today is Friday 19 March 2027.            → answered · clock.date · day=2027-03-19
+
+[en] U: what's the date Friday
+     T: It will be Friday 26 March 2027.          → answered · clock.date · day=2027-03-26
+
+# A date that does not exist is answered.
+Given: hint = none
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: qué fecha es el 31 de abril
+     T: El 31 de abril no existe.                 → answered · clock.date · day=el 31 de abril
+
+[es] U: qué fecha es el 30 de febrero
+     T: El 30 de febrero no existe.               → answered · clock.date · day=el 30 de febrero
+
+[es] U: qué fecha es el 29 de febrero de 2027
+     T: El 29 de febrero de 2027 no existe: 2027 no es bisiesto.
+                                                  → answered · clock.date · day=el 29 de febrero de 2027
+
+[es] U: qué fecha es el 29 de febrero de 2028
+     T: Será martes, 29 de febrero de 2028.       → answered · clock.date · day=2028-02-29
+
+[es] U: qué fecha es el 31/4
+     T: El 31/4 no existe.                        → answered · clock.date · day=el 31/4
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: what's the date on February 29, 2027
+     T: February 29, 2027 doesn't exist: 2027 is not a leap year.
+                                                  → answered · clock.date · day=on February 29, 2027
+
+[en] U: what's the date on February 29, 2100
+     T: February 29, 2100 doesn't exist: 2100 is not a leap year.
+                                                  → answered · clock.date · day=on February 29, 2100
+
+[en] U: what's the date on February 29, 2000
+     T: It was Tuesday 29 February 2000.          → answered · clock.date · day=2000-02-29
+
+# Month ends, a leap day and the new year.
+Given: hint = none
+Given: now = 2027-12-31 23:59 Europe/Madrid
+[es] U: qué fecha es mañana
+     T: Mañana es sábado, 1 de enero de 2028.     → answered · clock.date · day=2028-01-01
+
+[es] U: qué fecha es hoy
+     T: Hoy es viernes, 31 de diciembre de 2027.  → answered · clock.date · day=2027-12-31
+
+Given: now = 2028-01-01 00:00 Europe/Madrid
+[es] U: qué fecha fue ayer
+     T: Ayer fue viernes, 31 de diciembre de 2027.
+                                                  → answered · clock.date · day=2027-12-31
+
+Given: now = 2028-02-28 12:00 Europe/Madrid
+[es] U: qué fecha es mañana
+     T: Mañana es martes, 29 de febrero de 2028.  → answered · clock.date · day=2028-02-29
+
+Given: now = 2027-02-28 12:00 Europe/Madrid
+[es] U: qué fecha es mañana
+     T: Mañana es lunes, 1 de marzo de 2027.      → answered · clock.date · day=2027-03-01
+
+Given: now = 2027-01-31 12:00 Europe/Madrid
+[es] U: qué fecha será dentro de 1 mes
+     T: Será domingo, 28 de febrero de 2027.      → answered · clock.date · day=2027-02-28
+
+Given: now = 2028-03-01 12:00 Europe/Madrid
+[es] U: qué fecha fue ayer
+     T: Ayer fue martes, 29 de febrero de 2028.   → answered · clock.date · day=2028-02-29
+
+# The date follows the local clock, not UTC: 00:30 in Madrid is still the day
+# before in UTC.
+Given: now = 2027-03-15 00:30 Europe/Madrid
+[es] U: qué fecha es hoy
+     T: Hoy es lunes, 15 de marzo de 2027.        → answered · clock.date · day=2027-03-15
+
+# Not a date, or ambiguous: a hint, and `unhandled`.
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: qué fecha es el día de los inocentes
+     T: No he entendido esa fecha. Prueba con «el 3 de mayo» o «el próximo viernes».
+                                                  → unhandled · clock.date · day=el día de los inocentes
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: what's the date 3/4
+     T: That date could be 3 April or 4 March. Please write it out in words.
+                                                  → unhandled · clock.date · day=3/4
+
+# Only one reading of 25/12 is a date, so it is not ambiguous.
+[en] U: what's the date 25/12
+     T: It will be Saturday 25 December 2027.     → answered · clock.date · day=2027-12-25

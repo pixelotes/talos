@@ -1,0 +1,115 @@
+# help: what Talos can do, and how to use one capability
+# (docs/spec/basics.md, `help`). Both answers are generated from the
+# installed skills' manifests (summaries, names, help examples); nothing here
+# lists the skills.
+#
+# Patterns match the match form (lower case, no accents) and are anchored:
+# only the obvious phrasings. A bare "ayuda" or "help me" is the overall list;
+# "ayuda con lo de enseñarte cosas" names a skill and is help.skill.
+
+[skill]
+id = "help"
+summary.es = "ayudarte a usar lo que sé hacer"
+summary.en = "help you use what I can do"
+names.es = ["ayuda", "comandos"]
+names.en = ["help", "commands"]
+help.es = ["qué sabes hacer", "cómo funciona la calculadora"]
+help.en = ["what can you do", "how do I use the calculator"]
+capabilities = []
+
+[[intent]]
+id = "help.capabilities"
+priority = 50
+courtesy = false
+
+  [intent.examples]
+  es = ["qué sabes hacer", "qué puedes hacer", "ayuda", "para qué sirves", "qué comandos tienes", "lista de funciones", "ayúdame"]
+  en = ["help", "what can you do", "what are your features", "list your skills", "what are you able to do", "help me"]
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|oiga|dime)[\s,]+)?(?:que (?:sabes|puedes) hacer(?: por mi)?|en que me puedes ayudar|para que sirves|que (?:comandos|funciones) tienes|lista de (?:cosas que sabes hacer|funciones|comandos)|ayuda|ayudame)[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:(?:hey|hi),?\s+)?(?:help(?: me)?|what can you do(?: for me)?|what are your (?:features|capabilities|skills)|list (?:your )?(?:skills|features|capabilities|commands|functions)|what are you able to do|what commands do you have)[\s?!.]*$'
+
+[[intent]]
+id = "help.skill"
+priority = 50
+courtesy = false
+
+  [intent.examples]
+  es = ["cómo funciona la calculadora", "qué puedo preguntarte sobre la hora", "sabes hacer porcentajes", "cómo se usa lo de los dados", "cómo se usa"]
+  en = ["how do I use the calculator", "what can I ask about dates", "do you do percentages", "how does the dice thing work", "how do I use this"]
+
+  [[intent.slot]]
+  name = "skill"
+  type = "term"
+  required = true
+
+  # Bare "cómo se usa" names nothing: the handler gives a usage hint.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*como (?:funciona|se usa|se utiliza|uso|puedo usar)(?: esto| eso)?[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*como (?:funciona|se usa|se utiliza|uso|puedo usar) (?<skill>.+?)[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*que puedo (?:preguntarte|pedirte|hacer) (?:sobre|con|de|acerca de) (?<skill>.+?)[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*sabes hacer (?<skill>.+?)[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*ayuda con (?<skill>.+?)[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^how (?:do i use|does|can i use) (?:this|it)(?: work)?[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^how (?:do i use|does|can i use) (?<skill>.+?)(?: work)?[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^what can i (?:ask|do) (?:about|with) (?<skill>.+?)[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^do you (?:do|know how to do) (?<skill>.+?)[\s?!.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^help with (?<skill>.+?)[\s?!.]*$'
+
+# The list: {skills} is one "· summary" line per installed skill.
+[reply.capabilities]
+es = ["Esto es lo que sé hacer:\n{skills}"]
+en = ["Here's what I can do:\n{skills}"]
+
+# One skill: its summary and two or three example phrases from its manifest.
+[reply.skill]
+es = ["{name}: {summary}. Prueba: {examples}."]
+en = ["{name}: {summary}. Try: {examples}."]
+
+# A skill whose manifest gives no examples.
+[reply.skill_bare]
+es = ["{name}: {summary}."]
+en = ["{name}: {summary}."]
+
+# No installed skill matches the topic.
+[reply.unknown]
+es = ["No sé hacer eso."]
+en = ["I can't do that."]
+
+# No topic given (v0.1 cannot ask back): a usage hint with the skills' names.
+[reply.which]
+es = ["¿El qué? Dime de cuál quieres saber, por ejemplo: {names}."]
+en = ["Which one? Tell me what you want to know about, for example: {names}."]

@@ -9,8 +9,10 @@ use crate::language::{self, Decided, Evidence};
 use crate::manifest::{Intent, Manifest};
 use crate::normalise::{Normalised, normalise};
 use crate::random::{Draw, Random, ScriptReport, turn_seed};
+use crate::reflector::Reflector;
 use crate::render;
 use crate::rules::{Candidate, Rules};
+use crate::safety::{self, DEFAULT_EMERGENCY, Emergency};
 use crate::skill::{Call, Context, Message, Registration, Skill, SkillResult};
 use crate::state::{ConversationState, Conversations, lock_state};
 use crate::value::{SlotType, Slots, Value};
@@ -33,6 +35,10 @@ pub struct Config {
     /// A conversation idle for longer than this, measured with the turns'
     /// injected `now`, starts afresh.
     pub idle_expiry_seconds: u32,
+    /// Emergency numbers by region, for the distress reply
+    /// (docs/spec/reflector.md S29). A place with no entry, or no place,
+    /// gets the reply that names no number.
+    pub emergency: &'static [Emergency],
 }
 
 impl Default for Config {
@@ -42,6 +48,7 @@ impl Default for Config {
             seed: 0,
             max_conversations: 1_024,
             idle_expiry_seconds: 30 * 60,
+            emergency: DEFAULT_EMERGENCY,
         }
     }
 }
@@ -59,6 +66,8 @@ pub struct Engine {
     /// Skill id to position.
     by_id: BTreeMap<String, usize>,
     rules: Rules,
+    /// The fallback scripts, and the distress patterns.
+    reflector: Reflector,
     conversations: Conversations,
 }
 
@@ -72,7 +81,9 @@ impl std::fmt::Debug for Engine {
 }
 
 /// Records stage decisions when the turn asked for a trace, and costs
-/// nothing otherwise: notes are closures, never called when off.
+/// nothing otherwise: notes are closures, never called when off. (The
+/// reflector and the safety check build their one note regardless; it is a
+/// few short strings on a turn nothing else answered.)
 struct Tracer(Option<Vec<TraceStep>>);
 
 impl Tracer {
@@ -111,6 +122,19 @@ impl Handled {
             status: Status::Unhandled,
             reason: Some(reason),
             intent,
+            slots: Slots::new(),
+            internal: Slots::new(),
+        }
+    }
+
+    /// A reply of the reflector or of the safety check: no intent, the
+    /// shape or the reason kept.
+    fn reflected(reply: String, status: Status, reason: Reason) -> Self {
+        Self {
+            reply,
+            status,
+            reason: Some(reason),
+            intent: None,
             slots: Slots::new(),
             internal: Slots::new(),
         }
@@ -167,7 +191,9 @@ impl Engine {
     ///
     /// [`Error::Registry`] if a handler's id differs from its manifest's or a
     /// skill id is repeated; [`Error::Manifest`] if a pattern does not
-    /// compile or captures an undeclared slot.
+    /// compile or captures an undeclared slot; [`Error::Script`] if an
+    /// embedded reflector script is malformed (a build defect, caught by
+    /// the tests).
     pub fn new(config: Config, skills: Vec<Registration>) -> Result<Self, Error> {
         let mut by_id = BTreeMap::new();
         let mut manifests = Vec::with_capacity(skills.len());
@@ -197,6 +223,7 @@ impl Engine {
             handlers,
             by_id,
             rules,
+            reflector: Reflector::new()?,
         })
     }
 
@@ -280,6 +307,26 @@ impl Engine {
                 &message.text,
             )),
         };
+        // 1b. Safety check, ahead of everything that could claim the
+        // message (docs/spec/conversation.md 3.9).
+        let alarm = if message.is_empty() {
+            None
+        } else {
+            let alarm = safety::check(
+                &self.reflector,
+                lang,
+                &message,
+                turn.place.as_ref(),
+                self.config.emergency,
+            );
+            trace.note("safety", || {
+                alarm
+                    .as_ref()
+                    .map_or_else(|| "no distress".to_owned(), |a| a.note.clone())
+            });
+            alarm
+        };
+
         let mut cx = Context::new(
             turn.now,
             turn.place.as_ref(),
@@ -287,12 +334,10 @@ impl Engine {
             &state,
             &self.manifests,
         );
-
-        let handled = if message.is_empty() {
-            trace.note("fallback", || "empty message".to_owned());
-            Handled::fallback(lang, Reason::EMPTY, None)
+        let answered = if message.is_empty() || alarm.is_some() {
+            None
         } else {
-            // 1b. Safety check: Slice D. 2. Pending dialog: v0.2.
+            // 2. Pending dialog: v0.2.
 
             // 3. Rules.
             let candidates = self.recognise(lang, &message, &mut trace);
@@ -310,17 +355,29 @@ impl Engine {
                     break;
                 }
             }
-
-            // 7. Fallback (the reflector, from Slice D).
-            handled.unwrap_or_else(|| {
-                trace.note("fallback", || "nothing recognised the message".to_owned());
-                Handled::fallback(lang, Reason::CATCH_ALL, None)
-            })
+            handled
         };
         let (_, random) = cx.finish();
+
+        let handled = if let Some(handled) = answered {
+            handled
+        } else if message.is_empty() {
+            trace.note("fallback", || "empty message".to_owned());
+            Handled::fallback(lang, Reason::EMPTY, None)
+        } else if let Some(alarm) = alarm {
+            Handled::reflected(alarm.reply, alarm.status, alarm.reason)
+        } else {
+            // 7. The reflector.
+            let reply =
+                self.reflector
+                    .respond(lang, &message, &turn.conversation, number, &mut state);
+            trace.note("reflector", || reply.note.clone());
+            Handled::reflected(reply.text, reply.status, reply.reason)
+        };
         trace.note("random", || format!("{} draws", random.draws()));
 
         state.set_last_intent(handled.intent.clone());
+        state.remember_reply(&handled.reply, handled.status);
         trace.note("state", || describe_state(&turn.conversation, &state));
         let outcome = Outcome {
             reply: handled.reply,

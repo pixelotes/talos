@@ -1,0 +1,41 @@
+# S27 (advice) and S28 (commands Talos cannot do): recognised shapes,
+# status unhandled (docs/spec/reflector.md 2).
+
+# S27 · Request for advice or a decision (`advice`)
+
+Given: hint = es
+[es] U: ¿debería dejar el máster?
+     T: Eso no te lo puedo decir: no doy consejos.
+                                                  → unhandled · advice
+
+Given: hint = es
+[es] U: ¿qué me recomiendas para cenar?
+     T: No hago recomendaciones.                  → unhandled · advice
+
+Given: hint = en
+[en] U: should I text him back?
+     T: That's not something I can advise on.     → unhandled · advice
+
+Given: hint = en
+[en] U: what should I cook tonight?
+     T: That's not something I can advise on.     → unhandled · advice
+
+# S28 · Command Talos cannot carry out (`cannot`)
+
+Given: hint = es
+[es] U: pon algo de música
+     T: No puedo poner música.                    → unhandled · cannot
+
+Given: hint = es
+[es] U: mándale un wasap a Lucía diciendo que llego tarde
+     T: No puedo enviar mensajes.                 → unhandled · cannot
+
+Given: hint = en
+[en] U: turn the heating up
+     T: I can't control devices.                  → unhandled · cannot
+
+Given: hint = en
+[en] U: call my mum
+     T: I can't make calls.                       → unhandled · cannot
+
+Given: hint = none

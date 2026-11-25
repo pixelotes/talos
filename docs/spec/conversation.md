@@ -922,3 +922,46 @@ cannot set one per turn.)
 Nothing in a turn. The only things that change an answer between two runs of
 the same text are a different `now`, a different caller place, or different
 stored state (preferences taught or forgotten, facts taught or retracted).
+
+## 6. Commands
+
+Decided in [ADR 0016](../adr/0016-command-shortcuts.md); arrives in v0.2.
+
+A message that begins with `/` names a capability directly. Nothing is
+recognised: the command goes to its intent, and the rest of the line is its
+one argument.
+
+- Each command has a name in each language; both always work. The reply is in
+  the language of the conversation, and a command never changes it.
+- The outcome is what the sentence form would give: same reply, same status,
+  same intent and slots.
+- With no argument where one is needed, Talos does what it does for a
+  sentence with that slot missing.
+- An unknown command is `unhandled`, has no intent, and is never passed to
+  the reflector. The reply says the command is not known and how to list the
+  ones that are.
+- `/help` and `/ayuda` list the installed commands.
+- The distress check does not run on a command.
+
+```text
+[es] U: /calc 1 + 2
+     T: 1 + 2 = 3.                         → answered · calc.arithmetic · expression=1+2
+
+[en] U: /calc 1 + 2
+     T: 1 + 2 = 3.                         → answered · calc.arithmetic · expression=1+2
+
+[en] U: /dado
+     T: You rolled a 4.                    → answered · random.dice
+
+[es] U: /clac 1 + 2
+     T: No conozco el comando /clac. Escribe /ayuda para ver los que hay.
+                                           → unhandled
+
+[en] U: /clac 1 + 2
+     T: I don't know the command /clac. Type /help to see the ones there are.
+                                           → unhandled
+```
+
+Which intents get a command, and under which names, is listed in each skill's
+manifest. The unknown-command reply is the one refusal that points to help
+(an exception to 4.1), because the user was asking for a command by name.

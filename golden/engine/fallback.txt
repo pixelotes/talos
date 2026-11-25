@@ -1,27 +1,27 @@
 # What nothing recognises is `unhandled`, in the turn's language
-# (docs/spec/conversation.md 4). The reflector (Slice D) will replace the
-# catch-all reply and give these reasons of their own (`generative`,
-# `noise`, …).
+# (docs/spec/conversation.md 4), with the reason the reflector's guards
+# give it (docs/spec/reflector.md 4): a request for new text is
+# `generative`, keyboard mash and lone punctuation are `noise`.
 
 [es] U: escríbeme un poema
-     T: No sé hacer eso.                          → unhandled · catch-all
+     T: No sé escribir textos nuevos.             → unhandled · generative
 
 [es] U: escríbeme un poema sobre el mar
-     T: No sé hacer eso.                          → unhandled · catch-all
+     T: No sé escribir textos nuevos.             → unhandled · generative
 
 [en] U: write me a poem about the sea
-     T: I can't do that.                          → unhandled · catch-all
+     T: I can't write new text.                   → unhandled · generative
 
 [es] U: asdkjh qwe
-     T: No sé hacer eso.                          → unhandled · catch-all
+     T: No te he entendido.                       → unhandled · noise
 
 [es] U: ?
-     T: No sé hacer eso.                          → unhandled · catch-all
+     T: No te he entendido.                       → unhandled · noise
 
 Given: hint = en
 
 [en] U: blorp zzz
-     T: I can't do that.                          → unhandled · catch-all
+     T: I didn't understand that.                 → unhandled · noise
 
 Given: hint = none
 

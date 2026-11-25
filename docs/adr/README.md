@@ -23,6 +23,7 @@ decision that changes gets a new record that supersedes the old one.
 | [0013](0013-external-skills.md) | External skills, out of process | Accepted |
 | [0014](0014-mit-licence.md) | MIT licence | Accepted |
 | [0015](0015-language-detection.md) | Language detection: unambiguous words first, a two-class classifier second | Accepted |
+| [0016](0016-command-shortcuts.md) | Command shortcuts are part of the engine | Accepted |
 
 **Proposed** means written down and awaiting the owner's review. **Accepted**
 means agreed. Later states: **Superseded by NNNN**, **Rejected**.

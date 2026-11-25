@@ -28,12 +28,12 @@ macro_rules! skills {
 // The one shared line per skill: uncomment yours, in this order.
 skills! {
     smalltalk::Smalltalk,
-    // identity::Identity,
-    // help::Help,
-    // clock::Clock,
-    // calc::Calc,
-    // random::Random,
-    // fortune::Fortune,
+    identity::Identity,
+    help::Help,
+    clock::Clock,
+    calc::Calc,
+    random::Random,
+    fortune::Fortune,
 }
 
 /// The embedded manifests as (directory name, TOML text), by directory name.

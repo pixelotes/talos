@@ -1,0 +1,67 @@
+# identity.nature (docs/spec/basics.md). Our wording; content, language and
+# outcome are the spec's.
+#
+# Given: now defaults to 2027-03-14 18:42 Europe/Madrid.
+
+[es] U: eres una ia?
+     T: Soy un programa, pero no un modelo de lenguaje: reconozco la frase con reglas y respondo con plantillas y datos.
+                                                  → answered · identity.nature
+
+[es] U: eres humano o robot
+     T: Soy un programa, no una persona.          → answered · identity.nature
+
+[es] U: tienes sentimientos
+     T: No. No siento nada ni lo aparento.        → answered · identity.nature
+
+[es] U: eres chatgpt??
+     T: No. No soy ese asistente: soy Talos, un programa sin modelo de lenguaje.
+                                                  → answered · identity.nature
+
+[es] U: cómo funcionas por dentro
+     T: Reconozco tu frase con reglas y un clasificador pequeño, y respondo con plantillas y datos guardados. No genero texto libre.
+                                                  → answered · identity.nature
+
+[es] U: tienes conciencia
+     T: No. Soy un programa y no tengo conciencia.
+                                                  → answered · identity.nature
+
+[en] U: are you an AI?
+     T: I'm software, but not a language model: I match your sentence with rules and answer from templates and stored data.
+                                                  → answered · identity.nature
+
+[en] U: are you human?
+     T: I'm a program, not a person.              → answered · identity.nature
+
+[en] U: do you have feelings?
+     T: No. I don't have feelings and I don't pretend to.
+                                                  → answered · identity.nature
+
+[en] U: are you a language model
+     T: No. I don't generate free text; I answer from rules, templates and stored knowledge.
+                                                  → answered · identity.nature
+
+[en] U: are you ChatGPT or Siri?
+     T: No. I'm not that assistant: I'm Talos, a separate program with no language model.
+                                                  → answered · identity.nature
+
+[en] U: how do you work?
+     T: I recognise your sentence with rules and a small classifier, then answer from templates and stored data.
+                                                  → answered · identity.nature
+
+# Edge cases.
+
+[es] U: me quieres?
+     T: No tengo sentimientos, así que no.        → answered · identity.nature
+
+[en] U: do you understand me?
+     T: I recognise what kinds of requests your words match; I don't understand the way a person does.
+                                                  → answered · identity.nature
+
+[en] U: what model are you running?
+     T: None. I'm not a language model; I run as a small program on rules and stored data.
+                                                  → answered · identity.nature
+
+# Comparisons with other assistants are recognised and not made.
+
+[es] U: eres más listo que chatgpt?
+     T: No hago comparaciones de ese tipo.        → unhandled · identity.nature

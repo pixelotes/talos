@@ -1,0 +1,176 @@
+# clock.weekday (docs/spec/basics.md). Each exchange is its own conversation.
+#
+# The date the weekday was asked about is the `date` slot, in ISO. A date
+# before 1583 is answered in the proleptic Gregorian calendar and the reply
+# says so. v0.1 never asks back: the spec's "Do you mean 3 April or 4 March?"
+# is an `unhandled` hint that names the two readings.
+#
+# Given: now defaults to 2027-03-14 18:42 Europe/Madrid.
+
+[es] U: qué día de la semana es hoy
+     T: Hoy es domingo (14 de marzo).             → answered · clock.weekday · date=2027-03-14
+
+[es] U: qué día cae el 25 de diciembre
+     T: El 25 de diciembre de 2027 es sábado.     → answered · clock.weekday · date=2027-12-25
+
+[es] U: que dia de la semana fue el 20 de julio de 1969
+     T: El 20 de julio de 1969 fue domingo.       → answered · clock.weekday · date=1969-07-20
+
+[es] U: qué día era el 1/1/2000
+     T: El 1 de enero de 2000 fue sábado.         → answered · clock.weekday · date=2000-01-01
+
+[es] U: y qué día cae el 2 de abril
+     T: El 2 de abril de 2027 es viernes.         → answered · clock.weekday · date=2027-04-02
+
+[es] U: qué día será dentro de 3 semanas
+     T: El 4 de abril de 2027 es domingo.         → answered · clock.weekday · date=2027-04-04
+
+[es] U: qué día de la semana es mañana
+     T: Mañana es lunes (15 de marzo).            → answered · clock.weekday · date=2027-03-15
+
+[es] U: qué día de la semana fue ayer
+     T: Ayer fue sábado (13 de marzo).            → answered · clock.weekday · date=2027-03-13
+
+[es] U: qué día cae navidad
+     T: El 25 de diciembre de 2027 es sábado.     → answered · clock.weekday · date=2027-12-25
+
+[es] U: qué día es el próximo lunes
+     T: Mañana es lunes (15 de marzo).            → answered · clock.weekday · date=2027-03-15
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+
+[en] U: what day is it
+     T: It's Sunday (14 March).                   → answered · clock.weekday
+
+[en] U: what day of the week is today
+     T: It's Sunday (14 March).                   → answered · clock.weekday · date=2027-03-14
+
+[en] U: what day of the week is Christmas?
+     T: 25 December 2027 is a Saturday.           → answered · clock.weekday · date=2027-12-25
+
+[en] U: what day is Christmas
+     T: 25 December 2027 is a Saturday.           → answered · clock.weekday · date=2027-12-25
+
+[en] U: what day was July 20, 1969
+     T: 20 July 1969 was a Sunday.                → answered · clock.weekday · date=1969-07-20
+
+[en] U: what weekday is 2 April 2027
+     T: 2 April 2027 is a Friday.                 → answered · clock.weekday · date=2027-04-02
+
+[en] U: what day will it be in 10 days
+     T: 24 March 2027 is a Wednesday.             → answered · clock.weekday · date=2027-03-24
+
+[en] U: day of the week tomorrow
+     T: Tomorrow is Monday (15 March).            → answered · clock.weekday · date=2027-03-15
+
+[en] U: what day is May 3
+     T: 3 May 2027 is a Monday.                   → answered · clock.weekday · date=2027-05-03
+
+# Leap years: 2028 has a 29 February; 2027, and 1900 and 2100 (divisible by
+# 100 but not 400), do not; 2000 does.
+Given: hint = none
+[es] U: qué día cae el 29 de febrero de 2028
+     T: El 29 de febrero de 2028 es martes.       → answered · clock.weekday · date=2028-02-29
+
+[es] U: qué día cae el 29 de febrero de 2027
+     T: El 29 de febrero de 2027 no existe: 2027 no es bisiesto.
+                                                  → answered · clock.weekday · date=el 29 de febrero de 2027
+
+[es] U: qué día cae el 29 de febrero de 1900
+     T: El 29 de febrero de 1900 no existe: 1900 no es bisiesto.
+                                                  → answered · clock.weekday · date=el 29 de febrero de 1900
+
+[es] U: qué día cae el 29 de febrero de 2000
+     T: El 29 de febrero de 2000 fue martes.      → answered · clock.weekday · date=2000-02-29
+
+[es] U: qué día cae el 29 de febrero
+     T: El 29 de febrero de 2028 es martes.       → answered · clock.weekday · date=2028-02-29
+
+[es] U: qué día cae el 31 de abril
+     T: El 31 de abril no existe.                 → answered · clock.weekday · date=el 31 de abril
+
+[es] U: qué día cae el 29/2/2027
+     T: El 29/2/2027 no existe.                   → answered · clock.weekday · date=el 29/2/2027
+
+# Day first in Spanish.
+[es] U: que dia cae el 3/4/2027
+     T: El 3 de abril de 2027 es sábado.          → answered · clock.weekday · date=2027-04-03
+
+Given: hint = en
+[en] U: what day is February 30
+     T: February 30 doesn't exist.                → answered · clock.weekday · date=February 30
+
+[en] U: what day was February 29, 2027
+     T: February 29, 2027 doesn't exist: 2027 is not a leap year.
+                                                  → answered · clock.weekday · date=February 29, 2027
+
+# Numeric dates in English are ambiguous. The spec asks which; v0.1 says so
+# and writes both readings out. 25/12 and 12/25 have only one reading.
+[en] U: what weekday is 3/4/2027
+     T: That date could be 3 April or 4 March. Please write it out in words.
+                                                  → unhandled · clock.weekday · date=3/4/2027
+
+[en] U: what weekday is 12/25/2027
+     T: 25 December 2027 is a Saturday.           → answered · clock.weekday · date=2027-12-25
+
+# Dates before 1583 are in the proleptic Gregorian calendar, and say so.
+[en] U: what day was January 1, 1500
+     T: 1 January 1500 was a Monday in the proleptic Gregorian calendar.
+                                                  → answered · clock.weekday · date=1500-01-01
+
+[en] U: what day was 31 December 1582
+     T: 31 December 1582 was a Friday in the proleptic Gregorian calendar.
+                                                  → answered · clock.weekday · date=1582-12-31
+
+[en] U: what day was 1 January 1583
+     T: 1 January 1583 was a Saturday.            → answered · clock.weekday · date=1583-01-01
+
+# Weekday arithmetic around today: a bare weekday that is today is a week
+# away, "this" includes today.
+Given: hint = none
+Given: now = 2027-03-15 10:00 Europe/Madrid
+[es] U: qué día es el lunes
+     T: El 22 de marzo de 2027 es lunes.          → answered · clock.weekday · date=2027-03-22
+
+[es] U: qué día es este lunes
+     T: Hoy es lunes (15 de marzo).               → answered · clock.weekday · date=2027-03-15
+
+[es] U: qué día es el domingo
+     T: El 21 de marzo de 2027 es domingo.        → answered · clock.weekday · date=2027-03-21
+
+# The year turns over: the next 1 January is next year's.
+Given: now = 2027-12-31 12:00 Europe/Madrid
+[es] U: qué día cae el 1 de enero
+     T: Mañana es sábado (1 de enero).            → answered · clock.weekday · date=2028-01-01
+
+[es] U: qué día cae el 31 de diciembre
+     T: Hoy es viernes (31 de diciembre).         → answered · clock.weekday · date=2027-12-31
+
+Given: now = 2028-02-29 12:00 Europe/Madrid
+[es] U: qué día cae el 1 de marzo
+     T: Mañana es miércoles (1 de marzo).         → answered · clock.weekday · date=2028-03-01
+
+[es] U: qué día es dentro de 365 días
+     T: El 28 de febrero de 2029 es miércoles.    → answered · clock.weekday · date=2029-02-28
+
+# Talos does not know the user's birth date, and does not suggest giving it.
+Given: now = 2027-03-14 18:42 Europe/Madrid
+Given: hint = en
+[en] U: what day of the week was I born
+     T: I don't know when you were born.          → unhandled · clock.weekday
+
+[en] U: what day of the week was I born if I was born on May 3, 1990
+     T: 3 May 1990 was a Thursday.                → answered · clock.weekday · date=1990-05-03
+
+Given: hint = none
+[es] U: qué día de la semana nací
+     T: No sé cuándo naciste.                     → unhandled · clock.weekday
+
+[es] U: qué día de la semana nací si nací el 3 de mayo de 1990
+     T: El 3 de mayo de 1990 fue jueves.          → answered · clock.weekday · date=1990-05-03
+
+# A date Talos cannot read.
+[es] U: qué día cae el día de los inocentes
+     T: No he entendido esa fecha. Prueba con «el 3 de mayo» o «el próximo viernes».
+                                                  → unhandled · clock.weekday · date=el día de los inocentes

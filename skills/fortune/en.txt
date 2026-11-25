@@ -1,0 +1,50 @@
+# Sayings for the `fortune` skill, one per line. Original text, written in English;
+# a few traditional anonymous proverbs come last. Lines starting with # and blank
+# lines are ignored.
+A kettle watched boils at the same speed as one ignored.
+The longest ladder still starts on the ground.
+Every lock was made by someone who hoped to be outwitted by a key.
+A map is only a very patient opinion about the land.
+The tide keeps no appointments and is never late.
+Rain on the roof is the cheapest orchestra there is.
+A sharp pencil forgives a great many untidy thoughts.
+The last biscuit is always the one someone was saving.
+Bridges are mostly agreements between two banks.
+A door left ajar has never once argued with the draught.
+The quietest clock still gets the hour right.
+Tea cools at the rate of the conversation, never faster.
+A lighthouse does not chase ships; it simply stays lit.
+Between the seed and the shade lies a great deal of weather.
+The shortcut is the long way with a better advertisement.
+A fence mends faster than the quarrel over it.
+Even a crooked path has footprints on it.
+The thread you keep is the thread you will need.
+A full moon is a lamp nobody remembered to switch off.
+The tallest tree began as an acorn with a plan.
+Where the river bends, the town was usually built.
+A small spanner has saved more evenings than a large speech.
+Snow lies evenly, which is more than can be said for the shovelling.
+The best umbrella is the one packed before the forecast.
+No wall is so high that the wind forgets it.
+An empty notebook is a kind of promise nobody has broken yet.
+The compass has never once asked for directions.
+Small stones make the loudest splash in a quiet pond.
+A recipe is a story told in teaspoons.
+The tortoise did not win by speed; it won by showing up to the race.
+A candle loses nothing by lighting another.
+The oven does not hurry for the bread's sake.
+Salt makes the sea big and the soup right.
+Anchors are heavy so that the rest of the ship need not be.
+A new broom finds the old dust.
+Whoever stacks the firewood in summer burns warm in January.
+The post arrives when the post arrives.
+A rolling stone gathers no moss, but it does gather scratches.
+The stitch in time saves nine.
+The early bird catches the worm.
+Rome was not built in a day.
+Don't count your chickens before they hatch.
+Many hands make light work.
+Too many cooks spoil the broth.
+Every cloud has a silver lining.
+A bird in the hand is worth two in the bush.
+Fortune favours the prepared.

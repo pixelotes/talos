@@ -89,6 +89,8 @@ Recognition that generalises, and multi-turn exchanges.
 - Classifier inference in Rust; thresholds and margin; out-of-scope class.
 - Typed slot extractors for both languages.
 - Pending dialog: expectations, expiry, cancellation, release.
+- Command shortcuts (`/calc 1 + 2`, `/tiempo Valencia`) declared in the
+  manifests ([ADR 0016](adr/0016-command-shortcuts.md)); `/help` lists them.
 - User-correction table.
 - `talos eval` with accuracy, false-accept rate and catch-all rate; CI floors.
 - `timezones` and `preferences` skills (they exercise slots and state).

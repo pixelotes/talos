@@ -75,11 +75,11 @@ courtesy = false                              # see §2.4; only greetings and th
 
   [[intent.pattern]]
   lang = "es"
-  regex = '^que dia (?:de la semana )?(?:es|cae|sera)(?: (?P<date>.+?))?[\s?.!]*$'
+  regex = '^que dia (?:de la semana )?(?:es|cae|sera)(?: (?<date>.+?))?[\s?.!]*$'
 
   [[intent.pattern]]
   lang = "en"
-  regex = '^what day (?:of the week )?is (?P<date>.+?)[\s?.!]*$'
+  regex = '^what day (?:of the week )?is (?<date>.+?)[\s?.!]*$'
   slots = { }                                 # fixed values for declared term slots
 
 [reply.weekday]
@@ -119,7 +119,7 @@ and `ü`→`u` follow the same rule: `ñ` never appears in a pattern.
 
 ### 2.2 Slots
 
-Every named capture `(?P<name>…)` must be a declared slot, and every fixed
+Every named capture `(?<name>…)` must be a declared slot, and every fixed
 value in a pattern's `slots = { … }` must be a declared `term` slot.
 Captures are turned into typed values before your handler runs:
 

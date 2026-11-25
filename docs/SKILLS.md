@@ -79,6 +79,10 @@ Rules that follow from the format:
 - **The help answer is generated** from `summary`, so "what can you do?"
   cannot drift from what is installed.
 
+**Planned for v0.2:** an intent may declare a command shortcut — a name per
+language and the slot that receives the rest of the line
+([ADR 0016](adr/0016-command-shortcuts.md)). Not in the manifest format yet.
+
 `talos skills check` validates every manifest together with its handler.
 Errors (exit status 1): the manifest does not parse (schema, a missing
 language, a bad template or slot type); the id differs from the directory; a

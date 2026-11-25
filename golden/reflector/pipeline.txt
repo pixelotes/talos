@@ -1,0 +1,48 @@
+# The reflector and the safety check in the pipeline (docs/spec/reflector.md
+# 2 and 6, conversation.md 3.9). Written for this repository, not taken
+# from the spec's examples.
+
+# The safety check runs whatever the turn's language, and takes the place
+# named in the message before the caller's.
+Given: place = none
+[es] U: estoy en Bilbao y ya no quiero vivir
+     T: Esto no puedo atenderlo yo, y es importante. Si estás en peligro, llama al 112; también tienes el 024, a cualquier hora.
+                                                  → unhandled · distress
+
+Given: place = Europe/Madrid
+[en] U: i'm going to kill myself
+     T: I can't help with this, and it matters. If you're in danger, call 112 now; you can also call 024, any hour.
+                                                  → unhandled · distress
+
+Given: place = Lisboa
+[es] U: me quiero matar
+     T: Esto no puedo atenderlo yo, y es importante. Si estás en peligro, llama a tu número local de emergencias ahora mismo.
+                                                  → unhandled · distress
+Given: place = none
+
+# Idioms are not distress.
+[es] U: me muero de risa contigo
+     T: No te he entendido.                       → unhandled · catch-all
+
+# The same message twice: the same shape, another wording, no comment.
+[es] U: mi gata duerme encima del teclado
+     T: ¿Tu gata duerme encima del teclado? ¿Y eso?
+                                                  → deflected · third-party
+[es] U: mi gata duerme encima del teclado
+     T: Tu gata duerme encima del teclado.        → deflected · third-party
+
+# Several sentences: the highest-ranked shape anywhere wins.
+[es] U: jajaja. ¿quién inventó la fregona?
+     T: No lo sé.                                 → unhandled · unknown-fact
+
+# A shape recognised in the other language is answered in the turn's
+# language, without an echo.
+Given: hint = en
+[en] U: jajajaja
+     T: Ha.                                       → deflected · exclaim
+Given: hint = none
+
+# Long or pasted text is not looked into.
+[es] U: el ayuntamiento informa de que a partir del próximo lunes quedarán cortadas al tráfico las calles del centro histórico entre las ocho de la mañana y las diez de la noche con motivo de las obras de renovación del alcantarillado y la pavimentación de las aceras que se prolongarán durante aproximadamente tres meses según el calendario previsto por los técnicos municipales
+     T: Eso es demasiado texto para mí: no analizo ni resumo textos.
+                                                  → unhandled · long-text

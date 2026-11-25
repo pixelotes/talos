@@ -1,0 +1,504 @@
+# calc: arithmetic, percentages and unit conversion (docs/spec/basics.md, `calc`).
+#
+# Patterns match the match form (lower case, no accents), so they are written
+# without accents. Priorities: a percentage question (70) beats a conversion
+# (60), which beats arithmetic (50); "50 + 10%" and "5 km a millas" are not
+# arithmetic. Arithmetic rules only find the expression: the handler parses
+# it itself (precedence, spoken operators, number words) and declines text
+# that is not a calculation. Percentage rules fix the internal `shape` slot
+# that says which of the five questions was asked. v0.1 has no open
+# questions: a request missing something gets a usage hint.
+
+[skill]
+id = "calc"
+summary.es = "cuentas, porcentajes y conversiones de unidades"
+summary.en = "arithmetic, percentages and unit conversion"
+names.es = ["calculadora", "cuentas", "conversiones", "calc"]
+names.en = ["calculator", "calc", "conversions", "unit conversion"]
+help.es = ["cuánto es 3 por 4", "el 15% de 80", "5 km a millas"]
+help.en = ["what's 3 times 4", "15% of 80", "5 km in miles"]
+
+[[intent]]
+id = "calc.arithmetic"
+priority = 40
+courtesy = false
+
+  [intent.examples]
+  es = ["cuánto es 2+2", "(3 + 4) * 5", "tres por cuatro", "calcula 2 + 3 * 4", "raíz cuadrada de 144", "2 elevado a 10", "cuánto da 10 entre 4"]
+  en = ["what's 12 times 12", "7 + 8 * 2", "three times four", "100 divided by 8", "sqrt(81)", "2 to the power of 8", "what is 9 squared"]
+
+  [[intent.slot]]
+  name = "expression"
+  type = "term"
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:cuanto\s+(?:es|son|seria|da|vale)|calcula(?:me)?|dime|cual\s+es)\s+(?<expression>(?:[^\d]{0,24}\d|(?:raiz|sqrt|square\s+root|cube\s+root|(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero))\b).*?)[\s=?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?<expression>[-+(]*\s*(?:\d|(?:raiz|sqrt|(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero))\b).*?)[\s=?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:calcula(?:me)?|calcular|haz\s+una\s+cuenta)[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+(?<expression>(?:[^\d]{0,24}\d|(?:sqrt|square\s+root|cube\s+root|(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero))\b).*?)[\s=?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?<expression>[-+(]*\s*(?:\d|(?:sqrt|square\s+root|cube\s+root|(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero))\b).*?)[\s=?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:calculate|compute|do\s+some\s+math)[\s?.!]*$'''
+
+[[intent]]
+id = "calc.percent"
+priority = 70
+courtesy = false
+
+  [intent.examples]
+  es = ["el 15% de 80", "qué porcentaje es 20 de 50", "80 más un 15%", "50 euros con un 20% de descuento", "de 50 a 65 cuánto ha subido en porcentaje", "20 es el 40% de qué número", "la propina del 10% de 45"]
+  en = ["what is 15% of 80", "what percent is 20 of 50", "increase 80 by 15%", "$50 with 20% off", "percent change from 50 to 65", "20 is 40% of what", "20% tip on 45"]
+
+  [[intent.slot]]
+  name = "percent"
+  type = "number"
+
+  [[intent.slot]]
+  name = "amount"
+  type = "number"
+
+  [[intent.slot]]
+  name = "part"
+  type = "number"
+
+  [[intent.slot]]
+  name = "whole"
+  type = "number"
+
+  [[intent.slot]]
+  name = "from"
+  type = "number"
+
+  [[intent.slot]]
+  name = "to"
+  type = "number"
+
+  [[intent.slot]]
+  name = "shape"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "op"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "tax"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "unit"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "sym"
+  type = "term"
+  internal = true
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:cuanto\s+(?:es|son|seria|da|vale)|calcula(?:me)?|dime|cual\s+es)\s+)?(?:el\s+|un\s+)?(?<percent>\d[\d.,]*)\s*(?:%|por\s*ciento)\s+(?:de|del)\s+(?<amount>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "of" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:cuanto\s+(?:es|son|seria|da|vale)|calcula(?:me)?|dime|cual\s+es)\s+)?(?:el\s+|un\s+)?(?<percent>\d[\d.,]*)\s*(?:%|por\s*ciento)\s+(?:de|del)?[\s?.!]*$'''
+  slots = { shape = "of" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+)?(?<percent>\d[\d.,]*)\s*(?:%|percent|per\s*cent)\s+of\s+(?<amount>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "of" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+)?(?<percent>\d[\d.,]*)\s*(?:%|percent|per\s*cent)\s+of[\s?.!]*$'''
+  slots = { shape = "of" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:cuanto\s+(?:es|son|seria|da|vale)|calcula(?:me)?|dime|cual\s+es)\s+)?que\s+(?:porcentaje|%)\s+(?:es|son|supone|representa)\s+(?<part>-?\d[\d.,]*)\s+(?:de|sobre|respecto\s+a)\s+(?<whole>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "part_of_whole" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:cuanto\s+(?:es|son|seria|da|vale)|calcula(?:me)?|dime|cual\s+es)\s+)?que\s+porcentaje\s+de\s+(?<whole>-?\d[\d.,]*)\s+(?:es|son|supone|representa)\s+(?<part>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "part_of_whole" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?<part>-?\d[\d.,]*)\s+es\s+que\s+porcentaje\s+de\s+(?<whole>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "part_of_whole" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+)?what\s+percent(?:age)?\s+(?:is|are)\s+(?<part>-?\d[\d.,]*)\s+(?:of|from)\s+(?<whole>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "part_of_whole" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+)?what\s+percent(?:age)?\s+of\s+(?<whole>-?\d[\d.,]*)\s+(?:is|are)\s+(?<part>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "part_of_whole" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?<part>-?\d[\d.,]*)\s+is\s+what\s+percent(?:age)?\s+of\s+(?<whole>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "part_of_whole" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:cuanto\s+(?:es|son|seria|da|vale)|calcula(?:me)?|dime|cual\s+es)\s+)?(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?\s*(?<op>mas|menos|\+|-)\s*(?:un\s+|el\s+)?(?<percent>\d[\d.,]*)\s*(?:%|por\s*ciento)(?:\s+de\s+(?<tax>iva))?[\s?.!]*$'''
+  slots = { shape = "adjust" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?<op>sube|aumenta|incrementa|baja|reduce|disminuye|rebaja)(?:le)?\s+(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?\s+(?:un\s+|el\s+|en\s+(?:un\s+)?)?(?<percent>\d[\d.,]*)\s*(?:%|por\s*ciento)[\s?.!]*$'''
+  slots = { shape = "adjust" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?\s+(?:con|tras)\s+(?:un\s+)?(?<percent>\d[\d.,]*)\s*(?:%|por\s*ciento)\s+de\s+descuento[\s?.!]*$'''
+  slots = { shape = "adjust", op = "discount" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?\s+(?:con|tras)\s+(?:un\s+)?descuento\s+(?:del?\s+)?(?<percent>\d[\d.,]*)\s*(?:%|por\s*ciento)[\s?.!]*$'''
+  slots = { shape = "adjust", op = "discount" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:un\s+)?descuento\s+(?:del?\s+)?(?<percent>\d[\d.,]*)\s*(?:%|por\s*ciento)\s+(?:sobre|a|en|de)\s+(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?[\s?.!]*$'''
+  slots = { shape = "adjust", op = "discount" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?<op>anade|suma|pon|agrega)\s+(?:el\s+)?(?<tax>iva)\s+a\s+(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?[\s?.!]*$'''
+  slots = { shape = "adjust" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+)?(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?\s*(?<op>plus|minus|\+|-)\s*(?<percent>\d[\d.,]*)\s*(?:%|percent|per\s*cent)(?:\s+(?<tax>vat|tax))?[\s?.!]*$'''
+  slots = { shape = "adjust" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?<op>increase|raise|decrease|reduce|lower|cut)\s+(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?\s+by\s+(?<percent>\d[\d.,]*)\s*(?:%|percent|per\s*cent)[\s?.!]*$'''
+  slots = { shape = "adjust" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?\s+(?:with|at|after)\s+(?:a\s+)?(?<percent>\d[\d.,]*)\s*(?:%|percent|per\s*cent)\s+(?:off|discount)[\s?.!]*$'''
+  slots = { shape = "adjust", op = "discount" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?<percent>\d[\d.,]*)\s*(?:%|percent|per\s*cent)\s+off\s+(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?[\s?.!]*$'''
+  slots = { shape = "adjust", op = "discount" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:add\s+)?(?<tax>vat)\s+to\s+(?:(?<sym>[$€£])\s*)?(?<amount>-?\d[\d.,]*)(?:\s*(?<unit>€|\$|£|euros?|dolares?|dollars?|eur|usd|pounds?|gbp))?[\s?.!]*$'''
+  slots = { shape = "adjust" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:cual\s+es\s+)?(?:la\s+)?variacion\s+porcentual\s+)?de\s+(?<from>-?\d[\d.,]*)\s+a\s+(?<to>-?\d[\d.,]*)(?:\s+cuanto\s+(?:ha\s+|han\s+)?[a-z]+)?(?:\s+en)?\s+porcentaje[\s?.!]*$'''
+  slots = { shape = "change" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:what(?:'s|\s+is)\s+the\s+)?percent(?:age)?\s+(?:change|difference)\s+(?:from|between)\s+(?<from>-?\d[\d.,]*)\s+(?:to|and)\s+(?<to>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "change" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:from\s+)?(?<from>-?\d[\d.,]*)\s+to\s+(?<to>-?\d[\d.,]*)\s+percent(?:age)?\s+change[\s?.!]*$'''
+  slots = { shape = "change" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?<part>-?\d[\d.,]*)\s+es\s+(?:el\s+|un\s+)?(?<percent>\d[\d.,]*)\s*(?:%|por\s*ciento)\s+de\s+(?:que\s+(?:numero|cantidad)|cuanto)[\s?.!]*$'''
+  slots = { shape = "whole" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?<part>-?\d[\d.,]*)\s+is\s+(?<percent>\d[\d.,]*)\s*(?:%|percent|per\s*cent)\s+of\s+(?:what|what\s+number|which\s+number)[\s?.!]*$'''
+  slots = { shape = "whole" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:cuanto\s+(?:es|son|seria|da|vale)|calcula(?:me)?|dime|cual\s+es)\s+)?(?:la\s+)?propina\s+(?:del?\s+)?(?<percent>\d[\d.,]*)\s*(?:%|por\s*ciento)\s+(?:de|sobre)\s+(?<amount>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "tip" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+)?(?:a\s+|the\s+)?(?<percent>\d[\d.,]*)\s*(?:%|percent|per\s*cent)\s+tip\s+(?:on|of|for)\s+(?<amount>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "tip" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+)?(?:a\s+|the\s+)?tip\s+of\s+(?<percent>\d[\d.,]*)\s*(?:%|percent|per\s*cent)\s+(?:on|of|for)\s+(?<amount>-?\d[\d.,]*)[\s?.!]*$'''
+  slots = { shape = "tip" }
+
+[[intent]]
+id = "calc.convert"
+priority = 60
+courtesy = false
+
+  [intent.examples]
+  es = ["5 km a millas", "convierte 100 grados fahrenheit a celsius", "cuántos litros son 3 galones", "pasa 2 GB a MB", "cuántos segundos hay en una hora", "una libra en gramos", "100 km/h en mph"]
+  en = ["convert 10 miles to km", "72 F to C", "how many ounces in a pound", "5 feet in cm", "3 gallons in liters", "how many seconds in a day", "60 mph to km/h"]
+
+  [[intent.slot]]
+  name = "amount"
+  type = "term"
+
+  [[intent.slot]]
+  name = "from"
+  type = "term"
+
+  [[intent.slot]]
+  name = "to"
+  type = "term"
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:convierte(?:me)?|convertir|pasa(?:me)?|cambia|cuanto\s+(?:es|son|equivale(?:n)?|serian?|hacen))\s+)?(?<amount>[-+]?\d[\d.,]*(?:e[-+]?\d+)?|(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero)(?:\s+(?:y\s+)?(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero))*)(?:\s+de)?\s+(?<from>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)\s+(?:a|en|->)\s+(?<to>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*cuant[oa]s\s+(?<to>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)\s+(?:son|hay\s+en|caben\s+en|es|tiene|tienen|equivalen\s+a|hay)\s+(?:en\s+)?(?<amount>[-+]?\d[\d.,]*(?:e[-+]?\d+)?|(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero)(?:\s+(?:y\s+)?(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero))*)(?:\s+de)?\s+(?<from>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:convierte(?:me)?|convertir|pasa(?:me)?)\s+(?<amount>[-+]?\d[\d.,]*(?:e[-+]?\d+)?|(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero)(?:\s+(?:y\s+)?(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero))*)(?:\s+de)?\s+(?<from>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*(?:(?:convert|change|express|what(?:'s|\s+is|\s+are)|how\s+much\s+(?:is|are))\s+)?(?<amount>[-+]?\d[\d.,]*(?:e[-+]?\d+)?|(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero)(?:\s+(?:and\s+)?(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero))*)\s+(?<from>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)\s+(?:to|in|into|as|->)\s+(?<to>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*how\s+many\s+(?<to>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)\s+(?:are\s+|is\s+)?(?:there\s+)?in\s+(?:(?<amount>[-+]?\d[\d.,]*(?:e[-+]?\d+)?|(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero)(?:\s+(?:and\s+)?(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero))*)\s+)?(?<from>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^[\s¿]*convert\s+(?<amount>[-+]?\d[\d.,]*(?:e[-+]?\d+)?|(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero)(?:\s+(?:and\s+)?(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero))*)\s+(?<from>[a-z°$€£/][a-z0-9°/.^$€£]*(?:\s+[a-z.]+)?)[\s?.!]*$'''
+
+[reply.value]
+es = ["{expr} = {result}."]
+en = ["{expr} = {result}."]
+
+[reply.approx]
+es = ["{expr} ≈ {result}."]
+en = ["{expr} ≈ {result}."]
+
+[reply.value_read]
+es = ["{expr} = {result} (he leído {raw} como {read})."]
+en = ["{expr} = {result} (I read {raw} as {read})."]
+
+[reply.approx_read]
+es = ["{expr} ≈ {result} (he leído {raw} como {read})."]
+en = ["{expr} ≈ {result} (I read {raw} as {read})."]
+
+[reply.value_reads]
+es = ["{expr} = {result} (he leído {readings})."]
+en = ["{expr} = {result} (I read {readings})."]
+
+[reply.approx_reads]
+es = ["{expr} ≈ {result} (he leído {readings})."]
+en = ["{expr} ≈ {result} (I read {readings})."]
+
+[reply.div_zero]
+es = ["No se puede dividir entre cero."]
+en = ["You can't divide by zero."]
+
+[reply.zero_over_zero]
+es = ["Cero entre cero no está definido."]
+en = ["Zero divided by zero is undefined."]
+
+[reply.no_real_root]
+es = ["{radicand} no tiene raíz cuadrada real."]
+en = ["{radicand} has no real square root."]
+
+[reply.too_large]
+es = ["El resultado es demasiado grande para calcularlo."]
+en = ["That is too large for me to calculate."]
+
+[reply.unsupported_power]
+es = ["No sé calcular esa potencia."]
+en = ["I can't calculate that power."]
+
+[reply.arithmetic_usage]
+es = ["¿Qué quieres calcular? Prueba con «cuánto es 3 por 4»."]
+en = ["What should I calculate? Try \"what's 3 times 4\"."]
+
+[reply.incomplete]
+es = ["Esa cuenta está incompleta: falta un número."]
+en = ["That calculation is incomplete: a number is missing."]
+
+[reply.implicit_multiplication]
+es = ["Escribe la multiplicación con un signo, por ejemplo 2 × (2 + 2)."]
+en = ["Write the multiplication with a sign, for example 2 × (2 + 2)."]
+
+[reply.bad_number]
+es = ["No he podido leer el número «{raw}»."]
+en = ["I couldn't read the number \"{raw}\"."]
+
+[reply.pct_of]
+es = ["El {percent} % de {amount} es {result}."]
+en = ["{percent}% of {amount} is {result}."]
+
+[reply.pct_is]
+es = ["{part} es el {percent} % de {whole}."]
+en = ["{part} is {percent}% of {whole}."]
+
+[reply.pct_raise]
+es = ["{amount} más un {percent} % es {result}."]
+en = ["{amount} plus {percent}% is {result}."]
+
+[reply.pct_lower]
+es = ["{amount} menos un {percent} % es {result}."]
+en = ["{amount} minus {percent}% is {result}."]
+
+[reply.pct_discount]
+es = ["Con un {percent} % de descuento, {amount} se quedan en {result}."]
+en = ["{amount} with {percent}% off is {result}."]
+
+[reply.pct_vat]
+es = ["{amount} más un {percent} % de IVA es {result}."]
+en = ["{amount} plus {percent}% VAT is {result}."]
+
+[reply.pct_up]
+es = ["Ha subido un {percent} %."]
+en = ["That's a {percent}% increase."]
+
+[reply.pct_down]
+es = ["Ha bajado un {percent} %."]
+en = ["That's a {percent}% decrease."]
+
+[reply.pct_same]
+es = ["No ha cambiado."]
+en = ["There is no change."]
+
+[reply.pct_whole]
+es = ["{part} es el {percent} % de {result}."]
+en = ["{part} is {percent}% of {result}."]
+
+[reply.pct_tip]
+es = ["La propina es {tip}; en total, {total}."]
+en = ["The tip is {tip}; the total is {total}."]
+
+[reply.pct_whole_zero]
+es = ["Un porcentaje de cero no está definido."]
+en = ["A percentage of zero is undefined."]
+
+[reply.pct_from_zero]
+es = ["Subir desde 0 no se puede expresar en porcentaje."]
+en = ["A change from zero can't be expressed as a percentage."]
+
+[reply.pct_percent_zero]
+es = ["Ningún número cumple eso: el 0 % de cualquier número es 0."]
+en = ["No number does: 0% of anything is 0."]
+
+[reply.pct_usage]
+es = ["Dime el porcentaje y la cantidad, por ejemplo «el 15% de 80»."]
+en = ["Give me the percentage and the amount, for example \"15% of 80\"."]
+
+[reply.pct_needs_rate]
+es = ["Dime el porcentaje, por ejemplo «100 más el 21% de IVA»: no supongo ninguna tasa."]
+en = ["Tell me the percentage, for example \"100 plus 21% VAT\": I don't assume a rate."]
+
+[reply.pct_bad_number]
+es = ["No he podido leer «{raw}»."]
+en = ["I couldn't read \"{raw}\"."]
+
+[reply.pct_too_large]
+es = ["Esos números son demasiado grandes para calcularlos."]
+en = ["Those numbers are too large for me to calculate."]
+
+[reply.convert]
+es = ["{amount} {from} son {result} {to}."]
+en = ["{amount} {from} is {result} {to}."]
+
+[reply.convert_read]
+es = ["{amount} {from} son {result} {to} (he leído {raw} como {read})."]
+en = ["{amount} {from} is {result} {to} (I read {raw} as {read})."]
+
+[reply.convert_degrees]
+es = ["{amount} {from} son {result} {to} (he entendido grados {degrees})."]
+en = ["{amount} {from} is {result} {to} (I took degrees as {degrees})."]
+
+[reply.convert_average]
+es = ["{amount} {from} son {result} {to} (de media)."]
+en = ["{amount} {from} is {result} {to} (on average)."]
+
+[reply.convert_binary]
+es = ["{amount} {from} son {result} {to} ({amount} {from_b} son {result_b} {to_b})."]
+en = ["{amount} {from} is {result} {to} ({amount} {from_b} is {result_b} {to_b})."]
+
+[reply.mismatch]
+es = ["{from_name} ({from_cat}) y {to_name} ({to_cat}) son magnitudes distintas: no se pueden convertir."]
+en = ["{from_name} ({from_cat}) and {to_name} ({to_cat}) are different kinds of quantity, so I can't convert between them."]
+
+[reply.below_zero]
+es = ["{amount} {from} está por debajo del cero absoluto, así que no tiene valor en {to_name}."]
+en = ["{amount} {from} is below absolute zero, so it has no {to_name} value."]
+
+[reply.unknown_unit]
+es = ["No conozco la unidad «{unit}»."]
+en = ["I don't know the unit \"{unit}\"."]
+
+[reply.currency]
+es = ["No convierto monedas: no tengo cotizaciones."]
+en = ["I don't convert currencies: I have no exchange rates."]
+
+[reply.area]
+es = ["No convierto áreas. Manejo longitud, masa, temperatura, volumen, tiempo, tamaño de datos y velocidad."]
+en = ["I don't convert areas. I handle length, mass, temperature, volume, time, data size and speed."]
+
+[reply.rate]
+es = ["No convierto tasas de datos. Manejo tamaños de datos, pero no por segundo."]
+en = ["I don't convert data rates. I handle data sizes, but not per-second rates."]
+
+[reply.other_category]
+es = ["No convierto esa magnitud. Manejo longitud, masa, temperatura, volumen, tiempo, tamaño de datos y velocidad."]
+en = ["I don't convert that kind of quantity. I handle length, mass, temperature, volume, time, data size and speed."]
+
+[reply.convert_usage]
+es = ["Dime qué convertir, por ejemplo «5 km a millas»."]
+en = ["Tell me what to convert, for example \"5 km in miles\"."]
+
+[reply.convert_target]
+es = ["¿A qué unidad? Por ejemplo «5 km a millas»."]
+en = ["Convert it to what? For example \"5 km in miles\"."]
+
+[reply.degrees_target]
+es = ["¿A qué unidad: Celsius, Fahrenheit o Kelvin?"]
+en = ["Which unit: Celsius, Fahrenheit or Kelvin?"]
+
+[reply.convert_bad_number]
+es = ["No he podido leer la cantidad «{raw}»."]
+en = ["I couldn't read the amount \"{raw}\"."]
+
+[reply.convert_too_large]
+es = ["Esa cantidad es demasiado grande para convertirla."]
+en = ["That amount is too large to convert."]

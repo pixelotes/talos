@@ -1,7 +1,6 @@
 # smalltalk: greetings (docs/spec/basics.md, `smalltalk`).
 #
-# Slice A ships `smalltalk.greet` only; bye, thanks and how_are_you follow in
-# Slice C. Patterns match the match form of the message (lower case,
+# Patterns match the match form of the message (lower case,
 # accents removed, whitespace collapsed; docs/SKILL_AUTHORING.md), so they are
 # written without accents: `dias` matches "días" and "dias". They are
 # anchored: a greeting followed by anything else is not a bare greeting.
@@ -88,6 +87,98 @@ courtesy = true
   regex = '^good\s+evening(?:[\s,]+talos)?[\s!?.]*$'
   slots = { daypart = "evening" }
 
+[[intent]]
+id = "smalltalk.bye"
+priority = 100
+courtesy = false
+
+  # "night" for "buenas noches"/"good night": answered in kind.
+  [[intent.slot]]
+  name = "kind"
+  type = "term"
+  internal = true
+
+  [intent.examples]
+  es = ["adiós", "hasta luego", "chao", "nos vemos", "me voy", "hasta mañana", "buenas noches"]
+  en = ["bye", "goodbye", "see you later", "gotta go", "cya", "good night", "talk to you later"]
+
+  # A farewell, optionally behind filler and a thanks ("gracias, adiós":
+  # one intent per turn, the farewell wins) and followed by more farewells
+  # ("chao, me voy"). "me voy a Sevilla" is a plan and does not match.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:(?:bueno|pues|vale|ok|bien|venga)[\s,]+)*(?:(?:muchas\s+)?gracias[\s,]+(?:y\s+)?)?(?:adios|chao+|chau|hasta\s+(?:luego|pronto|manana|la\s+proxima|la\s+vista)|nos\s+vemos(?:\s+luego|\s+pronto)?|me\s+voy)(?:[\s,]+(?:adios|chao+|chau|hasta\s+(?:luego|pronto|manana|la\s+proxima|la\s+vista)|nos\s+vemos(?:\s+luego|\s+pronto)?|me\s+voy|talos))*[\s!?.]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:(?:bueno|pues|vale|ok|bien|venga)[\s,]+)*(?:(?:muchas\s+)?gracias[\s,]+(?:y\s+)?)?(?:muy\s+)?buenas\s+noches(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { kind = "night" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:(?:ok|okay|well|alright|right|so)[\s,]+)*(?:(?:thanks|thank\s+you)[\s,]+(?:and\s+)?)?(?:bye+(?:[\s-]+bye)?|good\s?bye|see\s+(?:you|ya)(?:\s+(?:later|soon|tomorrow))?|gotta\s+go|got\s+to\s+go|i\s+have\s+to\s+go|cya|ttyl|talk\s+to\s+you\s+later|i(?:\x27m|m|\s+am)\s+(?:off|leaving))(?:[\s,]+(?:bye+|goodbye|cya|talos))*[\s!?.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:(?:ok|okay|well|alright|right|so)[\s,]+)*(?:(?:thanks|thank\s+you)[\s,]+(?:and\s+)?)?(?:good\s?night|night\s+night|i(?:\x27m|m|\s+am)\s+off\s+to\s+(?:bed|sleep))(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { kind = "night" }
+
+[[intent]]
+id = "smalltalk.thanks"
+priority = 100
+courtesy = true
+
+  [intent.examples]
+  es = ["gracias", "muchas gracias", "mil gracias", "grax", "vale, gracias", "te lo agradezco", "gracias por la ayuda"]
+  en = ["thanks", "thank you", "thanks a lot", "thx", "ty", "much appreciated", "thank you so much"]
+
+  # "no, gracias" is a refusal and deliberately has no pattern.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:(?:vale|ok|bueno|pues|genial|perfecto|bien)[\s,]+)*(?:(?:muchas|muchisimas|mil|un\s+monton\s+de)\s+)?gracias+(?:\s+por\s+(?:la|tu|su)\s+ayuda|\s+por\s+todo)?(?:[\s,]+talos)?[\s!?.]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:(?:vale|ok|bueno|pues|genial|perfecto|bien)[\s,]+)*(?:grax|grac|te\s+lo\s+agradezco|se\s+agradece|muy\s+amable)(?:[\s,]+talos)?[\s!?.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:(?:ok|okay|great|perfect|cool|alright)[\s,]+)*(?:thanks+|thank\s+(?:you|u)|thx|ty|tysm|cheers|much\s+appreciated|i\s+appreciate\s+it|appreciate\s+it)(?:\s+(?:so|very)\s+much|\s+a\s+lot|\s+a\s+bunch|\s+again)?(?:\s+for\s+(?:the|your)\s+help|\s+for\s+everything)?(?:[\s,]+talos)?[\s!?.]*$'
+
+[[intent]]
+id = "smalltalk.how_are_you"
+priority = 100
+courtesy = false
+
+  # "feelings" when the wording asks about feelings explicitly.
+  [[intent.slot]]
+  name = "topic"
+  type = "term"
+  internal = true
+
+  [intent.examples]
+  es = ["¿qué tal estás?", "cómo estás", "cómo andas", "¿todo bien?", "cómo te encuentras", "¿cómo va todo?", "qué tal"]
+  en = ["how are you", "how's it going", "how are you doing", "you good?", "what's up", "you ok?", "how are things with you"]
+
+  # "hola, ¿qué tal?" arrives here with the greeting dropped.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:(?:oye|oiga|dime)[\s,]+)?(?:que\s+tal(?:\s+(?:estas|andas|todo|te\s+va))?|como\s+(?:estas|andas|te\s+encuentras|te\s+va|va\s+todo|va|vas)|todo\s+bien|que\s+tal\s+estas)(?:\s+hoy)?(?:[\s,]+talos)?[\s!?.]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¡¿!\s]*(?:(?:oye|oiga|dime)[\s,]+)?como\s+te\s+sientes(?:\s+hoy)?(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { topic = "feelings" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:(?:hey|so|well)[\s,]+)?(?:how\s+(?:are|r)\s+(?:you|u)(?:\s+doing)?|how\x27?s\s+(?:it\s+going|everything|life)|how\s+are\s+things(?:\s+with\s+you)?|you\s+(?:good|ok|okay|alright)|are\s+you\s+(?:ok|okay|alright)|what\x27?s\s+up|whats\s+up)(?:\s+(?:today|now))?(?:[\s,]+talos)?(?:[\s,.!?]+(?:i\x27?m|i\s+am)\s+[a-z]+)?[\s!?.]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:(?:hey|so|well)[\s,]+)?(?:how\s+are\s+you\s+feeling|how\s+do\s+you\s+feel)(?:\s+(?:today|now))?(?:[\s,]+talos)?[\s!?.]*$'
+  slots = { topic = "feelings" }
+
 # Replies. The first variant is the one a conversation opens with.
 [reply.hello]
 es = ["¡Hola!", "¡Hola, buenas!"]
@@ -110,3 +201,24 @@ en = ["Good afternoon!"]
 [reply.evening]
 es = ["¡Buenas tardes!"]
 en = ["Good evening!"]
+
+[reply.bye]
+es = ["Hasta luego.", "Hasta pronto.", "Adiós."]
+en = ["Goodbye.", "See you.", "Bye."]
+
+[reply.night]
+es = ["Buenas noches."]
+en = ["Good night."]
+
+[reply.thanks]
+es = ["De nada.", "No hay de qué."]
+en = ["You're welcome.", "No problem."]
+
+# A factual status, never a mood: Talos has none to report.
+[reply.status]
+es = ["Funcionando con normalidad.", "Todo en orden por aquí."]
+en = ["Running normally.", "All running normally."]
+
+[reply.feelings]
+es = ["No tengo sentimientos. Funciono con normalidad."]
+en = ["I don't have feelings. I'm running normally."]

@@ -1,0 +1,235 @@
+# clock.now (docs/spec/basics.md). Each exchange is its own conversation, so
+# every reply is the canonical wording.
+#
+# Spanish writes no zero before hours 1 to 9 ("Es la 1:05", "Son las 9:05")
+# and says the singular only for hour one; English pads ("02:42"). Seconds
+# are dropped, never rounded up.
+#
+# Left out, with the reason:
+#   "qué hora es en Tokio", "what time is it in New York": timezones.time_in
+#     (another skill; no rule of clock reaches them).
+#   "avísame en 5 minutos": the spec's outcome is a bare `unhandled` with no
+#     intent, which no clock rule produces; the catch-all answers it.
+#
+# Given: now defaults to 2027-03-14 18:42 Europe/Madrid.
+
+[es] U: qué hora es
+     T: Son las 18:42.                            → answered · clock.now
+
+[es] U: me dices la hora?
+     T: Son las 18:42.                            → answered · clock.now
+
+[es] U: k hora es
+     T: Son las 18:42.                            → answered · clock.now
+
+[es] U: hora
+     T: Son las 18:42.                            → answered · clock.now
+
+[es] U: tienes hora
+     T: Son las 18:42.                            → answered · clock.now
+
+[es] U: dime la hora porfa
+     T: Son las 18:42.                            → answered · clock.now
+
+[es] U: ¿Qué hora es, por favor?
+     T: Son las 18:42.                            → answered · clock.now
+
+[es] U: qué hora es aquí
+     T: Son las 18:42.                            → answered · clock.now
+
+# A greeting in front is dropped.
+[es] U: hola, qué hora es
+     T: Son las 18:42.                            → answered · clock.now
+
+[es] U: qué hora será dentro de 3 horas
+     T: Dentro de 3 horas serán las 21:42.        → answered · clock.now · offset=3 h
+
+[es] U: qué hora será en 20 minutos
+     T: Dentro de 20 minutos serán las 19:02.     → answered · clock.now · offset=20 min
+
+[es] U: qué hora será dentro de una hora y media
+     T: Dentro de 1 hora y 30 minutos serán las 20:12.
+                                                  → answered · clock.now · offset=1 h 30 min
+
+[es] U: qué hora será dentro de media hora
+     T: Dentro de 30 minutos serán las 19:12.     → answered · clock.now · offset=30 min
+
+[es] U: qué hora será dentro de 6 horas
+     T: Dentro de 6 horas serán las 00:42 de mañana.
+                                                  → answered · clock.now · offset=6 h
+
+# More than a day ahead names the date.
+[es] U: qué hora será dentro de 2 días
+     T: Dentro de 2 días serán las 18:42 (martes, 16 de marzo de 2027).
+                                                  → answered · clock.now · offset=2 d
+
+[es] U: qué hora será dentro de unas cosas
+     T: No he entendido ese plazo. Prueba con «dentro de 3 horas».
+                                                  → unhandled · clock.now · offset=dentro de unas cosas
+
+# The other convention on request, for that reply only.
+[es] U: qué hora es en formato de 12 horas
+     T: Son las 6:42 pm.                          → answered · clock.now
+
+[es] U: qué hora es en formato de 24 horas
+     T: Son las 18:42.                            → answered · clock.now
+
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+
+[en] U: what time is it
+     T: It's 18:42.                               → answered · clock.now
+
+[en] U: got the time?
+     T: It's 18:42.                               → answered · clock.now
+
+[en] U: time?
+     T: It's 18:42.                               → answered · clock.now
+
+[en] U: what's the time
+     T: It's 18:42.                               → answered · clock.now
+
+[en] U: do you know what time it is right now
+     T: It's 18:42.                               → answered · clock.now
+
+[en] U: tell me the time please
+     T: It's 18:42.                               → answered · clock.now
+
+[en] U: what time is it where I am
+     T: It's 18:42.                               → answered · clock.now
+
+[en] U: what time is it here
+     T: It's 18:42.                               → answered · clock.now
+
+[en] U: what time will it be in 8 hours
+     T: In 8 hours it'll be 02:42 tomorrow.       → answered · clock.now · offset=8 h
+
+[en] U: what time will it be in half an hour
+     T: In 30 minutes it'll be 19:12.             → answered · clock.now · offset=30 min
+
+[en] U: what time will it be in an hour and a half
+     T: In 1 hour and 30 minutes it'll be 20:12.  → answered · clock.now · offset=1 h 30 min
+
+[en] U: what time will it be in 3 days
+     T: In 3 days it'll be 18:42 on Wednesday 17 March 2027.
+                                                  → answered · clock.now · offset=3 d
+
+[en] U: what time will it be in 90 minutes
+     T: In 1 hour and 30 minutes it'll be 20:12.  → answered · clock.now · offset=1 h 30 min
+
+[en] U: what time is it, in 12-hour format
+     T: It's 6:42 PM.                             → answered · clock.now
+
+[en] U: what time is it in 24-hour format
+     T: It's 18:42.                               → answered · clock.now
+
+# An offset Talos cannot read gets a hint, and `unhandled`.
+[en] U: what time will it be in 3 fortnights
+     T: I couldn't read that interval. Try “in 3 hours”.
+                                                  → unhandled · clock.now · offset=in 3 fortnights
+
+# Edge cases: the clock itself.
+
+Given: hint = none
+Given: now = 2027-03-14 01:05 Europe/Madrid
+[es] U: qué hora es
+     T: Es la 1:05.                               → answered · clock.now
+
+Given: now = 2027-03-14 13:07 Europe/Madrid
+[es] U: hora?
+     T: Son las 13:07.                            → answered · clock.now
+
+Given: now = 2027-03-14 09:05 Europe/Madrid
+[es] U: qué hora es
+     T: Son las 9:05.                             → answered · clock.now
+
+Given: now = 2027-03-14 00:00 Europe/Madrid
+[es] U: qué hora es
+     T: Son las 00:00 (medianoche).               → answered · clock.now
+
+Given: now = 2027-03-14 12:00 Europe/Madrid
+[es] U: qué hora es
+     T: Son las 12:00 (mediodía).                 → answered · clock.now
+
+Given: now = 2027-03-14 00:00 Europe/Madrid
+[es] U: qué hora es en formato de 12 horas
+     T: Son las 12:00 am (medianoche).            → answered · clock.now
+
+Given: now = 2027-03-14 13:05 Europe/Madrid
+[es] U: qué hora es en formato de 12 horas
+     T: Es la 1:05 pm.                            → answered · clock.now
+
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: qué hora es en formato de 12 horas
+     T: Son las 6:42 pm.                          → answered · clock.now
+
+# Midnight and noon, in the other language.
+Given: hint = en
+Given: now = 2027-03-14 00:00 America/New_York
+[en] U: what time is it
+     T: It's 00:00 (midnight).                    → answered · clock.now
+
+Given: now = 2027-03-14 12:00 America/New_York
+[en] U: time
+     T: It's 12:00 (noon).                        → answered · clock.now
+
+Given: now = 2027-03-14 18:42:59 America/New_York
+[en] U: what time is it
+     T: It's 18:42.                               → answered · clock.now
+
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: what time is it, in 12-hour format
+     T: It's 6:42 PM.                             → answered · clock.now
+
+Given: now = 2027-03-14 00:30 America/New_York
+[en] U: what time is it in 12-hour format
+     T: It's 12:30 AM.                            → answered · clock.now
+
+# Offsets across midnight, month ends, a leap day and the new year.
+Given: now = 2027-03-14 23:59 America/New_York
+[en] U: what time will it be in 1 minute
+     T: In 1 minute it'll be 00:00 tomorrow.      → answered · clock.now · offset=1 min
+
+Given: now = 2027-03-14 23:59:59 America/New_York
+[en] U: what time will it be in 1 minute
+     T: In 1 minute it'll be 00:00 tomorrow.      → answered · clock.now · offset=1 min
+
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: what time will it be in 5 hours and 18 minutes
+     T: In 5 hours and 18 minutes it'll be 00:00 tomorrow.
+                                                  → answered · clock.now · offset=5 h 18 min
+
+[en] U: what time will it be in 5 hours and 17 minutes
+     T: In 5 hours and 17 minutes it'll be 23:59.
+                                                  → answered · clock.now · offset=5 h 17 min
+
+Given: now = 2027-12-31 22:00 America/New_York
+[en] U: what time will it be in 26 hours
+     T: In 1 day and 2 hours it'll be 00:00 on Sunday 2 January 2028.
+                                                  → answered · clock.now · offset=1 d 2 h
+
+Given: now = 2028-02-28 23:30 America/New_York
+[en] U: what time will it be in 24 hours
+     T: In 1 day it'll be 23:30 tomorrow.         → answered · clock.now · offset=1 d
+
+[en] U: what time will it be in 2 days
+     T: In 2 days it'll be 23:30 on Wednesday 1 March 2028.
+                                                  → answered · clock.now · offset=2 d
+
+Given: now = 2027-02-28 23:30 America/New_York
+[en] U: what time will it be in 24 hours
+     T: In 1 day it'll be 23:30 tomorrow.         → answered · clock.now · offset=1 d
+
+[en] U: what time will it be in 2 days
+     T: In 2 days it'll be 23:30 on Tuesday 2 March 2027.
+                                                  → answered · clock.now · offset=2 d
+
+# Hour one after the offset is singular in Spanish.
+Given: hint = none
+Given: now = 2027-03-14 00:05 Europe/Madrid
+[es] U: qué hora será dentro de una hora
+     T: Dentro de 1 hora será la 1:05.            → answered · clock.now · offset=1 h
+
+[es] U: qué hora será dentro de 25 horas
+     T: Dentro de 1 día y 1 hora será la 1:05 de mañana.
+                                                  → answered · clock.now · offset=1 d 1 h

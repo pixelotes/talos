@@ -1,0 +1,388 @@
+# calc.arithmetic (docs/spec/basics.md, `calc`): the examples and edge cases of the spec.
+# Replies are ours; content, language and outcome are the spec's.
+
+# Examples
+
+[es] U: cuánto es 2+2
+     T: 2 + 2 = 4.                                → answered · calc.arithmetic · expression=2+2
+
+[es] U: (3 + 4) * 5
+     T: (3 + 4) × 5 = 35.                         → answered · calc.arithmetic · expression=(3+4)*5
+
+[es] U: tres por cuatro
+     T: 3 × 4 = 12.                               → answered · calc.arithmetic · expression=3*4
+
+[es] U: calcula 2 + 3 * 4
+     T: 2 + 3 × 4 = 14.                           → answered · calc.arithmetic · expression=2+3*4
+     (multiplication before addition)
+
+[es] U: raiz cuadrada de 144
+     T: √144 = 12.                                → answered · calc.arithmetic · expression=sqrt(144)
+
+[es] U: 2 elevado a 10
+     T: 2^10 = 1024.                              → answered · calc.arithmetic · expression=2^10
+
+[es] U: cuanto da 10 entre 4
+     T: 10 ÷ 4 = 2,5.                             → answered · calc.arithmetic · expression=10/4
+
+[es] U: dos mil quinientos mas trescientos
+     T: 2500 + 300 = 2800.                        → answered · calc.arithmetic · expression=2500+300
+
+Given: hint = en
+
+[en] U: what's 12 times 12
+     T: 12 × 12 = 144.                            → answered · calc.arithmetic · expression=12*12
+
+[en] U: 7 + 8 * 2
+     T: 7 + 8 × 2 = 23.                           → answered · calc.arithmetic · expression=7+8*2
+
+[en] U: three times four
+     T: 3 × 4 = 12.                               → answered · calc.arithmetic · expression=3*4
+
+[en] U: 100 divided by 8
+     T: 100 ÷ 8 = 12.5.                           → answered · calc.arithmetic · expression=100/8
+
+[en] U: sqrt(81)
+     T: √81 = 9.                                  → answered · calc.arithmetic · expression=sqrt(81)
+
+[en] U: 2 to the power of 8
+     T: 2^8 = 256.                                → answered · calc.arithmetic · expression=2^8
+
+[en] U: calculate (1,250 + 750) / 4
+     T: (1,250 + 750) ÷ 4 = 500.                  → answered · calc.arithmetic · expression=(1250+750)/4
+
+[en] U: what is 9 squared
+     T: 9² = 81.                                  → answered · calc.arithmetic · expression=9^2
+
+Given: hint = none
+
+[es] U: cuánto es mil quinientos más 250
+     T: 1500 + 250 = 1750.                        → answered · calc.arithmetic · expression=1500+250
+     (conversation.md 2.1: number words and digits)
+
+[es] U: cuánto es 1.500 más 250
+     T: 1500 + 250 = 1750 (he leído 1.500 como 1500).
+                                                  → answered · calc.arithmetic · expression=1500+250
+     (a lone dot and three digits is a thousands dot in Spanish; basics.md has the reply say how it was read)
+
+[es] U: cuánto es 1,5 por 4
+     T: 1,5 × 4 = 6.                              → answered · calc.arithmetic · expression=1.5*4
+
+Given: hint = en
+
+[en] U: what is 1,500 plus 250
+     T: 1,500 + 250 = 1,750.                      → answered · calc.arithmetic · expression=1500+250
+
+[en] U: what is 1.5 times 4
+     T: 1.5 × 4 = 6.                              → answered · calc.arithmetic · expression=1.5*4
+
+[en] U: what's two and a half million divided by five
+     T: 2,500,000 ÷ 5 = 500,000.                  → answered · calc.arithmetic · expression=2500000/5
+
+Given: hint = none
+
+[es] U: cuánto es 12 por 12
+     T: 12 × 12 = 144.                            → answered · calc.arithmetic · expression=12*12
+
+[es] U: 6 x 7
+     T: 6 × 7 = 42.                               → answered · calc.arithmetic · expression=6*7
+     ("x" between numbers is a times sign)
+
+[es] U: 2 × 3 ÷ 4
+     T: 2 × 3 ÷ 4 = 1,5.                          → answered · calc.arithmetic · expression=2*3/4
+     (typographic operators)
+
+Given: hint = en
+
+[en] U: 10 − 4 − 3
+     T: 10 − 4 − 3 = 3.                           → answered · calc.arithmetic · expression=10-4-3
+     (subtraction associates to the left)
+
+[en] U: 100 / 10 / 5
+     T: 100 ÷ 10 ÷ 5 = 2.                         → answered · calc.arithmetic · expression=100/10/5
+     (division associates to the left)
+
+[en] U: cube root of 27
+     T: ∛27 = 3.                                  → answered · calc.arithmetic · expression=cbrt(27)
+
+[en] U: 2^-2
+     T: 2^−2 = 0.25.                              → answered · calc.arithmetic · expression=2^-2
+
+Given: hint = none
+
+[es] U: (1+2)*(3+4)
+     T: (1 + 2) × (3 + 4) = 21.                   → answered · calc.arithmetic · expression=(1+2)*(3+4)
+     (edge parentheses survive the slot extractor)
+
+Given: hint = en
+
+[en] U: hello, what's 3 times 4
+     T: 3 × 4 = 12.                               → answered · calc.arithmetic · expression=3*4
+     (greeting prefix dropped)
+
+Given: hint = none
+
+[es] U: 2+2=?
+     T: 2 + 2 = 4.                                → answered · calc.arithmetic · expression=2+2
+
+Given: hint = en
+
+[en] U: 3 times 4 in miles
+     T: 3 × 4 = 12.                               → answered · calc.arithmetic · expression=3*4
+     (the arithmetic is answered; there is nothing to convert from)
+
+Given: hint = none
+
+
+# Edge cases
+
+[es] U: 5 / 0
+     T: No se puede dividir entre cero.           → answered · calc.arithmetic · expression=5/0
+     (dividing by zero has no result: a correct answer)
+
+Given: hint = en
+
+[en] U: 0/0
+     T: Zero divided by zero is undefined.        → answered · calc.arithmetic · expression=0/0
+
+[en] U: 1 / (2 - 2)
+     T: You can't divide by zero.                 → answered · calc.arithmetic · expression=1/(2-2)
+     (a zero divisor deep inside)
+
+[en] U: 0 ^ -1
+     T: You can't divide by zero.                 → answered · calc.arithmetic · expression=0^-1
+
+[en] U: what's 10 / 3
+     T: 10 ÷ 3 ≈ 3.333333333.                     → answered · calc.arithmetic · expression=10/3
+     (non-terminating: rounded to 10 significant digits and marked)
+
+Given: hint = none
+
+[es] U: 1/3*3
+     T: 1 ÷ 3 × 3 = 1.                            → answered · calc.arithmetic · expression=1/3*3
+     (exact fractions: no 0,9999 artefact)
+
+[es] U: 0,1 + 0,2
+     T: 0,1 + 0,2 = 0,3.                          → answered · calc.arithmetic · expression=0.1+0.2
+     (exact decimals, not binary floating point)
+
+Given: hint = en
+
+[en] U: 0.1 + 0.2
+     T: 0.1 + 0.2 = 0.3.                          → answered · calc.arithmetic · expression=0.1+0.2
+
+Given: hint = none
+
+[es] U: calcula 3,5 x 2
+     T: 3,5 × 2 = 7.                              → answered · calc.arithmetic · expression=3.5*2
+
+[es] U: 3.5 + 1
+     T: 3,5 + 1 = 4,5.                            → answered · calc.arithmetic · expression=3.5+1
+     (a decimal point is accepted in Spanish too; the reply answers in Spanish format)
+
+[es] U: 1.000 + 1
+     T: 1000 + 1 = 1001 (he leído 1.000 como 1000).
+                                                  → answered · calc.arithmetic · expression=1000+1
+     (the reading is shown)
+
+[es] U: 1,000 + 1
+     T: 1 + 1 = 2 (he leído 1,000 como 1).        → answered · calc.arithmetic · expression=1+1
+     (the comma is always the decimal mark in Spanish; the reading is shown)
+
+Given: hint = en
+
+[en] U: 1,000 + 1
+     T: 1,000 + 1 = 1,001.                        → answered · calc.arithmetic · expression=1000+1
+
+[en] U: 1,5 + 1
+     T: 1.5 + 1 = 2.5 (I read 1,5 as 1.5).        → answered · calc.arithmetic · expression=1.5+1
+     (a comma not followed by three digits is not a separator; the reading is shown)
+
+Given: hint = none
+
+[es] U: 1.000,50 + 1
+     T: 1000,5 + 1 = 1001,5.                      → answered · calc.arithmetic · expression=1000.5+1
+     (when both marks appear the last one is the decimal mark)
+
+[es] U: 1.000 + 1.000 + 2,000
+     T: 1000 + 1000 + 2 = 2002 (he leído 1.000 = 1000; 2,000 = 2).
+                                                  → answered · calc.arithmetic · expression=1000+1000+2
+     (several readings, all shown)
+
+Given: hint = en
+
+[en] U: -2^2
+     T: −2² = −4.                                 → answered · calc.arithmetic · expression=-2^2
+     (a power binds tighter than a unary minus)
+
+[en] U: (-2)^2
+     T: (−2)² = 4.                                → answered · calc.arithmetic · expression=(-2)^2
+
+[en] U: 2^3^2
+     T: 2^3^2 = 512.                              → answered · calc.arithmetic · expression=2^3^2
+     (powers associate to the right)
+
+[en] U: -3 squared
+     T: −3² = −9.                                 → answered · calc.arithmetic · expression=-3^2
+
+Given: hint = none
+
+[es] U: 99999999999 * 99999999999
+     T: 99.999.999.999 × 99.999.999.999 = 9.999.999.999.800.000.000.001.
+                                                  → answered · calc.arithmetic · expression=99999999999*99999999999
+     (22 digits: shown exactly)
+
+Given: hint = en
+
+[en] U: 2^64
+     T: 2^64 = 18,446,744,073,709,551,616.        → answered · calc.arithmetic · expression=2^64
+
+[en] U: 2^200
+     T: 2^200 ≈ 1.606938044 × 10^60.              → answered · calc.arithmetic · expression=2^200
+     (more than 30 digits: scientific notation)
+
+Given: hint = none
+
+[es] U: 9^9^9
+     T: El resultado es demasiado grande para calcularlo.
+                                                  → unhandled · calc.arithmetic · expression=9^9^9
+     (beyond 10^1000)
+
+Given: hint = en
+
+[en] U: 10^400
+     T: 10^400 = 1 × 10^400.                      → answered · calc.arithmetic · expression=10^400
+
+[en] U: 10^1000
+     T: 10^1000 = 1 × 10^1000.                    → answered · calc.arithmetic · expression=10^1000
+     (the limit itself is allowed)
+
+[en] U: 10^1000 * 10
+     T: That is too large for me to calculate.    → unhandled · calc.arithmetic · expression=10^1000*10
+     (one step past it is refused)
+
+[en] U: 2^99999999999999999999
+     T: That is too large for me to calculate.    → unhandled · calc.arithmetic · expression=2^99999999999999999999
+     (an exponent that does not fit is refused, not computed)
+
+[en] U: 1 / 10^400
+     T: 1 ÷ 10^400 = 1 × 10^-400.                 → answered · calc.arithmetic · expression=1/10^400
+     (tiny values are scientific too)
+
+[en] U: 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999 + 1
+     T: 9,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999,999 + 1 = 1 × 10^100.
+                                                  → answered · calc.arithmetic · expression=9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999+1
+     (100 digits are the most an input may have)
+
+[en] U: 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999 + 1
+     T: That is too large for me to calculate.    → unhandled · calc.arithmetic · expression=99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999 + 1
+     (101 digits are refused)
+
+Given: hint = none
+
+[es] U: raíz de -4
+     T: -4 no tiene raíz cuadrada real.           → answered · calc.arithmetic · expression=sqrt(-4)
+
+Given: hint = en
+
+[en] U: square root of 2
+     T: √2 ≈ 1.414213562.                         → answered · calc.arithmetic · expression=sqrt(2)
+
+[en] U: sqrt(2) * sqrt(2)
+     T: √2 × √2 ≈ 2.                              → answered · calc.arithmetic · expression=sqrt(2)*sqrt(2)
+     (a root that does not terminate keeps the result approximate)
+
+[en] U: 4 ^ 0.5
+     T: 4^0.5 = 2.                                → answered · calc.arithmetic · expression=4^0.5
+     (a fractional power of one half is a square root)
+
+[en] U: 2 ^ 0.7
+     T: I can't calculate that power.             → unhandled · calc.arithmetic · expression=2^0.7
+     (other fractional powers are not supported)
+
+Given: hint = none
+
+[es] U: un billón entre mil
+     T: 1.000.000.000.000 ÷ 1000 = 1.000.000.000.
+                                                  → answered · calc.arithmetic · expression=1000000000000/1000
+     (Spanish "billón" is 10^12)
+
+Given: hint = en
+
+[en] U: one billion divided by a thousand
+     T: 1,000,000,000 ÷ 1,000 = 1,000,000.        → answered · calc.arithmetic · expression=1000000000/1000
+     (English "billion" is 10^9)
+
+Given: hint = none
+
+[es] U: veintiuno por tres
+     T: 21 × 3 = 63.                              → answered · calc.arithmetic · expression=21*3
+
+Given: hint = en
+
+[en] U: twenty-one times three
+     T: 21 × 3 = 63.                              → answered · calc.arithmetic · expression=21*3
+
+[en] U: 8 / 2(2+2)
+     T: Write the multiplication with a sign, for example 2 × (2 + 2).
+                                                  → unhandled · calc.arithmetic · expression=8 / 2(2+2)
+     (implicit multiplication is not guessed (v0.1: a hint instead of a question))
+
+Given: hint = none
+
+[es] U: calcula
+     T: ¿Qué quieres calcular? Prueba con «cuánto es 3 por 4».
+                                                  → unhandled · calc.arithmetic
+     (nothing to calculate (v0.1: a usage hint instead of a question))
+
+Given: hint = en
+
+[en] U: 2 +
+     T: That calculation is incomplete: a number is missing.
+                                                  → unhandled · calc.arithmetic · expression=2 +
+     (incomplete (v0.1: a hint instead of a question))
+
+Given: hint = none
+
+[es] U: 1,500,000 + 1
+     T: No he podido leer el número «1,500,000».  → unhandled · calc.arithmetic · expression=1,500,000 + 1
+     (a malformed number is never guessed)
+
+[es] U: resuelve 2x+3=7
+     T: No te he entendido.                       → unhandled · catch-all
+     (algebra: no rule reaches it)
+
+[es] U: 2x+3=7
+     T: No te he entendido.                       → unhandled · catch-all
+
+[es] U: derivada de x²
+     T: No te he entendido.                       → unhandled · catch-all
+     (calculus)
+
+[es] U: resto de 17 entre 5
+     T: No te he entendido.                       → unhandled · catch-all
+     (not supported)
+
+Given: hint = en
+
+[en] U: what's sin(30)
+     T: I didn't understand that.                 → unhandled · catch-all
+     (trigonometry: declined by the handler)
+
+[en] U: what is pi
+     T: I don't know that.                        → unhandled · unknown-fact
+     (constants)
+
+[en] U: 50 + 10%
+     T: 50 plus 10% is 55.                        → answered · calc.percent · amount=50 percent=+10
+     (a percentage question, answered by calc.percent)
+
+[en] U: 2+2 is 5, right?
+     T: 2 + 2 = 4.                                → answered · calc.arithmetic · expression=2+2
+     (a claim to check: the value is given, the user is not judged)
+
+Given: hint = none
+
+[es] U: 2+2 es 5?
+     T: 2 + 2 = 4.                                → answered · calc.arithmetic · expression=2+2
+

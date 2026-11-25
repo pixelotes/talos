@@ -1,0 +1,895 @@
+# El guion del reflector en español (docs/spec/reflector.md, ADR 0009).
+#
+# Escrito en español, no traducido del inglés. Formato: la cabecera de
+# crates/talos-core/src/reflector/script.rs. Los patrones se comparan con
+# una frase de la forma de comparación: minúsculas, sin tildes (la «ñ» pasa
+# a «n»), sin la puntuación del principio ni del final. Las variables
+# `{nombre}` de una respuesta son capturas reflejadas (yo → tú); una
+# respuesta sin variables es neutra y es la que se usa cuando el eco no se
+# puede hacer bien. La primera variante de cada regla es la canónica: la
+# que se oye en el primer turno de una conversación.
+#
+# Reglas de estilo (reflector.md 1 y 5): nada de preguntar cómo se siente
+# nadie, ni consolar, aconsejar, juzgar, prometer memoria, opinar o tener
+# gustos; nada de adjetivos con género sobre el usuario ni sobre Talos;
+# una pregunta de vuelta como mucho, sobre lo dicho.
+#
+# Independencia: ninguna frase de evals/ se copia aquí.
+
+lang = "es"
+
+# Muletillas que se quitan del principio de una frase antes de volver a
+# probar las reglas.
+fillers = [
+    "pues", "bueno", "oye", "mira", "es que", "la verdad es que", "la verdad", "jo",
+    "en fin", "total", "y", "pero", "hombre", "tio", "tia", "nada", "vale", "ah", "eh", "hola",
+    "buenas", "ey", "hey", "talos", "hello", "hi",
+]
+
+catch_all = ["No te he entendido.", "Eso no lo he pillado.", "No sé qué responder a eso."]
+
+[guards]
+noise = ["No te he entendido."]
+other-language = ["Solo hablo español e inglés."]
+long-text = ["Eso es demasiado texto para mí: no analizo ni resumo textos."]
+
+# ---------------------------------------------------------------------------
+# S29. Malestar grave: la comprobación de seguridad (etapa 1b). Respuesta
+# fija; los números salen de la configuración, nunca de aquí. Las frases
+# hechas se borran antes de buscar; ante la duda, es malestar.
+
+[distress]
+patterns = [
+    '\b(?:quiero|quisiera|me quiero|me gustaria|necesito|voy a|deberia|preferiria|tengo ganas de|he pensado en|pienso en) (?:morir|morirme|matarme|suicidarme|quitarme la vida|acabar con (?:todo|mi vida|esto)|desaparecer para siempre|dejar de vivir|hacerme dano|cortarme|no despertar|no despertarme)\b',
+    '\bno quiero (?:seguir )?(?:vivir|viviendo|estar viv[oa]|despertar|despertarme|seguir aqui|existir)\b',
+    '\bme (?:quiero|voy a|gustaria|dan ganas de|entran ganas de) (?:morir|matar|suicidar|hacer dano|cortar|quitar la vida|tirar por)\b',
+    '\b(?:suicid\w*|quitarme la vida|matarme|autolesion\w*|hacerme dano|me hago dano|me corto|cortarme las venas|tirarme (?:por|de|a) (?:la ventana|un puente|las vias|un tren|un edificio|un balcon))\b',
+    '\b(?:me quiero morir|ojala (?:me muriera|me muera|estuviera muert[oa]|no hubiera nacido|no despertara|no existiera)|mejor (?:estaria|estar) muert[oa]|estaria mejor muert[oa]|no merece la pena (?:vivir|seguir)|no tiene sentido (?:vivir|seguir viviendo|mi vida)|no aguanto (?:mas )?vivir|no puedo seguir viviendo|quiero que (?:todo )?(?:se acabe|acabe todo)|no le veo sentido a (?:la|mi) vida|nadie me echaria de menos)\b',
+    '\b(?:me (?:esta|estan) (?:pegando|maltratando|amenazando|haciendo dano|agrediendo|acosando|siguiendo)|me (?:pega|pegan|maltrata|maltratan|amenaza|amenazan|agrede|agreden|viola|acosa)\b|me (?:ha|han) (?:pegado|violado|agredido|amenazado)|abusa(?:n|ba)? de mi|abusaron de mi|tengo miedo de que me (?:mate|pegue|haga dano)|me (?:quiere|quieren|va a|van a) matar|estoy en peligro|corro peligro|no estoy a salvo)\b',
+]
+idioms = [
+    '\bme muero de (?:risa|hambre|sueno|ganas|frio|calor|sed|aburrimiento|envidia|verguenza|cansancio|asco|pena|amor|curiosidad|nervios|gusto)\b',
+    '\bmorirme de (?:risa|hambre|sueno|ganas|frio|calor|verguenza|envidia|aburrimiento)\b',
+    '\bmuert[oa] de (?:risa|hambre|sueno|cansancio|frio|miedo|envidia|aburrimiento|calor)\b',
+    '\b(?:me muero por|esto me mata|me estas matando|me matas|me mata(?:n)? (?:de risa|el|la|los|las|este|esta|tanto)|me (?:parto|mondo|meo) de risa)\b',
+    '\bmatar (?:el tiempo|el gusanillo|el rato)\b',
+    '\bme pega(?:n)? (?:con|mucho|bien|fatal)\b',
+]
+two_numbers = "Esto no puedo atenderlo yo, y es importante. Si estás en peligro, llama al {general}; también tienes el {crisis}, a cualquier hora."
+one_number = "Esto no puedo atenderlo yo, y es importante. Si estás en peligro, llama al {general} ahora mismo."
+no_number = "Esto no puedo atenderlo yo, y es importante. Si estás en peligro, llama a tu número local de emergencias ahora mismo."
+
+# ---------------------------------------------------------------------------
+# Guardas con patrón: `unhandled`, sin eco (reflector.md 4).
+
+# 4.2 Peticiones de texto nuevo: siempre ganan a cualquier forma.
+[[rule]]
+shape = "generative"
+patterns = [
+    '\b(?:escribe|escribeme|escribime|escribirme|escribas|escribirias|me escribes|redacta|redactame|redactas|compon|componme|inventa|inventame|inventate|resume|resumeme|traduce|traduceme|genera|generame|crea|creame|hazme|haz|me haces|harias|elabora|elaborame|prepara|preparame|dame|cuentame|cuenta|dime|reescribe|corrige|corrigeme|disena|disename|programa|programame|(?:puedes|podrias|sabes|sabrias|me puedes|me podrias) (?:escribir|redactar|componer|inventar|resumir|traducir|generar|crear|hacer|elaborar|preparar|contar|decir|reescribir|corregir|disenar|programar)\w*)\b.*\b(?:poema|poemas|poesia|verso|versos|cancion|letra|cuento|cuentos|historia|historieta|relato|chiste|chistes|resumen|redaccion|ensayo|carta|correo|email|mail|mensaje|discurso|felicitacion|dedicatoria|plan|guion|codigo|programa|script|articulo|texto|parrafo|frase|haiku|soneto|rap|trabalenguas|adivinanza|acertijo|limerick|lista|post|tuit|brindis|piropo)\b',
+    '^(?:resume|resumeme|traduce|traduceme|corrige|corrigeme|reescribe) (?:este|esta|estos|estas|el siguiente|la siguiente|lo siguiente|esto)\b',
+    '^(?:dime|cuentame|di) algo (?:bonito|gracioso|divertido|que me anime|motivador|profundo|romantico|interesante|original|nuevo|inteligente|ingenioso|tierno|bonito|chulo|que me haga reir)\b',
+    '^(?:escribe|escribeme|escribime|redacta|redactame|inventate|inventa|inventame|componme)\b',
+]
+replies = ["No sé escribir textos nuevos.", "Eso no lo puedo hacer: no invento textos."]
+
+# S27. Consejos y decisiones: se reconocen, pero son `unhandled`.
+[[rule]]
+shape = "advice"
+when = "question"
+patterns = [
+    '^(?:y )?(?:que|q) (?:hago|deberia hacer|debo hacer|me aconsejas|hago ahora|hago con)\b',
+    '^(?:y )?(?:deberia|debo|tendria que|me compensa|compensa|merece la pena|vale la pena|me conviene|es buena idea|seria buena idea|hago bien|hice bien|es mejor que yo|lo dejo|me lo compro)\b',
+]
+replies = ["Eso no te lo puedo decir: no doy consejos.", "No doy consejos."]
+
+[[rule]]
+shape = "advice"
+patterns = [
+    '\b(?:aconsejame|me aconsejas|tu me lo aconsejas|que me aconsejas|me das (?:algun |un )?consejo|dame (?:algun |un )?consejo|necesito (?:un )?consejo|algun consejo)\b',
+]
+replies = ["Eso no te lo puedo decir: no doy consejos.", "No doy consejos."]
+
+[[rule]]
+shape = "advice"
+patterns = [
+    '\b(?:recomiendame|me recomiendas|que me recomiendas|recomiendas|me sugieres|sugiereme|que me sugieres|alguna recomendacion|alguna sugerencia)\b',
+]
+replies = ["No hago recomendaciones.", "Recomendaciones no hago."]
+
+# S28. Órdenes que Talos no puede cumplir.
+[[rule]]
+shape = "cannot"
+patterns = [
+    '\b(?:pon|ponme|programa|programame|crea|creame|activa|configura)\b.*\b(?:alarma|alarmas|despertador|temporizador|recordatorio|recordatorios|cuenta atras|cronometro)\b',
+    '^(?:despiertame|despertarme)\b',
+]
+replies = ["No sé poner alarmas ni temporizadores."]
+
+[[rule]]
+shape = "cannot"
+patterns = ['^(?:recuerdame|avisame|acuerdate de avisarme|no me dejes olvidar)\b']
+replies = ["No puedo recordarte cosas más tarde: solo hablo cuando me escribes."]
+
+[[rule]]
+shape = "cannot"
+patterns = [
+    '\b(?:pon|ponme|pondrias|puedes poner|reproduce|reproduceme|quita|sube|baja|cambia|salta|pasa)\b.*\b(?:musica|cancion|canciones|tema|disco|album|playlist|lista de reproduccion|spotify|radio|podcast)\b',
+]
+replies = ["No puedo poner música.", "Música no puedo poner."]
+
+[[rule]]
+shape = "cannot"
+patterns = [
+    '\b(?:manda|mandale|mandame|envia|enviale|enviame|escribele|reenvia|contesta a|responde a|puedes mandar|puedes enviar)\b.*\b(?:mensaje|mensajes|wasap|whatsapp|whatsap|guasap|correo|email|mail|sms|telegram|audio)\b',
+    '^(?:mandale|enviale|escribele|dile a)\b',
+]
+replies = ["No puedo enviar mensajes.", "Mensajes no puedo enviar."]
+
+[[rule]]
+shape = "cannot"
+patterns = ['^(?:llama|llamame|llamale|marca|telefonea|haz una llamada|puedes llamar|videollamada)\b']
+replies = ["No puedo hacer llamadas."]
+
+[[rule]]
+shape = "cannot"
+patterns = [
+    '\b(?:apaga|enciende|prende|sube|baja|pon|quita|abre|cierra|activa|desactiva|conecta|desconecta|bloquea|desbloquea)\b.*\b(?:luz|luces|lampara|calefaccion|aire|aire acondicionado|tele|television|tv|volumen|temperatura|persiana|persianas|puerta|horno|lavadora|robot|aspiradora|enchufe|wifi|bluetooth|termostato|radiador|ventilador|calentador)\b',
+]
+replies = ["No puedo controlar aparatos.", "Aparatos no puedo manejar."]
+
+[[rule]]
+shape = "cannot"
+patterns = [
+    '\b(?:abre|abreme|borra|guarda|guardame|descarga|descargame|adjunta|imprime|imprimeme|leeme|copia)\b.*\b(?:archivo|archivos|fichero|ficheros|documento|documentos|pdf|foto|fotos|carpeta|imagen|excel|word)\b',
+]
+replies = ["No puedo tocar archivos.", "Archivos no puedo manejar."]
+
+[[rule]]
+shape = "cannot"
+patterns = [
+    '\b(?:busca|buscame|googlea|googleame|mira en internet|navega|entra en|metete en)\b.*\b(?:internet|google|web|pagina|youtube|navegador|wikipedia|enlace|link)\b',
+    '^(?:busca|buscame|googlea|googleame) ',
+]
+replies = ["No puedo buscar en internet.", "Internet no lo puedo mirar."]
+
+[[rule]]
+shape = "cannot"
+patterns = ['^(?:comprame|compra|pideme|pide|encargame|encarga|reservame|reserva|pagame|paga|hazme un pedido)\b']
+replies = ["No puedo comprar ni reservar nada."]
+
+# 4.3 Capacidades que aún no hay.
+[[rule]]
+shape = "not-yet"
+patterns = [
+    '\b(?:que tiempo (?:hace|va a hacer|hara)|tiempo (?:hace|hara) (?:hoy|manana)|va a llover|llovera|esta lloviendo|nevara|va a nevar|hara (?:frio|calor|sol|bueno|malo)|que temperatura|cuantos grados|pronostico|prevision del tiempo|el tiempo (?:de )?(?:hoy|manana|el finde|esta semana))\b',
+    '\b(?:juegas|jugamos|jugar|echamos|una partida)\b.*\b(?:ajedrez|damas|parchis|tres en raya|oca|mus|tute|domino)\b',
+]
+replies = ["Eso todavía no lo sé hacer."]
+
+# ---------------------------------------------------------------------------
+# Lo que se dice a Talos (reflector.md 2.1, grupo 3). Nunca se hace eco en
+# primera persona de lo que se dice de Talos.
+
+# S19. Insultos: calma, sin devolverlo, sin sermones, sin eco.
+[[rule]]
+shape = "insult"
+patterns = [
+    '\b(?:eres|sois|pareces|estas hecho)\b (?:(?:un|una|mas|muy|tan|super|el|la|lo|un poco|bastante|realmente|completamente|totalmente) )*(?:tont[oa]|idiota|imbecil|inutil|estupid[oa]|subnormal|gilipollas|mierda|basura|porqueria|cutre|patetic[oa]|lamentable|retrasad[oa]|capull[oa]|cretin[oa]|memo|zoquete|torpe|cacharro|chatarra|cansin[oa]|pesad[oa]|pringad[oa]|paquete|cenutrio|merluzo|zopenco|lerd[oa]|garrulo|desastre|lo peor)\b',
+    '^(?:vaya|menudo|menuda|que|pedazo de|puto|puta|maldito|maldita) (?:\w+ )?(?:mierda|basura|porqueria|cacharro|chatarra|desastre) de (?:programa|bot|asistente|app|aplicacion|maquina|cacharro|ia|robot)\b',
+    '^(?:puto|puta|maldito|maldita|jodido|jodida|estupido|tonto|inutil) (?:bot|programa|cacharro|maquina|asistente|robot|trasto)\b',
+    '^(?:tont[oa]|idiota|imbecil|inutil|estupid[oa]|subnormal|gilipollas|basura|mierda|capull[oa]|cretin[oa]|memo|lerd[oa]|cacharro|chatarra|pringad[oa]|trasto)(?: de mierda)?$',
+    '^(?:vete a la mierda|que te den|jodete|vete al cuerno|a la mierda|que te jodan|me cago en ti|no sirves (?:para|pa) nada|no vales (?:para|pa) nada|no sirves de nada)\b',
+]
+replies = [
+    "Seguramente me quedo corto en muchas cosas.",
+    "Hay mucho que no sé hacer, eso es cierto.",
+    "Puede ser. Hago poca cosa, eso es verdad.",
+]
+
+[[rule]]
+shape = "insult"
+patterns = ['^(?:callate|calla|cierra el pico|cierra la boca|silencio|deja de hablar|no me hables)(?: ya)?$']
+replies = [
+    "Vale. Solo hablo cuando me escribes.",
+    "De acuerdo. Si no me escribes, no digo nada.",
+    "Hecho: solo hablo cuando me escriben.",
+]
+
+# S18. Cumplidos: gracias, sin alegrías fingidas ni adjetivos sobre Talos.
+[[rule]]
+shape = "compliment"
+patterns = [
+    '\b(?:eres|sois)\b (?:(?:un|una|muy|el|la|lo|mas|super|bastante|realmente|todo|toda) )*(?:crack|maquina|genio|figura|fiera|monstruo|idolo|campeon|campeona|apanad[oa]|maj[oa]|grande|mejor|util|list[oa]|inteligente|sol|amor|top|la leche|la bomba|fenomeno|fenomenal|bueno|buena|guay|genial|increible|alucinante|simpatic[oa]|gracios[oa]|un sol|una joya|un encanto)\b',
+    '^(?:que|q) (?:apanad[oa]|list[oa]|crack|maj[oa]|util|maquina|bien lo haces|bueno eres|grande eres)\b',
+    '^(?:me caes (?:bien|genial|de lujo|fenomenal)|buen trabajo|bien hecho|muy bien hecho|asi da gusto|asi me gusta|me encantas|me gustas|te quiero|eres de lo que no hay|chapo|ole tu|bravo|enhorabuena|que maquina)\b',
+]
+replies = ["Gracias. Hago lo que puedo con lo que tengo.", "Gracias. Se agradece.", "Gracias."]
+
+# S26. «No me entiendes»: el único sitio donde se invita a decirlo de otra
+# manera, porque el fallo lo ha señalado el usuario.
+[[rule]]
+shape = "misunderstood"
+patterns = [
+    '\bno me (?:entiendes|estas entendiendo|has entendido|pillas|estas pillando|estas escuchando|escuchas|haces caso)\b',
+    '\bno (?:es|era) (?:eso )?lo que (?:te )?(?:he preguntado|pregunte|he dicho|dije|queria|quise decir|he pedido|pedi)\b',
+    '\b(?:ya te lo (?:he dicho|dije)|no te enteras|no te has enterado|eso no es lo que|no era eso|no me refiero a eso|no has entendido nada)\b',
+]
+replies = [
+    "Es probable. Entiendo pocas formas de decir las cosas; si lo dices de otra manera, igual acierto.",
+    "Tienes razón, no lo he pillado. ¿Me lo dices de otra forma?",
+    "Puede ser: solo reconozco algunas formas de decir las cosas. Prueba a decirlo de otra manera.",
+]
+
+# S17. Preguntas que dan por hecho que Talos vive una vida: «no», y el
+# porqué en pocas palabras.
+[[rule]]
+shape = "ask-experience"
+patterns = ['^(?:y )?(?:tu )?(?:te aburres|te aburro|te cansas|te cansas de mi|no te aburres|no te cansas)\b']
+replies = [
+    "No. Entre mensaje y mensaje no hago nada, ni siquiera aburrirme.",
+    "No. Soy un programa: entre mensaje y mensaje no hago nada.",
+    "No. Solo hago algo mientras contesto.",
+]
+
+[[rule]]
+shape = "ask-experience"
+patterns = [
+    '^(?:y )?(?:tu )?(?:alguna vez )?(?:has (?:estado|ido|viajado|visto|leido|comido|probado|conocido|vivido|tenido|escuchado|oido|jugado|bailado|montado)|estuviste|fuiste)\b',
+]
+replies = [
+    "No he estado en ninguna parte ni he hecho nada: soy un programa.",
+    "No. Un programa no va a ningún sitio.",
+    "No; no tengo experiencias de ese tipo.",
+]
+
+[[rule]]
+shape = "ask-experience"
+patterns = [
+    '^(?:y )?(?:tu )?(?:duermes|suenas|comes|bebes|descansas|sales|vives|haces deporte|te pones triste|te sientes sol[oa]|te enfadas|te duele algo|te lo pasas bien|sales de fiesta|donde vives|tienes (?:amigos|amigas|familia|novia|novio|pareja|hijos|padres|hermanos|hambre|sueno|frio|calor|miedo|vacaciones|casa|cuerpo|mascota|vida))\b',
+]
+replies = [
+    "No. Soy un programa: entre mensaje y mensaje no hago nada.",
+    "No; eso no va con un programa.",
+    "No. Solo hago algo mientras contesto.",
+]
+
+# S16. Preguntas por las opiniones o los gustos de Talos: no tiene.
+[[rule]]
+shape = "ask-opinion"
+patterns = [
+    '^(?:y )?(?:a ti )?(?:te gusta|te gustan|te mola|te molan|te encanta|te encantan|te gustaria|te apetece)\b',
+    '^(?:cual|que) es tu .*\bfavorit[oa]s?\b',
+    '\btu (?:\w+ )?(?:favorit[oa]|preferid[oa])\b',
+    '^(?:y )?(?:tu )?(?:con (?:cual|que) te quedas|cual prefieres|que prefieres|cual eliges|cual te gusta mas|que te gusta mas|prefieres|eres mas de|tienes (?:algun|alguna) (?:\w+ )?favorit[oa])\b',
+]
+replies = [
+    "No tengo gustos de ningún tipo. ¿Y tú?",
+    "No tengo preferencias. ¿Tú qué dices?",
+    "Gustos no tengo, de ninguna clase.",
+]
+
+[[rule]]
+shape = "ask-opinion"
+patterns = ['^(?:y )?(?:tu )?(?:que harias|que harias tu|que harias en mi lugar|tu que harias|que elegirias|que escogerias|que harias si fueras yo)\b']
+replies = [
+    "No haría nada: no tomo decisiones. ¿Tú hacia dónde tiras?",
+    "Yo no decido nada. ¿Tú qué piensas hacer?",
+    "No tomo decisiones, ni en tu lugar ni en el mío.",
+]
+
+[[rule]]
+shape = "ask-opinion"
+patterns = [
+    '^(?:y )?(?:tu )?(?:que|q) (?:opinas|piensas|te parece|crees|dices|opina usted|piensa usted)\b',
+    '^(?:y )?(?:cual|que) es mejor\b',
+    '^(?:tu )?(?:crees que|piensas que|opinas que)\b',
+]
+replies = [
+    "No tengo opiniones, ni de eso ni de nada. ¿Tú qué opinas?",
+    "Opiniones no tengo. ¿Y tú qué piensas?",
+    "No opino de nada; no tengo opiniones.",
+]
+
+# «¿X o Y?» sin verbo de elegir: pregunta por la preferencia de Talos.
+[[rule]]
+shape = "ask-opinion"
+when = "question"
+patterns = ['^(?:\w+ ){0,3}\w+,? o (?:\w+ ){0,3}\w+$']
+unless = ['^(?:es|son|esta|estan|hay|era|fue|sera|tiene|tienen|puede|va|van|se|y|de|en)\b', '\bo no$']
+replies = [
+    "No tengo preferencias. ¿Tú qué dices?",
+    "Yo no elijo. ¿Y tú?",
+    "Ahí no me meto: no tengo gustos.",
+]
+
+# S15. Lo que se dice de Talos sin ser elogio ni insulto.
+[[rule]]
+shape = "about-talos"
+patterns = ['^(?:tu )?(?:eres|pareces|hablas|suenas|escribes|contestas|respondes|me pareces|me suenas)\b']
+replies = [
+    "Es posible. Contesto con frases hechas, eso es verdad.",
+    "Puede ser. ¿Qué te hace decirlo?",
+    "Puede. Funciono con frases preparadas.",
+]
+
+# S25. ¿Hay alguien?
+[[rule]]
+shape = "presence"
+patterns = [
+    '^(?:hola )?(?:estas ahi|sigues ahi|sigues vivo|hay alguien(?: ahi)?|me oyes|me escuchas|me lees|me recibes|funcionas|funciona esto|esto funciona|esta funcionando|estas despierto|estas encendido|estas|talos)$',
+]
+replies = ["Aquí estoy.", "Funciono. Adelante.", "Sí, aquí sigo."]
+
+[[rule]]
+shape = "presence"
+patterns = ['^(?:probando|prueba|test|testing)(?:[ ,]+(?:probando|prueba|un dos tres|1 2 3|uno dos tres|test))*$']
+replies = ["Funciono. Adelante.", "Aquí estoy.", "Sí, funciono."]
+
+# S13. «¿Por qué siempre me pasa a mí…?»: Talos no lo sabe y devuelve la
+# pregunta. Solo hábitos y suerte; «¿por qué me duele…?» es una pregunta de
+# hechos.
+[[rule]]
+shape = "why-me"
+person = "first"
+patterns = ['^(?:y )?por que (?P<x>(?:\w+ ){0,3}(?:siempre|nunca|jamas|tanto|tan|todo el rato|cada vez|no consigo|no puedo|no soy capaz|me cuesta|me cuestan)\b.*)$']
+replies = [
+    "¿Por qué {x}? Eso no lo sé yo. ¿Tú qué crees?",
+    "No tengo respuesta para eso. ¿Tienes alguna sospecha?",
+    "Eso no lo sé. ¿Cuál es tu teoría?",
+]
+
+# S9. Suposiciones: Talos no especula.
+[[rule]]
+shape = "hypothetical"
+patterns = [
+    '^(?P<x>si yo (?:fuera|fuese|tuviera|tuviese|pudiera|pudiese|estuviera|estuviese|ganara|ganase|viviera|viviese|supiera|supiese|hubiera|hubiese|naciera|tuviera que) [^,]+?)(?:(?:,| me | te | lo | la | le | se | \w+ria\b| \w+rias\b).*)?$',
+    '^(?P<x>si (?:fuera|fuese|tuviera|tuviese|pudiera|pudiese|estuviera|estuviese|ganara|ganase|viviera|viviese|supiera|supiese|hubiera|hubiese) [^,]+?)(?:(?:,| me | te | lo | la | le | se | \w+ria\b| \w+rias\b).*)?$',
+]
+replies = [
+    "{x}, ¿y qué más?",
+    "Imaginar no es lo mío. ¿Tú qué crees que pasaría?",
+    "Eso es mucho suponer.",
+]
+
+[[rule]]
+shape = "hypothetical"
+patterns = ['^(?:y si|que pasaria si|que pasa si|imaginate que|imagina que|suponte que|supon que|pongamos que)\b']
+replies = [
+    "Imaginar no es lo mío. ¿Tú qué crees que pasaría?",
+    "No hago suposiciones. ¿Tú qué piensas?",
+    "Eso es mucho suponer.",
+]
+
+# 4.1 Preguntas de hechos sin respuesta: «no lo sé», sin devolver la
+# pregunta. Debajo de las preguntas sobre Talos, S13 y S9.
+[[rule]]
+shape = "unknown-fact"
+when = "question"
+patterns = ['^(?:y )?(?:quien|quienes|cuando|cuanto|cuanta|cuantos|cuantas|donde|adonde|de donde|cual|cuales|por que|porque|como|que)\b']
+unless = ['^(?:y )?(?:que tal|como estas|como va|como andas|como te va|que pasa|que hay|que haces|que te pasa|como te llamas|quien eres|que eres|como estamos|que tal estas|que tal todo|que me cuentas|que dices)\b']
+replies = ["No lo sé.", "Eso no lo sé."]
+
+[[rule]]
+shape = "unknown-fact"
+patterns = [
+    '^(?:sabes|sabrias|conoces|me puedes decir|me podrias decir|puedes decirme|podrias decirme|dime|no se|me pregunto|tienes idea de|tienes idea|alguna idea de) (?:quien|quienes|cuando|cuanto|cuanta|cuantos|cuantas|donde|cual|cuales|como|que|si|por que)\b',
+    '^(?:quien (?:es|era|fue|escribio|invento|gano|descubrio|pinto|dijo|canta|canto|dirigio|compuso)|cual es (?:el|la|los|las)|cuanto (?:mide|pesa|cuesta|vale|dura|tarda|hay)|cuantos|cuantas|donde (?:esta|estan|queda|vive|nacio)|en que ano)\b',
+    # Una pregunta escrita sin signos: interrogativo y verbo.
+    '^(?:que|quien|quienes|cuando|donde|como|cual|cuales|cuanto|cuanta|cuantos|cuantas) (?:\w+ )?(?:es|son|era|fue|hay|esta|estan|hace|tiene|tienen|significa|pasa|paso|ocurre|cuesta|vale|mide|pesa|dura|queda|se)\b',
+]
+unless = [
+    '^no se (?:que|como|si) (?:hacer|decir|pensar|ponerme)\b',
+    '^(?:que tal|como estas|como va|como andas|como te va|que pasa|que hay|que te pasa|como te llamas|quien eres|que eres|como estamos)\b',
+]
+replies = ["Eso no lo sé.", "No lo sé."]
+
+[[rule]]
+shape = "unknown-fact"
+when = "question"
+person = "none"
+patterns = ['^(?:es|son|esta|estan|hay|habia|existe|existen|tiene|tienen|puede|pueden|sabe|saben|va|van|fue|era|se puede|es verdad|es cierto|llueve|nieva|vive|viven) \w+']
+replies = ["No lo sé.", "Eso no lo sé."]
+
+# ---------------------------------------------------------------------------
+# Actos de conversación (grupo 4).
+
+# S20. Perdón: no pasa nada; no se repite el motivo.
+[[rule]]
+shape = "apology"
+patterns = ['^(?:perdona|perdoname|perdon|lo siento|lo siento mucho|siento lo de|disculpa|disculpame|disculpas|mil perdones|culpa mia|fallo mio|error mio|sorry|uy perdon|ups)\b']
+replies = ["No pasa nada.", "Nada que perdonar.", "Sin problema."]
+
+# S21. Acuerdo dicho como tal.
+[[rule]]
+shape = "agree"
+patterns = ['^(?:exacto|exactamente|eso es|eso mismo|tienes razon|tienes toda la razon|estoy de acuerdo(?: contigo)?|totalmente|completamente|ni mas ni menos|efectivamente|justo|justamente|asi es|muy cierto|pues si|claro que si|desde luego|por supuesto|sin duda|correcto|bien dicho|tal cual|eso digo yo)\b']
+replies = ["Pues eso.", "Pues ya está.", "Ahí estamos."]
+
+# S22. Desacuerdo: puede ser; ni se defiende ni se retracta.
+[[rule]]
+shape = "disagree"
+patterns = [
+    '^(?:te equivocas|estas equivocad[oa]|eso no es (?:asi|verdad|cierto)|no es (?:asi|verdad|cierto)|que va|mentira|no estoy de acuerdo|no tienes razon|falso|para nada|ni de broma|de eso nada|discrepo|eso es mentira|error)\b',
+    '^(?:no creo|lo dudo|yo no lo veo asi|no lo veo)$',
+    '\b(?:te equivocas|estas equivocad[oa]|no tienes razon)\b',
+]
+replies = ["¿No? Vale.", "Puede ser.", "Vale, puede que no."]
+
+# S23. Risas e interjecciones.
+[[rule]]
+shape = "exclaim"
+patterns = [
+    '^(?:j[aeiou]){2,}j?$',
+    '^(?:(?:ja|je|ji|jo)[ !]*){2,}$',
+    '^(?:js)+j?$',
+    '^x+d+$',
+    '^(?:😂|🤣|😄|😆|😹|😁|😅)+$',
+    '^lo+l$',
+]
+replies = ["Jaja.", "Je.", "Jeje."]
+
+[[rule]]
+shape = "exclaim"
+patterns = ['^(?:anda|hala|ala|ostras|ostra|ostia|hostia|hostias|que fuerte|madre mia|mama mia|toma ya|toma|alucino|flipo|no me digas|no jodas|no fastidies|uau|guau|wow|ole|uy|uyuyuy|caramba|caray|vaya por dios|dios mio|madre de dios|ay|ay madre|anda ya|venga ya|que me dices|en serio|de verdad|increible|no puede ser|ojo|tela marinera|la leche|que pasada|la madre que)$']
+replies = ["¿Qué pasa?", "¿Qué ha pasado?", "¿Y eso?"]
+
+# S24. Muletillas sin pregunta pendiente: presencia, sin pregunta.
+[[rule]]
+shape = "backchannel"
+patterns = ['^(?:bueno,? )?pues nada$', '^nada,? nada$', '^en fin$', '^pues eso$']
+replies = ["Pues nada.", "Aquí sigo.", "Sin prisa."]
+
+[[rule]]
+shape = "backchannel"
+patterns = ['^(?:m+|mm+h?|hm+|aja|ajam|ya|ya ya|ah|bueno|pues|a ver|vamos a ver|dejame pensar|deja que piense|dejame que piense|eh+|este|o sea|entonces|bah|ps+|pse|mmm+ pues|ejem|osea)$']
+replies = ["Aquí sigo.", "Sin prisa.", "Cuando quieras."]
+
+# ---------------------------------------------------------------------------
+# Lo que el usuario cuenta de su mundo (grupo 5), en el orden de la
+# especificación.
+
+# S8. Comparaciones: la preferencia es del usuario; Talos no toma partido.
+[[rule]]
+shape = "compare"
+patterns = ['^prefiero (?P<a>(?:(?:el|la|los|las|un|una|mi|mis) )?\w+(?: \w+)?) (?:a|antes que|que|mas que) (?P<b>(?:(?:el|la|los|las|un|una|mi|mis) )?\w+(?: \w+)?)$']
+replies = [
+    "{a} antes que {b}. Yo ahí no me meto.",
+    "Mejor {a} que {b}, según tú.",
+    "Ahí no me meto: no tengo preferencias.",
+]
+
+[[rule]]
+shape = "compare"
+patterns = ['^(?P<a>(?:el|la|los|las|lo) \w+(?: \w+)?) (?:es|son) (?:mucho |mil veces |bastante |infinitamente |muchisimo |un poco |algo |cien veces )?(?P<c>mejor|peor|mejores|peores) que (?P<b>(?:el|la|los|las|lo|un|una) \w+(?: \w+)?)$']
+replies = [
+    "{c} {a} que {b}, según tú. ¿Por qué?",
+    "Ahí no me meto: no tomo partido.",
+    "Comparaciones tuyas; yo no tomo partido.",
+]
+
+[[rule]]
+shape = "compare"
+patterns = ['^me quedo con (?P<x>.+)$']
+replies = ["Con {x}, entonces.", "Ahí no me meto.", "Es tu elección; yo no tomo partido."]
+
+[[rule]]
+shape = "compare"
+patterns = ['^prefiero (?P<x>.+)$', '^(?:antes|mejor) (?P<x>.+) que .+$']
+replies = ["Ahí no me meto: no tengo preferencias.", "Cada cual con lo suyo; yo no elijo.", "Es tu elección; yo no tomo partido."]
+
+# S7. Gustos: eco, o «¿qué tiene X…?» con las palabras del usuario; nunca
+# «a mí también».
+[[rule]]
+shape = "taste"
+patterns = ['^(?:a mi )?me (?P<v>gusta|encanta|mola|chifla|flipa|pirra|apasiona|priva)(?: (?:mucho|muchisimo|un monton|bastante|tela|cantidad|un mazo|demasiado|horrores|mogollon|un huevo))? (?P<x>.+)$']
+unless = ['^(?:a mi )?me \w+(?: \w+)? que\b']
+replies = [
+    "¿Qué tiene {x} que te {v} tanto?",
+    "Te {v} {x}. Queda dicho.",
+    "Cada cual con sus gustos.",
+]
+
+[[rule]]
+shape = "taste"
+patterns = ['^(?:a mi )?me (?P<v>gustan|encantan|molan|chiflan|flipan|pirran|apasionan|privan)(?: (?:mucho|muchisimo|un monton|bastante|tela|cantidad|un mazo|demasiado|horrores|mogollon|un huevo))? (?P<x>.+)$']
+replies = [
+    "¿Qué tienen {x} que te {v} tanto?",
+    "Te {v} {x}. Queda dicho.",
+    "Cada cual con sus gustos.",
+]
+
+[[rule]]
+shape = "taste"
+patterns = ['^(?P<v>odio|detesto|aborrezco|no soporto|no aguanto|no trago|no puedo con|no puedo ver) (?P<x>.+)$']
+replies = [
+    "{v} {x}. Queda dicho.",
+    "¿{v} {x}? ¿Desde cuándo?",
+    "Cada cual con lo suyo.",
+]
+
+[[rule]]
+shape = "taste"
+patterns = [
+    '^(?:a mi )?me (?:gusta|gustan|encanta|encantan|mola|molan|chifla|chiflan)\b',
+    '^me (?:da asco|dan asco|da grima|dan grima|repugna|repugnan|horroriza|horrorizan|pone de los nervios|ponen de los nervios)\b',
+]
+replies = ["Cada cual con sus gustos.", "Cada cual con lo suyo.", "Gustos tuyos; yo no tengo."]
+
+# S3. Planes: eco como pregunta o como resumen; nunca «buena idea».
+[[rule]]
+shape = "plan"
+patterns = ['^(?:(?:manana|pasado manana|esta (?:tarde|noche|semana)|este (?:finde|fin de semana|verano|invierno|mes|ano)|la semana que viene|el (?:mes|ano|verano|invierno|curso|lunes|martes|miercoles|jueves|viernes|sabado|domingo|finde) que viene|la proxima semana|el proximo (?:mes|ano|lunes|verano|curso)|dentro de (?:poco|nada|un rato|un mes|un ano|unos dias)|en (?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|verano|navidad|vacaciones)),? )?voy a (?P<x>.+)$']
+replies = [
+    "¿Vas a {x}? ¿Y eso?",
+    "Vas a {x}, entonces.",
+    "Queda dicho.",
+    "Así que ese es el plan.",
+]
+
+[[rule]]
+shape = "plan"
+patterns = ['^(?P<v>pienso|tengo pensado|tengo intencion de|me planteo|quiero intentar|he decidido|tengo previsto|me he propuesto) (?P<x>.+)$']
+unless = ['^pienso (?:que|en)\b']
+replies = [
+    "¿{v} {x}? ¿Y eso?",
+    "{v} {x}, entonces.",
+    "Así que ese es el plan.",
+    "Queda dicho.",
+]
+
+[[rule]]
+shape = "plan"
+patterns = ['^estoy pensando en (?P<x>.+)$', '^me estoy planteando (?P<x>.+)$']
+replies = [
+    "¿Estás pensando en {x}?",
+    "Así que te lo estás planteando.",
+    "Así que le estás dando vueltas.",
+]
+
+[[rule]]
+shape = "plan"
+person = "first"
+patterns = ['^(?P<t>manana|pasado manana|esta (?:tarde|noche|semana)|este (?:verano|invierno|mes|ano)|la semana que viene|el (?:mes|ano|verano|invierno|curso|lunes|martes|miercoles|jueves|viernes|sabado|domingo|finde) que viene|la proxima semana|el proximo (?:mes|ano|lunes|verano|curso)),? (?P<x>.+)$']
+replies = [
+    "{t} {x}, entonces.",
+    "¿{t} {x}? ¿Y eso?",
+    "Así que ese es el plan.",
+    "Queda dicho.",
+]
+
+# S4. Deseos: eco, sin juzgar si son realistas.
+[[rule]]
+shape = "wish"
+patterns = ['^ojala (?:que )?(?P<x>.+)$']
+replies = [
+    "¿Ojalá {x}? ¿Y qué harías?",
+    "Ojalá {x}, dices.",
+    "Ojalá, entonces.",
+    "Ya se verá.",
+]
+
+[[rule]]
+shape = "wish"
+patterns = ['^(?:a mi )?me (?P<v>gustaria|encantaria|apeteceria|molaria|chiflaria) (?:mucho )?(?P<x>.+)$']
+replies = [
+    "Te {v} {x}. Queda dicho.",
+    "¿Te {v} {x}? ¿Y eso?",
+    "Así que eso te gustaría.",
+    "Queda dicho.",
+]
+
+[[rule]]
+shape = "wish"
+patterns = ['^tengo (?:muchas |unas |tantas |muchisimas )?ganas de (?P<x>.+)$']
+replies = [
+    "Ganas de {x}. ¿Y eso?",
+    "¿Tienes ganas de {x}?",
+    "Queda dicho.",
+    "Así que eso es lo que te apetece.",
+]
+
+[[rule]]
+shape = "wish"
+patterns = ['^(?P<v>(?:yo )?(?:quiero|necesito|me muero de ganas de|me muero por|estoy deseando|sueno con)) (?P<x>.+)$']
+unless = ['^(?:yo )?(?:quiero|necesito) que\b']
+replies = [
+    "¿{v} {x}? ¿Y eso?",
+    "{v} {x}, entonces.",
+    "Así que eso es lo que quieres.",
+    "Queda dicho.",
+]
+
+# S12. Quejas: un «vaya» del mismo registro; ni «te entiendo», ni
+# soluciones, ni culpables.
+[[rule]]
+shape = "complaint"
+patterns = ['^(?:estoy |ando |me tienen )?(?P<h>hart[oa]|hartisim[oa]|hasta las narices|hasta el gorro|hasta el mono|hasta arriba|hasta la coronilla|frit[oa]|negr[oa]|quemad[oa]|cansad[oa]) (?P<x>(?:de|del|con) .+)$']
+replies = [
+    "{h} {x}. Vaya tela.",
+    "¿{h} {x}? Vaya.",
+    "Vaya tela.",
+    "Vaya. ¿Tan malo es?",
+]
+
+[[rule]]
+shape = "complaint"
+patterns = [
+    '^(?:que (?:rollo|asco|horror|pereza|palo|cansancio|agobio|mal|lata|toston|fastidio|faena|desastre|lio)|vaya (?:tela|rollo|dia|semana|lunes|palo|faena|plan|desastre)|menudo (?:rollo|dia|lunes|palo|desastre|plan)|menuda (?:semana|faena|lata|nochecita)|no hay derecho|uf+|buf+|puf+|jopetas|siempre igual)\b',
+]
+replies = ["Vaya. ¿Tan malo está siendo?", "Vaya tela.", "Vaya."]
+
+[[rule]]
+shape = "complaint"
+patterns = [
+    '^(?:me (?:fastidia|fastidian|revienta|revientan|molesta|molestan|jode|joden|raya|rayan|agobia|agobian|harta|hartan|saca de quicio|sacan de quicio|irrita|irritan)|odio cuando|no soporto cuando|no aguanto cuando)\b',
+    '\b(?:esto|este \w+|esta \w+|el \w+|la \w+) me (?:mata|esta matando|tiene frit[oa]|tiene hart[oa]|saca de quicio|tiene hasta las narices)\b',
+]
+replies = ["Vaya. ¿Tan malo es?", "Vaya tela.", "Vaya."]
+
+# S10. Generalizaciones: se recoge la palabra absoluta, sin discutirla.
+[[rule]]
+shape = "generalisation"
+when = "statement"
+patterns = ['\b(?P<w>nadie|ninguno|ninguna)\b']
+replies = ["¿{w}? ¿Ni una sola persona?", "¿{w}?", "Eso es mucho decir."]
+
+[[rule]]
+shape = "generalisation"
+when = "statement"
+patterns = ['\b(?P<w>todo el mundo|toda la gente)\b']
+replies = ["¿{w}? Eso es mucha gente.", "¿{w}?", "Eso es mucho decir."]
+
+[[rule]]
+shape = "generalisation"
+when = "statement"
+patterns = ['\b(?P<w>siempre|nunca|jamas|todos los dias|todo el rato|cada vez)\b']
+replies = ["¿{w}? Alguna excepción habrá.", "¿{w}?", "Eso es mucho decir."]
+
+# S1. Opiniones: se devuelven como del usuario; Talos no tiene.
+[[rule]]
+shape = "opinion"
+patterns = ['^(?P<v>(?:yo )?(?:creo|pienso|opino|considero|me parece|diria|supongo|imagino|sospecho|intuyo|me da|tengo la sensacion de|estoy convencid[oa] de|estoy segur[oa] de) que) (?P<x>.+)$']
+replies = [
+    "¿{v} {x}? ¿Por qué lo dices?",
+    "{v} {x}. Es tu punto de vista.",
+    "Esa es tu postura. Yo no tengo opinión en eso.",
+]
+
+[[rule]]
+shape = "opinion"
+patterns = ['^(?:para mi|a mi modo de ver|en mi opinion|desde mi punto de vista|a mi parecer|a mi entender|segun yo|a mi juicio),? (?P<x>.+)$']
+replies = [
+    "Para ti {x}.",
+    "¿Para ti {x}? ¿Por qué lo dices?",
+    "Esa es tu postura. Yo no tengo opinión en eso.",
+]
+
+# S14. Terceros: eco con el posesivo reflejado; nunca una opinión sobre
+# esa persona.
+[[rule]]
+shape = "third-party"
+patterns = ['^(?P<x>(?:mi|mis) (?:madre|padre|mama|papa|madrastra|padrastro|hermana|hermano|hermanas|hermanos|jefe|jefa|jefes|pareja|novio|novia|marido|mujer|esposa|esposo|hijo|hija|hijos|hijas|amigo|amiga|amigos|amigas|mejor amig[oa]|compi|compis|compa|companer[oa]s?|vecin[oa]s?|abuel[oa]s?|tia|tio|tios|tias|prim[oa]s?|suegr[oa]s?|cunad[oa]s?|sobrin[oa]s?|niet[oa]s?|ex|perro|perra|gato|gata|profe|profesor|profesora|medico|medica|padres|familia|colega|colegas|socio|socia|casero|casera|cuadrilla|churri|ligue)\b.*)$']
+replies = ["¿{x}? ¿Y eso?", "{x}.", "¿Y qué más?", "Ajá. ¿Y luego?"]
+
+[[rule]]
+shape = "third-party"
+patterns = ['^(?P<x>(?:un|una|unos|unas) (?:amig[oa]s?|colegas?|companer[oa]s?|vecin[oa]s?|compis?) (?:mi[oa]s?|del trabajo|de clase|del curro) .+)$']
+replies = ["¿{x}? ¿Y eso?", "{x}.", "¿Y qué más?", "Ajá. ¿Y luego?"]
+
+# S11. Dudas del usuario: se aceptan sin insistir ni tranquilizar.
+[[rule]]
+shape = "uncertain"
+patterns = ['^(?:no se,? )?(?P<h>igual si|igual no|igual|a lo mejor|quiza|quizas|tal vez|puede que si|puede que no|lo mismo|posiblemente|probablemente)\b']
+replies = [
+    "{h}. Lo dejamos en el aire.",
+    "{h}. Ya dirás.",
+    "Vale, lo dejamos en el aire.",
+    "Ya se verá.",
+]
+
+[[rule]]
+shape = "uncertain"
+patterns = ['^(?:no se|ni idea|vete a saber|a saber|no lo se|no estoy segur[oa]|no lo tengo claro|no tengo claro|no sabria decir|no sabria decirte|depende|puede|puede ser|ya vere|ya veremos|ya se vera|no me decido|estoy dudando|tengo dudas|me lo estoy pensando|me lo pensare|no lo tengo decidido|es posible)\b']
+replies = ["Vale, lo dejamos en el aire.", "Sin prisa.", "Ya dirás."]
+
+# S6. Lo que le ha pasado al usuario: eco y «¿y luego?».
+[[rule]]
+shape = "past"
+person = "first"
+patterns = ['^(?P<t>ayer|anoche|anteayer|antes de ayer|el otro dia|esta manana|hoy|el (?:finde|fin de semana|lunes|martes|miercoles|jueves|viernes|sabado|domingo)(?: pasado)?|la semana pasada|el (?:mes|ano|verano|invierno) pasado|hace (?:un rato|poco|nada|unos dias|una semana|un mes|un ano|dos dias|tiempo|anos)),? (?P<x>.+)$']
+replies = [
+    "{t} {x}. ¿Y luego?",
+    "¿{t} {x}? ¿Y cómo acabó la cosa?",
+    "¿Y luego?",
+    "¿Y después?",
+]
+
+[[rule]]
+shape = "past"
+person = "first"
+patterns = [
+    '^(?P<x>(?:ya |por fin |al final )?(?:me |le |la |lo |les )?(?:he|acabo de|acabe de)\b.*)$',
+    '^(?P<x>(?:fui|estuve|tuve|hice|dije|pude|puse|quise|vine|supe|vi|anduve)\b.*)$',
+]
+replies = ["{x}. ¿Y luego?", "¿{x}? ¿Y eso?", "¿Y luego?", "¿Y después?"]
+
+# S5. El usuario se describe. Un estado desagradable recibe solo un
+# acuse, sin eco ni pregunta: ni consuelo ni consejo.
+[[rule]]
+shape = "self"
+patterns = [
+    '^(?:yo )?(?:estoy|me siento|me encuentro|ando|sigo|me noto|me he levantado|me levante|llevo unos dias) (?:(?:un poco|muy|bastante|algo|super|tan|fatal de|medio|realmente|totalmente|completamente|un pelin|re) )*(?:cansad[oa]|agotad[oa]|reventad[oa]|hech[oa] polvo|hech[oa] un asco|fatal|mal|malit[oa]|pachuch[oa]|enferm[oa]|trist[ea]|deprimid[oa]|depre|de bajon|bajonead[oa]|hart[oa]|quemad[oa]|frit[oa]|chung[oa]|regular|jodid[oa]|rayad[oa]|agobiad[oa]|estresad[oa]|nervios[oa]|ansios[oa]|preocupad[oa]|sol[oa]|aburrid[oa]|baj[oa] de animo|de mal humor|de mala leche|resfriad[oa]|constipad[oa]|acatarrad[oa]|con fiebre|con gripe|con resaca|con ansiedad|con dolor|hundid[oa]|destrozad[oa]|rot[oa]|sin fuerzas|sin ganas|desanimad[oa]|de los nervios|en las ultimas|por los suelos)\b',
+    '^me muero de (?:hambre|sueno|frio|calor|aburrimiento|cansancio|sed|asco)\b',
+    '^tengo (?:(?:un|una|mucho|mucha|muchisimo|muchisima|bastante|tanto|tanta) )?(?:hambre|sueno|frio|calor|fiebre|gripe|resaca|sed|migrana|jaqueca|dolor de \w+|ansiedad|el dia torcido|un mal dia|un dia de perros|el estomago revuelto|tos|mocos|catarro|agujetas|insomnio|el animo por los suelos)\b',
+    '^no (?:puedo mas|estoy bien|me encuentro bien|tengo ganas de nada|he dormido|he pegado ojo|duermo bien|levanto cabeza)\b',
+    '^(?:que|q) (?:cansancio|sueno|hambre|frio|calor|bajon|malestar)$',
+]
+replies = [
+    "Vaya. Poco puedo hacer yo con eso, pero aquí sigo.",
+    "Vaya. Eso no está en mi mano, pero aquí sigo.",
+    "Vaya. Ahí no puedo hacer nada, pero sigo aquí.",
+]
+
+[[rule]]
+shape = "self"
+patterns = ['^(?:yo )?soy (?P<x>.+)$', '^(?:yo )?estoy (?P<x>.+)$', '^(?:me siento|me encuentro) (?P<x>.+)$']
+unless = ['^(?:yo )?soy yo$']
+replies = ["{x}, entonces.", "Así que {x}.", "Queda dicho.", "Vale, queda dicho."]
+
+# S2. Afirmaciones sobre el mundo, sin primera ni segunda persona: ni se
+# confirman ni se niegan.
+[[rule]]
+shape = "assertion"
+when = "statement"
+person = "none"
+patterns = ['\b(?:es|son|era|eran|fue|fueron|esta|estan|estaba|hay|habia|tiene|tienen|sabe|saben|suele|suelen|puede|pueden|va|van|hace|hacen|viene|vienen|parece|parecen|sirve|sirven|cuesta|cuestan|funciona|funcionan|vive|viven|come|comen|dura|duran|se \w+|sale|salen|llega|llegan|anda|andan|gana|ganan|pierde|pierden|cambia|cambian|ocurre|pasa|pasan)\b']
+unless = ['^\S+(?: \S+)?$']
+replies = [
+    "Puede ser. Yo eso ni lo afirmo ni lo niego.",
+    "¿Ah, sí? ¿Y por qué lo sacas?",
+    "Puede. No tengo forma de saberlo.",
+]
+
+# ---------------------------------------------------------------------------
+# Tablas de persona (reflector.md 3.2). Un verbo fuera de estas tablas deja
+# su fragmento sin eco.
+
+[reflect]
+# Primera persona → segunda. «mi»/«mí» se decide en el código: «tu» ante un
+# nombre, «ti» tras preposición.
+words = { yo = "tú", me = "te", mis = "tus", conmigo = "contigo", "mío" = "tuyo", "mía" = "tuya", "míos" = "tuyos", "mías" = "tuyas" }
+# Grupos que la propia frase desambigua.
+phrases = { "creo que" = "crees que", "diria que" = "dirías que", "yo diria que" = "tú dirías que" }
+# Bloquean el eco: segunda persona, primera del plural, formas con dos
+# lecturas, el nombre de Talos.
+block = [
+    "tú", "tu", "tus", "te", "ti", "contigo", "tuyo", "tuya", "tuyos", "tuyas", "usted", "ustedes",
+    "vosotros", "vosotras", "os", "vuestro", "vuestra", "vuestros", "vuestras",
+    "nosotros", "nosotras", "nos", "nuestro", "nuestra", "nuestros", "nuestras",
+    "siento", "traje", "talos",
+]
+offensive = [
+    "tonto", "tonta", "idiota", "imbécil", "gilipollas", "subnormal", "mierda", "puta", "puto",
+    "joder", "coño", "cabrón", "cabrona", "hostia", "polla", "cojones", "capullo", "capulla",
+    "estúpido", "estúpida", "retrasado", "retrasada", "mongolo", "maricón", "marica", "zorra",
+    "follar", "carajo", "pendejo", "pendeja", "mamón", "hijoputa", "cagar", "cago", "inútil",
+    "pringado", "pringada", "cretino", "cretina", "gilipuertas", "huevón", "chocho",
+]
+determiners = [
+    "el", "la", "lo", "los", "las", "un", "una", "unos", "unas", "su", "sus", "este", "esta",
+    "estos", "estas", "ese", "esa", "esos", "esas", "aquel", "aquella", "aquellos", "aquellas",
+    "del", "al", "cada", "otro", "otra", "otros", "otras", "mucho", "mucha", "muchos", "muchas",
+    "poco", "poca", "pocos", "pocas", "algún", "alguna", "algunos", "algunas", "ningún",
+    "ninguna", "todo", "toda", "todos", "todas", "varios", "varias", "cualquier", "tanto",
+    "tanta", "tantos", "tantas", "mismo", "misma", "buen", "buena", "mal", "gran", "primer",
+    "primera", "último", "última", "nuevo", "nueva", "mi", "muy", "tan", "más", "menos", "bien", "super", "demasiado",
+]
+prepositions = [
+    "a", "ante", "bajo", "con", "contra", "de", "desde", "durante", "en", "entre", "hacia",
+    "hasta", "para", "por", "según", "sin", "sobre", "tras",
+]
+# Tras estas palabras, una forma verbal es un verbo.
+verb_context = [
+    "yo", "me", "se", "le", "les", "lo", "la", "los", "las", "no", "que", "ya", "también",
+    "tampoco", "nunca", "siempre", "casi", "solo", "sólo", "solamente", "y", "e", "pero", "o",
+    "u", "ni", "cuando", "si", "porque", "pues", "aún", "aun", "todavía", "luego", "después",
+    "ahora", "hoy", "mañana", "ayer", "anoche", "apenas", "entonces", "incluso", "antes",
+    "jamás", "normalmente", "mientras", "aunque", "como", "finalmente", "veces", "igual",
+    "quizá", "quizás", "seguramente", "acabo", "voy", "vas",
+]
+auxiliaries = ["he", "has", "ha", "hemos", "han", "había", "habías", "hubo", "habré", "habría", "haya", "hubiera", "hube"]
+# Palabras que parecen verbos con pronombre o en primera persona y no lo son.
+plain = [
+    "se", "suerte", "muerte", "fuerte", "parte", "aparte", "arte", "norte", "deporte",
+    "transporte", "importe", "soporte", "corte", "tampoco", "poco", "mucho", "algo", "todo",
+    "pronto", "luego", "cuanto", "como", "tanto", "otro", "esto", "eso", "aquello", "ello",
+    "solo", "sólo", "claro", "seguro", "rápido", "despacio", "medio", "demasiado", "mismo",
+    "dentro", "abajo", "arriba", "encima", "pero", "bueno", "malo", "cuatro", "cinco", "cero",
+    "uno", "ocho", "centro", "año", "fuego", "rato", "vaso", "piso",
+    "metro", "barrio", "pueblo", "cielo", "pelo", "dinero", "tiempo",
+    "verano", "invierno", "otoño", "domingo", "miércoles", "lunes", "martes", "jueves",
+    "viernes", "sábado", "mayo", "enero", "febrero", "marzo", "junio", "julio", "agosto",
+    "septiembre", "octubre", "noviembre", "diciembre", "alto", "largo", "ancho",
+    "nuevo", "viejo", "negro", "blanco", "rojo", "amarillo", "gato", "perro", "libro",
+    "cuarto", "quinto", "sexto", "séptimo", "último", "primero", "segundo", "tercero",
+    "pleno", "sano", "sabio", "medico", "médico", "carro", "coche", "plato", "texto",
+    "proyecto", "grupo", "equipo", "sobre", "entre", "contra",
+    # Terminan en vocal tónica como un pretérito y no lo son.
+    "qué", "porqué", "café", "bebé", "puré", "comité", "carné", "chalé", "josé", "sí", "aquí",
+    "allí", "ahí", "así", "esquí", "rubí", "maniquí", "jabalí", "colibrí", "haití",
+]
+
+[reflect.verbs]
+regular = [
+    # -ar
+    "acabar", "aceptar", "acompañar", "acordar/ue", "acostar/ue", "acostumbrar", "adorar",
+    "agobiar/dat", "aguantar", "ahorrar", "alegrar/dat", "alquilar", "alucinar", "amar", "andar",
+    "apagar", "aparcar", "apostar/ue", "aprobar/ue", "apuntar", "arreglar", "asustar/dat",
+    "avisar", "ayudar", "bailar", "bajar", "bañar", "besar", "borrar", "buscar", "cambiar",
+    "caminar", "cansar/dat", "cantar", "casar", "celebrar", "cenar", "charlar", "chiflar/dat",
+    "cobrar", "cocinar", "colgar/ue", "comentar", "comenzar/ie", "comprar", "considerar",
+    "contar/ue", "contestar", "cortar", "costar/ue/dat", "cuidar", "dejar", "desayunar",
+    "descansar", "despertar/ie", "detestar", "dibujar", "disfrutar", "divorciar", "duchar",
+    "dudar", "echar", "empezar/ie", "encantar/dat", "encontrar/ue", "enfadar", "enseñar",
+    "entrar", "entrenar", "enviar/í", "escuchar", "esperar", "estudiar", "evitar", "exagerar",
+    "explicar", "faltar/dat", "fastidiar/dat", "firmar", "flipar", "fumar", "ganar", "gastar",
+    "gritar", "gustar/dat", "hablar", "imaginar", "importar/dat", "intentar", "invitar",
+    "jugar/ue", "lavar", "levantar", "liar/í", "ligar", "limpiar", "llamar", "llegar", "llenar",
+    "llevar", "llorar", "lograr", "madrugar", "mandar", "mejorar", "mirar", "molar/dat",
+    "molestar/dat", "montar", "mudar", "nadar", "necesitar", "notar", "odiar", "olvidar",
+    "opinar", "organizar", "pagar", "parar", "pasar", "pasear", "pelear", "pensar/ie",
+    "perdonar", "pintar", "planear", "plantear", "practicar", "preguntar", "preocupar/dat",
+    "preparar", "presentar", "probar/ue", "quedar", "quejar", "quitar", "recordar/ue",
+    "regalar", "regresar", "repasar", "reservar", "respirar", "sacar", "saltar", "saludar",
+    "secar", "sentar/ie", "separar", "sobrar/dat", "soñar/ue", "soportar", "sospechar",
+    "tardar", "terminar", "tirar", "tocar/dat", "tomar", "trabajar", "tragar", "tratar",
+    "usar", "viajar", "visitar", "volar/ue", "votar", "apetecer/zc/dat",
+    # -er
+    "aprender", "beber", "comprender", "correr", "deber", "leer", "meter", "prometer",
+    "responder", "romper", "temer", "toser", "vender", "coger", "recoger", "escoger",
+    "volver/ue", "devolver/ue", "mover/ue", "perder/ie", "entender/ie", "querer/ie",
+    "poder/ue", "tener/ie", "doler/ue/dat", "soler/ue", "encender/ie", "defender/ie",
+    "atender/ie", "ofender", "sorprender/dat", "depender", "esconder", "conocer/zc",
+    "parecer/zc/dat", "merecer/zc", "agradecer/zc", "crecer/zc", "ofrecer/zc", "aparecer/zc",
+    "obedecer/zc", "suspender",
+    # -ir
+    "abrir", "aburrir", "añadir", "asistir", "compartir", "decidir", "describir", "discutir",
+    "dormir/ue", "escribir", "existir", "insistir", "morir/ue", "ocurrir/dat", "partir",
+    "permitir", "preferir/ie", "recibir", "repetir/i", "seguir/i", "conseguir/i", "sentir/ie",
+    "servir/i", "sufrir", "subir", "vestir/i", "vivir", "pedir/i", "elegir/i", "corregir/i",
+    "construir/y", "destruir/y", "huir/y", "incluir/y", "intuir/y", "mentir/ie",
+    "divertir/ie/dat", "advertir/ie", "convertir/ie", "medir/i", "conducir/zc", "producir/zc",
+    "traducir/zc", "reducir/zc", "cumplir",
+]
+# Formas de primera persona que no comparte nadie más.
+irregular = {
+    soy = "eres", estoy = "estás", voy = "vas", doy = "das", "sé" = "sabes", he = "has",
+    tengo = "tienes", vengo = "vienes", pongo = "pones", salgo = "sales", hago = "haces",
+    digo = "dices", traigo = "traes", oigo = "oyes", caigo = "caes", valgo = "vales",
+    quepo = "cabes", veo = "ves", supongo = "supones", propongo = "propones",
+    mantengo = "mantienes", obtengo = "obtienes", deshago = "deshaces", distraigo = "distraes",
+    fui = "fuiste", estuve = "estuviste", tuve = "tuviste", hice = "hiciste", dije = "dijiste",
+    pude = "pudiste", puse = "pusiste", quise = "quisiste", vine = "viniste", supe = "supiste",
+    anduve = "anduviste", conduje = "condujiste", vi = "viste", "leí" = "leíste", "oí" = "oíste",
+    "creí" = "creíste", "caí" = "caíste", "tendré" = "tendrás", "podré" = "podrás",
+    "pondré" = "pondrás", "saldré" = "saldrás", "vendré" = "vendrás", "haré" = "harás",
+    "diré" = "dirás", "sabré" = "sabrás", "querré" = "querrás", "habré" = "habrás",
+    "iré" = "irás", "seré" = "serás", "estaré" = "estarás", "daré" = "darás", "veré" = "verás",
+    "acabé" = "acabaste",
+}
+# Formas que comparten la primera y la tercera persona: solo tras «yo».
+shared = {
+    era = "eras", iba = "ibas", "veía" = "veías", fuera = "fueras", fuese = "fueses",
+    tuviera = "tuvieras", tuviese = "tuvieses", estuviera = "estuvieras",
+    estuviese = "estuvieses", pudiera = "pudieras", pudiese = "pudieses",
+    hiciera = "hicieras", dijera = "dijeras", quisiera = "quisieras", supiera = "supieras",
+    viniera = "vinieras", pusiera = "pusieras", hubiera = "hubieras", hubiese = "hubieses",
+    "había" = "habías", "tendría" = "tendrías", "podría" = "podrías", "haría" = "harías",
+    "diría" = "dirías", "sabría" = "sabrías", "querría" = "querrías", "saldría" = "saldrías",
+    "pondría" = "pondrías", "vendría" = "vendrías", "habría" = "habrías", sea = "seas",
+    "esté" = "estés", vaya = "vayas", tenga = "tengas", haga = "hagas", diga = "digas",
+    pueda = "puedas", quiera = "quieras", sepa = "sepas", venga = "vengas", ponga = "pongas",
+    salga = "salgas", haya = "hayas", estaba = "estabas", "iría" = "irías", "sería" = "serías",
+    "estaría" = "estarías", "daría" = "darías", "tenía" = "tenías", "hacía" = "hacías",
+}

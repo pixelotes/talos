@@ -105,8 +105,9 @@ impl fmt::Display for IntentId {
 /// One stage's decision, for `talos explain` and tests.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TraceStep {
-    /// The stage that decided: `normalise`, `language`, `rules`, `slots`,
-    /// `dispatch`, `render`, `fallback`, `random`, `state`.
+    /// The stage that decided: `normalise`, `language`, `safety`, `rules`,
+    /// `slots`, `dispatch`, `render`, `reflector`, `fallback`, `random`,
+    /// `state`.
     pub stage: &'static str,
     /// What it decided and why, in one line.
     pub note: String,
@@ -139,7 +140,9 @@ pub struct Outcome {
     pub slots: Slots,
     /// Confidence of the intent recognition (not of any fact): 1.0 for a rule.
     pub confidence: f32,
-    /// Why the turn is `Unhandled`, when it is.
+    /// Why the turn is `Unhandled`, when it is; for a reflector turn, the
+    /// sentence shape (`Deflected`) or the guard (`Unhandled`), with no
+    /// intent (docs/spec/reflector.md 2.2).
     pub reason: Option<Reason>,
     /// Talos asked back and expects the next message.
     pub pending: bool,

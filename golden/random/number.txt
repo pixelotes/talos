@@ -1,0 +1,118 @@
+# random.number (docs/spec/basics.md).
+
+Given: draw = 7
+[es] U: dame un número del 1 al 10
+     T: 7.                                        → answered · random.number · high=10 low=1
+
+Given: draw = 42
+[es] U: número aleatorio entre 1 y 100
+     T: 42.                                       → answered · random.number · high=100 low=1
+
+Given: draw = 58
+[es] U: un numero al azar
+     T: 58.                                       → answered · random.number · high=100 low=1
+
+Given: draw = -2
+[es] U: dime un número entre -5 y 5
+     T: -2.                                       → answered · random.number · high=5 low=-5
+
+Given: draw = 3, 17, 22, 41, 8
+[es] U: 5 números del 1 al 49 sin repetir
+     T: 3, 17, 22, 41, 8.                         → answered · random.number · count=5 distinct=yes high=49 low=1
+
+Given: draw = 1.73
+[es] U: numero entre 0,5 y 2,5
+     T: 1,73.                                     → answered · random.number · high=2.5 low=0.5
+
+Given: draw = 4
+[es] U: del uno al seis
+     T: 4.                                        → answered · random.number · high=6 low=1
+
+Given: hint = en
+Given: draw = 7
+[en] U: give me a random number between 1 and 10
+     T: 7.                                        → answered · random.number · high=10 low=1
+
+Given: draw = 58
+[en] U: random number
+     T: 58.                                       → answered · random.number · high=100 low=1
+
+Given: draw = 4
+[en] U: pick a number from 1 to 6
+     T: 4.                                        → answered · random.number · high=6 low=1
+
+Given: draw = -2
+[en] U: a number between -5 and 5
+     T: -2.                                       → answered · random.number · high=5 low=-5
+
+Given: draw = 3, 17, 22, 41, 8
+[en] U: 5 numbers from 1 to 49 without repeating
+     T: 3, 17, 22, 41, 8.                         → answered · random.number · count=5 distinct=yes high=49 low=1
+
+Given: draw = 1.73
+[en] U: random number between 0.5 and 2.5
+     T: 1.73.                                     → answered · random.number · high=2.5 low=0.5
+
+Given: draw = 31
+[en] U: a random number up to 50
+     T: 31.                                       → answered · random.number · high=50 low=1
+
+# Edge cases.
+
+Given: hint = none
+Given: draw = 4
+[es] U: un número del 10 al 1
+     T: 4 (entre 1 y 10).                         → answered · random.number · high=10 low=1
+
+Given: hint = en
+Given: draw = 5
+[en] U: random number between 5 and 5
+     T: 5. The range had only one value.          → answered · random.number · high=5 low=5
+
+Given: hint = none
+[es] U: un número entre 1 y 10^30
+     T: El rango es demasiado grande; llego hasta 10^15.
+                                                  → unhandled · random.number · high=10^30 low=1
+
+Given: hint = en
+[en] U: 10 numbers from 1 to 5 without repeating
+     T: I can't draw 10 different numbers from only 5.
+                                                  → answered · random.number · count=10 distinct=yes high=5 low=1
+
+Given: hint = none
+Given: draw = 2, 2, 5
+[es] U: 3 numeros del 1 al 5
+     T: 2, 2, 5.                                  → answered · random.number · count=3 high=5 low=1
+
+# A repeated draw is redrawn when the numbers must differ.
+
+Given: draw = 3, 3, 5
+[es] U: 2 numeros del 1 al 5 sin repetir
+     T: 3, 5.                                     → answered · random.number · count=2 distinct=yes high=5 low=1
+
+# Asking back is v0.2: here a hint, `unhandled`.
+
+Given: hint = en
+[en] U: random number between 1 and
+     T: The other end of the range is missing. Try: a number between 1 and 10.
+                                                  → unhandled · random.number · low=1
+
+Given: hint = none
+[es] U: 150 numeros del 1 al 10
+     T: Como mucho doy 100 números a la vez.      → unhandled · random.number · count=150 high=10 low=1
+
+Given: hint = en
+[en] U: give me a random phone number
+     T: I didn't understand that.                 → unhandled · catch-all
+
+Given: hint = none
+[es] U: adivina el número que pienso
+     T: No te he entendido.                       → unhandled · catch-all
+
+Given: draw = 3, 1.5, 2.25
+[es] U: 3 números entre 1 y 3,5
+     T: 3,00; 1,50; 2,25.                         → answered · random.number · count=3 high=3.5 low=1
+
+Given: draw = 30
+[es] U: un número hasta el 50
+     T: 30.                                       → answered · random.number · high=50 low=1

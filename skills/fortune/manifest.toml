@@ -1,0 +1,71 @@
+# fortune: a saying from a bundled list (docs/spec/basics.md, `fortune`).
+#
+# The sayings are data, not replies: `es.txt` and `en.txt` in this directory,
+# one per line, written natively in each language and embedded by
+# `crates/talos-skills/src/fortune.rs`. The single reply `saying` carries the
+# chosen line. Patterns match the match form (lower case, no accents).
+#
+# "otro"/"another one" sets the internal slot `again`: the handler answers it
+# only right after a fortune, and otherwise declines (the catch-all).
+
+[skill]
+id = "fortune"
+summary.es = "decir un refrán o una frase de la suerte"
+summary.en = "give a saying or a fortune"
+names.es = ["refranes", "galleta de la fortuna"]
+names.en = ["fortune", "proverbs"]
+help.es = ["dime un refrán", "galleta de la fortuna"]
+help.en = ["tell me a fortune", "give me a proverb"]
+capabilities = []
+
+[[intent]]
+id = "fortune.tell"
+priority = 50
+courtesy = false
+
+  [[intent.slot]]
+  name = "again"
+  type = "term"
+  internal = true
+
+  [intent.examples]
+  es = ["dime un refrán", "una frase", "dime un dicho", "un proverbio", "galleta de la fortuna", "dime algo sabio", "dime la suerte", "fortune", "otro"]
+  en = ["tell me a fortune", "give me a proverb", "fortune cookie", "say something wise", "give me a saying", "tell me my fortune", "fortune", "another one"]
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:dime|dame|sueltame|cuentame|tirame)\s+)?(?:un|una|algun|alguna)\s+(?:refran|dicho|proverbio|frase|sentencia)(?:\s+(?:anda|porfa|por favor))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:dime|dame|sueltame)\s+)?(?:una\s+)?galleta de la fortuna[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:dime|dame|sueltame)\s+algo sabio|(?:dime|dame)\s+(?:la|mi)\s+suerte|fortune)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:dime|dame)\s+)?(?:otro|otra)(?:\s+mas)?(?:\s+(?:refran|dicho|proverbio|frase))?[\s?.!]*$'
+  slots = { again = "yes" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[¿¡\s]*(?:(?:tell|give)\s+me\s+)?(?:a|my)\s+(?:fortune|proverb|saying|adage)(?:\s+please)?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[¿¡\s]*(?:(?:give|get)\s+me\s+)?(?:a\s+)?fortune cookie(?:\s+please)?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[¿¡\s]*(?:(?:say|tell me)\s+something wise|fortune)(?:\s+please)?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[¿¡\s]*(?:(?:tell|give)\s+me\s+)?(?:another|one more)(?:\s+(?:one|fortune|proverb|saying))?[\s?.!]*$'
+  slots = { again = "yes" }
+
+[reply.saying]
+es = ["{text}"]
+en = ["{text}"]

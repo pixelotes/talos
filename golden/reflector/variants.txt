@@ -1,0 +1,30 @@
+# Repetition and variants (docs/spec/reflector.md 6): one conversation,
+# as in the spec.
+
+# 6. Repetition and variants
+Given: hint = es
+[es] U: mi jefe es un pesado
+     T: ¿Tu jefe es un pesado? ¿Y eso?            → deflected · third-party
+Given: hint = es
+[es] U: mi madre también me agobia
+     T: Tu madre también te agobia.               → deflected · third-party
+Given: hint = es
+[es] U: mi novio dice que exagero
+     T: ¿Y qué más?                               → deflected · third-party
+Given: hint = es
+[es] U: mi novio dice que exagero
+     T: Ajá. ¿Y luego?                            → deflected · third-party
+Given: hint = en
+[en] U: I'm sick of the rain
+     T: That bad, eh.                             → deflected · complaint
+Given: hint = en
+[en] U: I'm sick of the rain
+     T: Sick of the rain? That bad?               → deflected · complaint
+Given: hint = en
+[en] U: blah blah
+     T: I didn't understand that.                 → unhandled · catch-all
+Given: hint = en
+[en] U: blah blah blah
+     T: I didn't catch that.                      → unhandled · catch-all
+
+Given: hint = none

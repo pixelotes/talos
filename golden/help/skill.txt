@@ -1,0 +1,31 @@
+# help.skill (docs/spec/basics.md). Only skills installed in every setup are
+# used here (help itself); the spec's examples about other skills are added
+# at integration, when those skills exist.
+
+[es] U: cómo funciona la ayuda
+     T: ayuda: ayudarte a usar lo que sé hacer. Prueba: «qué sabes hacer», «cómo funciona la calculadora».
+                                                  → answered · help.skill · skill=help
+
+[en] U: how do I use the help?
+     T: help: help you use what I can do. Try: "what can you do", "how do I use the calculator".
+                                                  → answered · help.skill · skill=help
+
+[en] U: what can I ask about commands
+     T: help: help you use what I can do. Try: "what can you do", "how do I use the calculator".
+                                                  → answered · help.skill · skill=help
+
+# No installed skill matches: said plainly.
+[es] U: sabes hacer divisas
+     T: No sé hacer eso.                          → unhandled · help.skill · skill=divisas
+
+[en] U: how does the weather work?
+     T: I can't do that.                          → unhandled · help.skill · skill=the weather
+
+# A missing topic: v0.1 cannot ask back, so a usage hint.
+[es] U: cómo se usa
+     T: ¿El qué? Dime de cuál quieres saber, por ejemplo: saludos, identidad, ayuda, reloj, calculadora.
+                                                  → unhandled · help.skill
+
+[en] U: how do I use this
+     T: Which one? Tell me what you want to know about, for example: greetings, identity, help, clock, calculator.
+                                                  → unhandled · help.skill

@@ -218,18 +218,22 @@ filled in. Where a template has variants, the choice is a pure function of
 conversation and turn number: varied to the user, reproducible in a test.
 
 **7. Reflector.** If nothing answered, an ELIZA-style script produces a
-reflection. A match on a real pattern is `Deflected`; only the catch-all is
-`Unhandled`. ([ADR 0009](adr/0009-reflector-fallback.md))
+reflection. A match on a real sentence shape is `Deflected`; its guards
+(factual questions, requests for text, noise, other languages, long text),
+the requests it recognises but cannot meet (advice, commands) and the bare
+catch-all are `Unhandled`, with the shape or reason in `Outcome::reason`.
+([ADR 0009](adr/0009-reflector-fallback.md), docs/spec/reflector.md)
 
 ### Trace
 
 Every stage records what it decided and why. `talos explain "…"` and the
 `trace` option on the API return it. Today the stages that report are
-`normalise` (the match form), `language`, `rules` (candidates with priority,
-or the courtesy dropped), `slots`, `dispatch`, `render` (reply and variant),
-`fallback`, `random` (draws) and `state` (turn number, language, recent
-topic); the safety check, pending dialog and classifier join as they are built
-(v0.2 and later). This is the main debugging tool and the
+`normalise` (the match form), `language`, `safety` (distress, and the region
+whose numbers were given), `rules` (candidates with priority, or the courtesy
+dropped), `slots`, `dispatch`, `render` (reply and variant), `reflector`
+(shape or guard, echo or why not, variant), `fallback` (an empty message),
+`random` (draws) and `state` (turn number, language, recent topic); the
+pending dialog and classifier join as they are built (v0.2 and later). This is the main debugging tool and the
 reason the pipeline is a list of functions and not a graph of subscribers.
 
 ## 5. Knowledge

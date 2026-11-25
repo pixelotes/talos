@@ -17,6 +17,13 @@ pub enum Error {
     Registry(String),
     /// A reply could not be rendered.
     Render(String),
+    /// A reflector script is malformed (docs/spec/reflector.md).
+    Script {
+        /// The script, e.g. `reflector/es.toml`.
+        script: String,
+        /// What is wrong.
+        message: String,
+    },
 }
 
 impl Error {
@@ -34,6 +41,7 @@ impl fmt::Display for Error {
             Error::Manifest { skill, message } => write!(f, "manifest `{skill}`: {message}"),
             Error::Registry(message) => write!(f, "skill registry: {message}"),
             Error::Render(message) => write!(f, "render: {message}"),
+            Error::Script { script, message } => write!(f, "script `{script}`: {message}"),
         }
     }
 }

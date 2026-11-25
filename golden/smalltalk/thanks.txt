@@ -1,0 +1,58 @@
+# smalltalk.thanks (docs/spec/basics.md).
+
+[es] U: gracias
+     T: De nada.                                  → answered · smalltalk.thanks
+
+[es] U: muchas gracias
+     T: De nada.                                  → answered · smalltalk.thanks
+
+[es] U: mil gracias!!
+     T: De nada.                                  → answered · smalltalk.thanks
+
+[es] U: vale, gracias
+     T: De nada.                                  → answered · smalltalk.thanks
+
+[es] U: grax
+     T: De nada.                                  → answered · smalltalk.thanks
+
+[es] U: te lo agradezco
+     T: De nada.                                  → answered · smalltalk.thanks
+
+[es] U: gracias por la ayuda
+     T: De nada.                                  → answered · smalltalk.thanks
+
+[en] U: thanks
+     T: You're welcome.                           → answered · smalltalk.thanks
+
+[en] U: thank you so much
+     T: You're welcome.                           → answered · smalltalk.thanks
+
+[en] U: thanks a lot
+     T: You're welcome.                           → answered · smalltalk.thanks
+
+[en] U: thanks!
+     T: You're welcome.                           → answered · smalltalk.thanks
+
+# "no, gracias" / "no thanks" are refusals, never "de nada". The spec's
+# `unhandled` reply needs the dialog layer; here nothing recognises them.
+[es] U: no, gracias
+     T: No te he entendido.                       → unhandled · catch-all
+
+[en] U: no thanks
+     T: I didn't understand that.                 → unhandled · catch-all
+
+# "gracias, qué hora es" and "cómo se dice gracias en inglés" belong to
+# clock.now and translate.word, which are not in this skill.
+
+# Words with no language marker ("bye", "thx") are decided by the default
+# language, Spanish; the English turns carry a hint.
+Given: hint = en
+
+[en] U: thx
+     T: You're welcome.                           → answered · smalltalk.thanks
+
+[en] U: ty
+     T: You're welcome.                           → answered · smalltalk.thanks
+
+[en] U: much appreciated
+     T: You're welcome.                           → answered · smalltalk.thanks

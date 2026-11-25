@@ -1,0 +1,161 @@
+# fortune.tell (docs/spec/basics.md). The sayings live in skills/fortune/*.txt;
+# a `draw = entry "fragment"` picks the first saying containing the fragment,
+# so these files do not depend on the list's order. The spec's illustrative
+# sayings are replaced by ours where the spec's are not in the list.
+#
+# Not covered by a rule, so they reach the catch-all (the reflector will word
+# them in Slice D): jokes, horoscopes, predictions, topic searches, meanings,
+# generated quotes, quotes by author. "otro" with no earlier fortune also.
+
+Given: draw = entry "a caballo regalado"
+[es] U: dime un refrán
+     T: A caballo regalado no le mires el diente.
+                                                  → answered · fortune.tell
+
+Given: draw = entry "quien mucho abarca"
+[es] U: galleta de la fortuna
+     T: Quien mucho abarca, poco aprieta.         → answered · fortune.tell
+
+Given: draw = entry "no hay mal"
+[es] U: un proverbio
+     T: No hay mal que por bien no venga.         → answered · fortune.tell
+
+Given: draw = entry "mas vale tarde"
+[es] U: dime algo sabio
+     T: Más vale tarde que nunca.                 → answered · fortune.tell
+
+Given: draw = entry "de tal palo"
+[es] U: suéltame un dicho anda
+     T: De tal palo, tal astilla.                 → answered · fortune.tell
+
+Given: draw = entry "camaron"
+[es] U: dime mi suerte
+     T: Camarón que se duerme se lo lleva la corriente.
+                                                  → answered · fortune.tell
+
+Given: draw = entry "sombra de un arbol"
+[es] U: ¿Una frase?
+     T: La sombra de un árbol viejo se planta hace cuarenta años.
+                                                  → answered · fortune.tell
+
+Given: draw = entry "brujula"
+[es] U: fortune
+     T: La brújula no discute: señala y calla.    → answered · fortune.tell
+
+Given: default language = en
+Given: draw = entry "stitch in time"
+[en] U: tell me a fortune
+     T: The stitch in time saves nine.            → answered · fortune.tell
+
+Given: draw = entry "early bird"
+[en] U: give me a proverb
+     T: The early bird catches the worm.          → answered · fortune.tell
+
+Given: draw = entry "lighthouse"
+[en] U: fortune cookie
+     T: A lighthouse does not chase ships; it simply stays lit.
+                                                  → answered · fortune.tell
+
+Given: draw = entry "umbrella"
+[en] U: say something wise
+     T: The best umbrella is the one packed before the forecast.
+                                                  → answered · fortune.tell
+
+Given: draw = entry "rome"
+[en] U: give me a saying
+     T: Rome was not built in a day.              → answered · fortune.tell
+
+Given: draw = entry "chickens"
+[en] U: fortune
+     T: Don't count your chickens before they hatch.
+                                                  → answered · fortune.tell
+
+Given: draw = entry "tortoise"
+[en] U: tell me my fortune
+     T: The tortoise did not win by speed; it won by showing up to the race.
+                                                  → answered · fortune.tell
+
+Given: default language = es
+
+# Any seed gives some saying of the list, never nothing.
+
+Given: seed = 7
+[es] U: dime un refrán
+     T: El puente más corto es el que ya está construido.
+                                                  → answered · fortune.tell
+
+Given: seed = 7
+Given: default language = en
+[en] U: give me a proverb
+     T: A door left ajar has never once argued with the draught.
+                                                  → answered · fortune.tell
+
+Given: default language = es
+
+# "otro" / "another one" right after a fortune is a fortune again.
+
+Given: draw = entry "mas vale tarde"
+[es] U: dime un refrán
+     T: Más vale tarde que nunca.                 → answered · fortune.tell
+Given: draw = entry "de tal palo"
+[es] U: otro
+     T: De tal palo, tal astilla.                 → answered · fortune.tell
+Given: draw = entry "camaron"
+[es] U: otra más
+     T: Camarón que se duerme se lo lleva la corriente.
+                                                  → answered · fortune.tell
+
+Given: default language = en
+Given: draw = entry "rome"
+[en] U: tell me a fortune
+     T: Rome was not built in a day.              → answered · fortune.tell
+Given: draw = entry "stitch in time"
+[en] U: another one
+     T: The stitch in time saves nine.            → answered · fortune.tell
+Given: draw = entry "early bird"
+[en] U: one more
+     T: The early bird catches the worm.          → answered · fortune.tell
+
+# Anywhere else it is not a fortune.
+
+Given: default language = en
+
+[en] U: another one
+     T: I didn't understand that.                 → unhandled · catch-all
+
+Given: default language = es
+[es] U: otro
+     T: No te he entendido.                       → unhandled · catch-all
+
+[es] U: hola
+     T: ¡Hola!                                    → answered · smalltalk.greet
+[es] U: otro
+     T: Eso no lo he pillado.                     → unhandled · catch-all
+
+# Requests a saying list cannot meet.
+
+[es] U: cuéntame un chiste
+     T: No sé escribir textos nuevos.             → unhandled · generative
+
+[en] U: what will happen to me this year?
+     T: I don't know that.                        → unhandled · unknown-fact
+
+[es] U: horóscopo de escorpio
+     T: No te he entendido.                       → unhandled · catch-all
+
+[es] U: dime un refrán sobre perros
+     T: No te he entendido.                       → unhandled · catch-all
+
+Given: default language = en
+[en] U: a proverb about money
+     T: I didn't understand that.                 → unhandled · catch-all
+
+[en] U: what does that proverb mean?
+     T: I don't know that.                        → unhandled · unknown-fact
+
+[en] U: write me an inspirational quote
+     T: I didn't understand that.                 → unhandled · catch-all
+
+Given: default language = es
+[es] U: una cita de Einstein
+     T: No te he entendido.                       → unhandled · catch-all

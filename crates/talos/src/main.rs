@@ -544,6 +544,6 @@ mod tests {
         assert!(lines[1].starts_with("¡Hola"), "{output}");
         assert!(["Hello!", "Hi!"].contains(&lines[2]), "{output}");
         assert!(["Hello!", "Hi!"].contains(&lines[3]), "{output}");
-        assert_eq!(lines[4], "No sé hacer eso.");
+        assert_eq!(lines[4], "No sé escribir textos nuevos.");
     }
 }

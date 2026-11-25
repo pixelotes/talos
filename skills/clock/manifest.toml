@@ -1,0 +1,456 @@
+# clock: the time, the date, weekdays and spans (docs/spec/basics.md, `clock`).
+#
+# Everything is computed from the turn's injected `now` in the conversation's
+# own local time; time in other places is the `timezones` skill. Patterns match
+# the match form of the message (lower case, accents removed), so they are
+# written without accents. Every phrase that names a day, a date, a time or a
+# duration is captured as a `term` and read by the handler with the extractors
+# of `talos_core::extract`, which lets it report the resolved value (an ISO
+# date, `2027-03-14 19:00`, `3 h`) on the outcome in place of the raw words.
+#
+# Internal slots steer the handler: `format` (`12`/`24` on clock.now, `iso` on
+# clock.date), `part` (`year`/`month`), `form` (`stand`: "a cuántos estamos"),
+# `birth` (the user's own birth date, which Talos does not know), `dir`
+# (`since`: the verb looks back).
+#
+# v0.1 never asks back: a request missing what it needs, an ambiguous English
+# `3/4`, a target Talos cannot read, all get a short hint and `unhandled`.
+
+[skill]
+id = "clock"
+summary.es = "la hora, la fecha y cuánto falta para algo"
+summary.en = "the time, the date and how long until something"
+names.es = ["reloj", "hora", "fecha", "calendario"]
+names.en = ["clock", "time", "date", "calendar"]
+help.es = ["qué hora es", "qué fecha es hoy", "qué día cae el 25 de diciembre", "cuánto falta para Navidad"]
+help.en = ["what time is it", "what's the date", "what day is Christmas", "how long until Christmas"]
+capabilities = []
+
+# --- clock.now -----------------------------------------------------------------
+
+[[intent]]
+id = "clock.now"
+priority = 50
+courtesy = false
+
+  [intent.examples]
+  es = ["qué hora es", "me dices la hora", "tienes hora", "hora", "dime la hora porfa", "qué hora será dentro de 3 horas", "qué hora es en formato de 12 horas"]
+  en = ["what time is it", "got the time", "time", "what's the time", "tell me the time please", "what time will it be in 8 hours", "what time is it where I am"]
+
+  [[intent.slot]]
+  name = "offset"
+  type = "term"
+  required = false
+
+  [[intent.slot]]
+  name = "format"
+  type = "term"
+  internal = true
+
+  # "qué hora es", "k hora es", "qué hora será dentro de 3 horas", "qué hora es
+  # en formato de 12 horas". The format comes before the offset so that "en
+  # formato…" is never read as a duration.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?(?:que|k|q) hora (?:es|sera|seria)(?: (?:aqui|ahora|ahora mismo|ya))?(?: en formato de (?<format>12|24) horas)?(?: (?<offset>dentro de .+?|en \d.*?))?(?:,? por favor| porfa| porfi)?[\s?.!]*$'
+
+  # "me dices la hora", "tienes hora", "dime la hora porfa", "hora".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:me dices|dime|puedes decirme|podrias decirme|tienes|sabes)(?: la)? )?hora(?:,? por favor| porfa| porfi)?[\s?.!]*$'
+
+  # "what time is it", "what time will it be in 8 hours", "what's the time",
+  # "do you know what time it is right now". An offset starts with a number
+  # ("in 3 hours", "in an hour"), never a place: "in New York" is `timezones`.
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and )?(?:(?:do you know|can you tell me|could you tell me|tell me|any idea) )?what(?: time (?:is it|it is|will it be)|(?:.s| is) the time)(?: (?:here|now|right now|where i am|where i live))?(?:,? in (?<format>12|24)[- ]hour(?: format| clock)?)?(?: (?<offset>in (?:\d|an? |half |(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|sixty)\b).*?))?(?:,? please)?[\s?.!]*$'
+
+  # "time?", "got the time", "tell me the time please".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:(?:got|have you got|do you have|tell me|can you tell me|could you tell me|do you know) (?:the )?)?time(?:,? please)?[\s?.!]*$'
+
+# --- clock.date ----------------------------------------------------------------
+
+[[intent]]
+id = "clock.date"
+priority = 60
+courtesy = false
+
+  [intent.examples]
+  es = ["qué fecha es hoy", "a cuántos estamos", "qué día es hoy", "fecha de hoy", "qué fecha fue ayer", "en qué año estamos", "la fecha en formato iso"]
+  en = ["what's the date", "what is today's date", "date", "what's tomorrow's date", "what was the date yesterday", "what year is it", "today's date in ISO format"]
+
+  [[intent.slot]]
+  name = "day"
+  type = "term"
+  required = false
+
+  [[intent.slot]]
+  name = "part"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "format"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "form"
+  type = "term"
+  internal = true
+
+  # "qué fecha es hoy", "qué fecha fue ayer", "qué fecha es el próximo viernes".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?que fecha (?:es|fue|era|sera|cae)(?: (?<day>.+?))?(?: en formato (?<format>iso))?[\s?.!]*$'
+
+  # "y dentro de 100 días qué fecha será".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?(?<day>.+?) que fecha (?:es|sera|fue|era)(?: en formato (?<format>iso))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*a cuantos estamos[\s?.!]*$'
+  slots = { form = "stand" }
+
+  # "fecha de hoy", "la fecha en formato iso", "cuál es la fecha".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:cual es )?(?:la )?fecha(?: de (?<day>hoy|manana|ayer|pasado manana|anteayer))?(?: en formato (?<format>iso))?[\s?.!]*$'
+
+  # "qué día es hoy", "qué día es mañana": the date. A weekday question has
+  # "de la semana", or a date other than a relative day, and is clock.weekday.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?(?:que dia es|en que dia estamos)(?: (?<day>hoy|manana|ayer|pasado manana|anteayer))?[\s?.!]*$'
+
+  # "en qué año estamos", "en qué mes estamos".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*en que (?<part>ano|mes) estamos[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*que (?<part>ano|mes) es[\s?.!]*$'
+
+  # "what's the date", "what was the date yesterday", "date", "tell me the date
+  # please", "what's the date next Friday". "please" is taken before the day so
+  # that it is not read as one.
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and )?(?:(?:tell me|what(?:.s| is| was| will be)) (?:the )?)?date(?: please)?(?: (?<day>.+?))?(?: in (?<format>iso) format)?(?:,? please)?[\s?.!]*$'
+
+  # "what is today's date", "what's tomorrow's date", "today's date in ISO format".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and )?(?:what(?:.s| is| was| will be) )?(?<day>today|tomorrow|yesterday).s date(?: in (?<format>iso) format)?[\s?.!]*$'
+
+  # "what year is it", "what month is it".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and )?what (?<part>year|month) (?:is it|are we in)(?: now| right now)?[\s?.!]*$'
+
+# --- clock.weekday -------------------------------------------------------------
+
+[[intent]]
+id = "clock.weekday"
+priority = 50
+courtesy = false
+
+  [intent.examples]
+  es = ["qué día de la semana es hoy", "qué día cae el 25 de diciembre", "qué día fue el 20 de julio de 1969", "qué día era el 1/1/2000", "qué día será dentro de 3 semanas", "qué día de la semana nací"]
+  en = ["what day is it", "what day of the week is Christmas", "what weekday is 2 April 2027", "what day was July 20, 1969", "what day will it be in 10 days", "day of the week tomorrow", "what day of the week was I born"]
+
+  [[intent.slot]]
+  name = "date"
+  type = "term"
+  required = false
+
+  [[intent.slot]]
+  name = "birth"
+  type = "term"
+  internal = true
+
+  # "qué día de la semana nací", or with the date given in the message.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*que dia (?:de la semana )?naci(?: si naci (?:el )?(?<date>.+?))?[\s?.!]*$'
+  slots = { birth = "yes" }
+
+  # "qué día de la semana es hoy", "qué día cae el 25 de diciembre", "qué día
+  # será dentro de 3 semanas".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?que dia (?:de la semana )?(?:es|fue|era|sera|cae|caera|caia)(?: (?<date>.+?))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and )?what day (?:of the week )?was i born(?: if i was born (?:on )?(?<date>.+?))?[\s?.!]*$'
+  slots = { birth = "yes" }
+
+  # "what day is it", "what day of the week is Christmas", "what weekday is 2
+  # April 2027", "what day will it be in 10 days".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and )?what (?:day|weekday)(?: of the week)? (?:is|was|will it be|will be)(?: it)?(?: (?<date>.+?))?[\s?.!]*$'
+
+  # "day of the week tomorrow".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and )?day of the week(?: (?<date>.+?))?[\s?.!]*$'
+
+# --- clock.until ---------------------------------------------------------------
+
+[[intent]]
+id = "clock.until"
+priority = 50
+courtesy = false
+
+  [intent.examples]
+  es = ["cuánto falta para Navidad", "cuánto falta para las 7", "cuántos días faltan para el viernes", "cuánto hace desde el 1 de enero de 2000", "cuanto queda para pascua", "cuánto falta para medianoche"]
+  en = ["how long until Christmas", "how long until 9pm", "how many days until July 4th", "how long since July 20, 1969", "days until Friday", "how long until midnight"]
+
+  [[intent.slot]]
+  name = "target"
+  type = "term"
+  required = true
+
+  [[intent.slot]]
+  name = "dir"
+  type = "term"
+  internal = true
+
+  # "cuánto falta para Navidad", "cuánto falta para las 7", "cuánto queda para
+  # pascua"; a bare "cuánto falta" is missing its target.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?cuanto(?: tiempo)? (?:falta|queda)(?: (?:para|hasta))?(?: (?<target>.+?))?[\s?.!]*$'
+
+  # "cuántos días faltan para el viernes", "días que faltan para nochevieja".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?(?:cuantos )?dias (?:que )?(?:faltan|quedan) (?:para|hasta) (?<target>.+?)[\s?.!]*$'
+
+  # "cuánto hace desde el 1 de enero de 2000".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?(?:cuanto(?: tiempo)?|cuantos (?:dias|anos|meses)) (?:hace|ha pasado|han pasado|llevamos) desde (?<target>.+?)[\s?.!]*$'
+  slots = { dir = "since" }
+
+  # "how long until Christmas", "how many days until July 4th", "days until
+  # Friday"; a bare "how long until" is missing its target.
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and )?(?:how (?:long|much time)|how many (?:days|hours|minutes|weeks|months)|days|time)(?: is it| is there| are there| left)? (?:until|till|before)(?: (?<target>.+?))?[\s?.!]*$'
+
+  # "how long since July 20, 1969".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and )?(?:how long|how many (?:days|years|months|weeks)|days|time)(?: has it been| has passed| have passed)? since (?<target>.+?)[\s?.!]*$'
+  slots = { dir = "since" }
+
+# --- replies -------------------------------------------------------------------
+#
+# Spanish agrees its verb with a single unit ("Falta 1 día", "Faltan 2 días",
+# "Es la 1:05", "Son las 13:05"), so those replies come in pairs, `_one` for the
+# singular. English says the same either way.
+
+[reply.time]
+es = ["Son las {time}."]
+en = ["It's {time}."]
+
+[reply.time_one]
+es = ["Es la {time}."]
+en = ["It's {time}."]
+
+[reply.time_midnight]
+es = ["Son las {time} (medianoche)."]
+en = ["It's {time} (midnight)."]
+
+[reply.time_noon]
+es = ["Son las {time} (mediodía)."]
+en = ["It's {time} (noon)."]
+
+[reply.offset]
+es = ["Dentro de {span} serán las {time}."]
+en = ["In {span} it'll be {time}."]
+
+[reply.offset_one]
+es = ["Dentro de {span} será la {time}."]
+en = ["In {span} it'll be {time}."]
+
+[reply.offset_tomorrow]
+es = ["Dentro de {span} serán las {time} de mañana."]
+en = ["In {span} it'll be {time} tomorrow."]
+
+[reply.offset_tomorrow_one]
+es = ["Dentro de {span} será la {time} de mañana."]
+en = ["In {span} it'll be {time} tomorrow."]
+
+[reply.offset_later]
+es = ["Dentro de {span} serán las {time} ({date})."]
+en = ["In {span} it'll be {time} on {date}."]
+
+[reply.offset_later_one]
+es = ["Dentro de {span} será la {time} ({date})."]
+en = ["In {span} it'll be {time} on {date}."]
+
+[reply.no_clock]
+es = ["No sé qué hora local es aquí."]
+en = ["I don't know the local time here."]
+
+[reply.bad_offset]
+es = ["No he entendido ese plazo. Prueba con «dentro de 3 horas»."]
+en = ["I couldn't read that interval. Try “in 3 hours”."]
+
+[reply.date_today]
+es = ["Hoy es {full}."]
+en = ["Today is {full}."]
+
+[reply.date_stand]
+es = ["Estamos a {date}."]
+en = ["Today is {date}."]
+
+[reply.date_tomorrow]
+es = ["Mañana es {full}."]
+en = ["Tomorrow is {full}."]
+
+[reply.date_yesterday]
+es = ["Ayer fue {full}."]
+en = ["Yesterday was {full}."]
+
+[reply.date_future]
+es = ["Será {full}."]
+en = ["It will be {full}."]
+
+[reply.date_past]
+es = ["Fue {full}."]
+en = ["It was {full}."]
+
+[reply.date_year]
+es = ["Estamos en {year}."]
+en = ["It's {year}."]
+
+[reply.date_month]
+es = ["En {month}."]
+en = ["It's {month}."]
+
+[reply.date_iso]
+es = ["{iso}."]
+en = ["{iso}."]
+
+[reply.no_such_date]
+es = ["El {what} no existe."]
+en = ["{what} doesn't exist."]
+
+[reply.no_such_leap]
+es = ["El {what} no existe: {year} no es bisiesto."]
+en = ["{what} doesn't exist: {year} is not a leap year."]
+
+[reply.bad_date]
+es = ["No he entendido esa fecha. Prueba con «el 3 de mayo» o «el próximo viernes»."]
+en = ["I couldn't read that date. Try “May 3” or “next Friday”."]
+
+[reply.ambiguous]
+es = ["Esa fecha puede ser {first} o {second}. Escríbela con palabras."]
+en = ["That date could be {first} or {second}. Please write it out in words."]
+
+[reply.weekday_today]
+es = ["Hoy es {weekday} ({short})."]
+en = ["It's {weekday} ({short})."]
+
+[reply.weekday_tomorrow]
+es = ["Mañana es {weekday} ({short})."]
+en = ["Tomorrow is {weekday} ({short})."]
+
+[reply.weekday_yesterday]
+es = ["Ayer fue {weekday} ({short})."]
+en = ["Yesterday was {weekday} ({short})."]
+
+[reply.weekday_future]
+es = ["El {date} es {weekday}."]
+en = ["{date} is a {weekday}."]
+
+[reply.weekday_past]
+es = ["El {date} fue {weekday}."]
+en = ["{date} was a {weekday}."]
+
+[reply.weekday_past_proleptic]
+es = ["El {date} fue {weekday} en el calendario gregoriano proléptico."]
+en = ["{date} was a {weekday} in the proleptic Gregorian calendar."]
+
+[reply.unknown_birth]
+es = ["No sé cuándo naciste."]
+en = ["I don't know when you were born."]
+
+[reply.ahead]
+es = ["Faltan {span} ({full})."]
+en = ["{span} to go ({full})."]
+
+[reply.ahead_one]
+es = ["Falta {span} ({full})."]
+en = ["{span} to go ({full})."]
+
+[reply.ahead_named]
+es = ["Faltan {span} para {name} ({full})."]
+en = ["{span} until {name} ({full})."]
+
+[reply.ahead_named_one]
+es = ["Falta {span} para {name} ({full})."]
+en = ["{span} until {name} ({full})."]
+
+[reply.until_today]
+es = ["Es hoy ({full})."]
+en = ["That's today ({full})."]
+
+[reply.until_weekday_today]
+es = ["Hoy es {weekday}. El próximo {weekday} es dentro de {span} ({date})."]
+en = ["Today is {weekday}. The next {weekday} is in {span} ({date})."]
+
+[reply.since]
+es = ["Hace {span}, desde el {full}."]
+en = ["{span} since {full}."]
+
+[reply.since_named]
+es = ["Hace {span}, desde {name} ({full})."]
+en = ["{span} since {name} ({full})."]
+
+[reply.ago]
+es = ["Eso fue hace {span}."]
+en = ["That was {span} ago."]
+
+[reply.time_ahead]
+es = ["Faltan {span}."]
+en = ["{span} to go."]
+
+[reply.time_ahead_one]
+es = ["Falta {span}."]
+en = ["{span} to go."]
+
+[reply.time_ahead_tomorrow]
+es = ["Faltan {span} (mañana, {time})."]
+en = ["{span} to go (tomorrow, {time})."]
+
+[reply.time_ahead_tomorrow_one]
+es = ["Falta {span} (mañana, {time})."]
+en = ["{span} to go (tomorrow, {time})."]
+
+[reply.time_ahead_date]
+es = ["Faltan {span} ({full}, {time})."]
+en = ["{span} to go ({full}, {time})."]
+
+[reply.time_ahead_date_one]
+es = ["Falta {span} ({full}, {time})."]
+en = ["{span} to go ({full}, {time})."]
+
+[reply.usage_until]
+es = ["Necesito una fecha, una hora o un día conocido: «cuánto falta para Navidad» o «cuánto falta para las 9»."]
+en = ["I need a date, a time or a well-known day: “how long until Christmas” or “how long until 9pm”."]
+
+[reply.since_time]
+es = ["Para «desde» necesito una fecha, no una hora: «cuánto hace desde el 1 de enero de 2000»."]
+en = ["For “since” I need a date, not a time: “how long since July 20, 1969”."]

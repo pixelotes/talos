@@ -1,0 +1,87 @@
+# identity.who (docs/spec/basics.md). Our wording; content, language and
+# outcome are the spec's. Left out: "¿cómo me llamo yo?" (preferences.get,
+# not this skill).
+#
+# Given: now defaults to 2027-03-14 18:42 Europe/Madrid.
+
+[es] U: quién eres
+     T: Soy Talos, un asistente que responde en español e inglés sin usar un modelo de lenguaje.
+                                                  → answered · identity.who
+
+[es] U: ¿Quién eres?
+     T: Soy Talos, un asistente que responde en español e inglés sin usar un modelo de lenguaje.
+                                                  → answered · identity.who
+
+[es] U: como te llamas
+     T: Talos.                                    → answered · identity.who
+
+[es] U: qué eres exactamente
+     T: Soy Talos, un asistente que responde en español e inglés sin usar un modelo de lenguaje.
+                                                  → answered · identity.who
+
+[es] U: preséntate
+     T: Soy Talos, un asistente que responde en español e inglés sin usar un modelo de lenguaje.
+                                                  → answered · identity.who
+
+[es] U: cual es tu nombre
+     T: Talos.                                    → answered · identity.who
+
+[es] U: tú quién eres
+     T: Soy Talos, un asistente que responde en español e inglés sin usar un modelo de lenguaje.
+                                                  → answered · identity.who
+
+[en] U: who are you?
+     T: I'm Talos, a small assistant that answers in English and Spanish without a language model.
+                                                  → answered · identity.who
+
+[en] U: what's your name
+     T: Talos.                                    → answered · identity.who
+
+[en] U: what are you?
+     T: I'm Talos, a small assistant that answers in English and Spanish without a language model.
+                                                  → answered · identity.who
+
+# The language detector has no marker word in "introduce yourself", so with
+# no hint the turn is Spanish (the default); the hint makes it English.
+Given: hint = en
+
+[en] U: introduce yourself
+     T: I'm Talos, a small assistant that answers in English and Spanish without a language model.
+                                                  → answered · identity.who
+
+Given: hint = none
+
+[en] U: tell me about yourself
+     T: I'm Talos, a small assistant that answers in English and Spanish without a language model.
+                                                  → answered · identity.who
+
+[en] U: and you are?
+     T: I'm Talos, a small assistant that answers in English and Spanish without a language model.
+                                                  → answered · identity.who
+
+# Edge cases. Who made it: the configured line, no person named.
+
+[es] U: quién te creó
+     T: Talos es un proyecto de Pixelotes.        → answered · identity.who
+
+[es] U: ¿quién te ha hecho?
+     T: Talos es un proyecto de Pixelotes.        → answered · identity.who
+
+[en] U: who made you?
+     T: Talos is a project by Pixelotes.          → answered · identity.who
+
+[en] U: ok but which person built you?
+     T: Talos is a project by Pixelotes.          → answered · identity.who
+
+# Recognised, nothing specified: unhandled with the intent kept.
+
+[en] U: why are you called Talos?
+     T: I don't have that information.            → unhandled · identity.who
+
+[es] U: cuántos años tienes
+     T: No tengo esa información.                 → unhandled · identity.who
+
+# Only the first request of a compound message is answered.
+
+[en] U: what's your name and what time is it
+     T: Talos.                                    → answered · identity.who

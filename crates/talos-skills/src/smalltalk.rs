@@ -1,5 +1,5 @@
-//! `smalltalk`: greetings (docs/spec/basics.md). So far `smalltalk.greet`;
-//! bye, thanks and `how_are_you` follow in Slice C.
+//! `smalltalk`: greetings, farewells, thanks and the "how are you" ritual
+//! (docs/spec/basics.md).
 
 use talos_core::{Call, Context, Lang, Message, Skill, SkillError, SkillResult};
 
@@ -71,18 +71,53 @@ impl Smalltalk {
     }
 }
 
+impl Smalltalk {
+    /// Answers `special` when the internal slot `slot` holds `value`, and
+    /// `default` otherwise.
+    fn pick(
+        call: &Call<'_>,
+        slot: &str,
+        value: &str,
+        special: &'static str,
+        default: &'static str,
+    ) -> SkillResult {
+        let id = if call.slots.get(slot).and_then(|v| v.as_text()) == Some(value) {
+            special
+        } else {
+            default
+        };
+        SkillResult::Answer(Message::new(id))
+    }
+}
+
 impl Skill for Smalltalk {
     fn id(&self) -> &'static str {
         "smalltalk"
     }
 
     fn replies(&self) -> &'static [&'static str] {
-        &["hello", "casual", "morning", "afternoon", "evening"]
+        &[
+            "hello",
+            "casual",
+            "morning",
+            "afternoon",
+            "evening",
+            "bye",
+            "night",
+            "thanks",
+            "status",
+            "feelings",
+        ]
     }
 
     fn handle(&self, cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
         match call.intent.as_str() {
             "smalltalk.greet" => Self::greet(cx, call),
+            "smalltalk.bye" => Self::pick(call, "kind", "night", "night", "bye"),
+            "smalltalk.thanks" => SkillResult::Answer(Message::new("thanks")),
+            "smalltalk.how_are_you" => {
+                Self::pick(call, "topic", "feelings", "feelings", "status")
+            }
             _ => SkillResult::Decline,
         }
     }
@@ -147,10 +182,24 @@ mod tests {
     #[test]
     fn declines_intents_it_does_not_own_and_fails_on_bad_slots() {
         let now = Timestamp::from_unix(T);
-        assert_eq!(handle("smalltalk.bye", Lang::Es, &[], now), SkillResult::Decline);
+        assert_eq!(handle("smalltalk.nope", Lang::Es, &[], now), SkillResult::Decline);
         assert!(matches!(
             greet(Lang::Es, &[("daypart", "noon")], now),
             SkillResult::Fail(_)
         ));
+    }
+
+    #[test]
+    fn farewells_thanks_and_status_pick_their_reply_from_internal_slots() {
+        let now = Timestamp::from_unix(T);
+        let ask = |intent, slots: &[(&str, &str)]| handle(intent, Lang::En, slots, now);
+        assert_eq!(ask("smalltalk.bye", &[]), answer("bye"));
+        assert_eq!(ask("smalltalk.bye", &[("kind", "night")]), answer("night"));
+        assert_eq!(ask("smalltalk.thanks", &[]), answer("thanks"));
+        assert_eq!(ask("smalltalk.how_are_you", &[]), answer("status"));
+        assert_eq!(
+            ask("smalltalk.how_are_you", &[("topic", "feelings")]),
+            answer("feelings")
+        );
     }
 }

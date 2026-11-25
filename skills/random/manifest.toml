@@ -1,0 +1,424 @@
+# random: dice, coins, picking among options and random numbers
+# (docs/spec/basics.md, `random`).
+#
+# Patterns match the match form of the message (lower case, accents removed),
+# so they are written without accents. They are anchored: the obvious
+# phrasings only. The handler draws only through the injected source.
+#
+# Priorities: a number request (70) beats a pick (60) so that "elige un numero
+# entre 1 y 3" is a range; both beat dice and coins (50), whose anchored
+# patterns never overlap the others anyway.
+#
+# Internal slots steer the handler: `plural` ("los dados" is two dice),
+# `kind` (mixed or unsupported dice), `minus` (the "-K" of "2d6-3"),
+# `incomplete` ("entre 1 y" with no upper bound).
+#
+# Words the handler needs for faces and the conjunction live in the
+# `word_*` replies below: the handler reads them, so that no wording is
+# written in code.
+
+[skill]
+id = "random"
+summary.es = "tirar dados y monedas, elegir entre opciones y dar números al azar"
+summary.en = "roll dice, flip coins, pick among options and give random numbers"
+names.es = ["azar", "dados", "monedas", "sorteos"]
+names.en = ["random", "dice", "coins", "picking"]
+help.es = ["tira un dado", "cara o cruz", "elige entre pizza o sushi", "un número del 1 al 10"]
+help.en = ["roll two dice", "flip a coin", "pick between tea and coffee", "a number between 1 and 10"]
+
+# ---------------------------------------------------------------- dice
+
+[[intent]]
+id = "random.dice"
+priority = 50
+courtesy = false
+
+  [intent.examples]
+  es = ["tira un dado", "2d6", "3d8+2", "lanza dos dados", "tira 4 dados de 6 caras", "tírame un d20", "tira los dados", "tira un dado de 7 caras"]
+  en = ["roll a die", "roll 2d6", "roll two dice", "d20", "throw 3d8+2", "roll 4 six-sided dice", "roll the dice", "roll a six-sided die"]
+
+  [[intent.slot]]
+  name = "count"
+  type = "number"
+
+  [[intent.slot]]
+  name = "sides"
+  type = "number"
+
+  [[intent.slot]]
+  name = "modifier"
+  type = "number"
+
+  [[intent.slot]]
+  name = "minus"
+  type = "number"
+  internal = true
+
+  [[intent.slot]]
+  name = "plural"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "kind"
+  type = "term"
+  internal = true
+
+  # Mixed dice ("d6 y d20") and the variants Talos does not roll (keep the
+  # best, exploding, advantage).
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:tira|tirame|lanza|lanzame|echa|echame)\s+)?(?:un\s+)?\d*d\d+(?:\s*\+\s*|\s+y\s+)(?:un\s+)?\d*d\d+[\s?.!]*$'
+  slots = { kind = "mixed" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:tira|tirame|lanza|lanzame|echa|echame)\s.*\d*d\d+.*(?:quedandote|quedandome|quedandose|mejores|peores|ventaja|desventaja|explosiv\w*)'
+  slots = { kind = "unsupported" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:(?:roll|throw|toss)\s+)?(?:an?\s+)?\d*d\d+(?:\s*\+\s*|\s+and\s+)(?:an?\s+)?\d*d\d+[\s?.!]*$'
+  slots = { kind = "mixed" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:roll|throw|toss)\s.*\d*d\d+.*(?:keep|drop|highest|lowest|best|worst|explod\w*|advantage|disadvantage)'
+  slots = { kind = "unsupported" }
+
+  # Notation: NdM, NdM+K, NdM-K, with an optional verb.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:tira|tirame|lanza|lanzame|echa|echame)\s+(?:un\s+)?)?(?<count>\d+)?d(?<sides>\d+)(?:\s*\+\s*(?<modifier>\d+)|\s*-\s*(?<minus>\d+))?(?:\s+(?:por\s+favor|porfa))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:(?:roll|throw|toss)\s+(?:an?\s+|1\s+)?)?(?<count>\d+)?d(?<sides>\d+)(?:\s*\+\s*(?<modifier>\d+)|\s*-\s*(?<minus>\d+))?(?:\s+please)?[\s?.!]*$'
+
+  # In words: "tira un dado", "tira un dado de 7 caras".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:tira|tirame|lanza|lanzame|echa|echame)\s+(?:un|1)\s+dado(?:\s+de\s+(?<sides>\w+)\s+caras)?(?:\s+(?:por\s+favor|porfa))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:roll|throw|toss)\s+(?:a|an|one|1)\s+(?:(?<sides>\w+)[\s-]sided\s+)?(?:die|dice)(?:\s+please)?[\s?.!]*$'
+
+  # "los dados" / "the dice": two six-sided dice.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:tira|tirame|lanza|lanzame|echa|echame)\s+los\s+dados(?:\s+de\s+(?<sides>\w+)\s+caras)?(?:\s+(?:por\s+favor|porfa))?[\s?.!]*$'
+  slots = { plural = "yes" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:roll|throw|toss)\s+the\s+dice(?:\s+please)?[\s?.!]*$'
+  slots = { plural = "yes" }
+
+  # "N dados", "N dados de M caras".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:tira|tirame|lanza|lanzame|echa|echame)\s+(?<count>\w+)\s+dados(?:\s+de\s+(?<sides>\w+)\s+caras)?(?:\s+(?:por\s+favor|porfa))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:roll|throw|toss)\s+(?<count>\w+)\s+(?:(?<sides>\w+)[\s-]sided\s+)?dice(?:\s+please)?[\s?.!]*$'
+
+[[intent]]
+id = "random.coin"
+priority = 50
+courtesy = false
+
+  [intent.examples]
+  es = ["tira una moneda", "cara o cruz", "echa una moneda al aire", "lanza una moneda", "tira 3 monedas", "moneda"]
+  en = ["flip a coin", "heads or tails", "toss a coin", "coin flip", "flip 3 coins"]
+
+  [[intent.slot]]
+  name = "count"
+  type = "number"
+
+  # A call ("yo cara", "I call heads") before the request is ignored.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:yo\s+)?(?:cara|cruz)[.,;!]*\s+)?(?:(?:tira|tirame|lanza|lanzame|echa|echame)\s+(?:(?:una|1)\s+moneda|(?<count>\w+)\s+monedas)(?:\s+al\s+aire)?|cara\s+o\s+cruz|cruz\s+o\s+cara|moneda)(?:\s+(?:por\s+favor|porfa))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:i\s+call\s+(?:heads|tails)[.,;!]*\s+)?(?:please\s+)?(?:(?:flip|toss|throw)\s+(?:(?:a|one|1)\s+coin|(?<count>\w+)\s+coins)|heads\s+or\s+tails|tails\s+or\s+heads|coin\s+(?:flip|toss))(?:\s+please)?[\s?.!]*$'
+
+# ---------------------------------------------------------------- pick
+
+[[intent]]
+id = "random.pick"
+priority = 60
+courtesy = false
+
+  [intent.examples]
+  es = ["elige entre pizza, sushi y tacos", "escoge uno: rojo, verde, azul", "decide por mí: cine o casa", "sortea a Ana, Luis y Marta", "ayúdame a elegir entre pizza o sushi", "tira una moneda para decidir entre pizza o sushi"]
+  en = ["pick one: red, green, blue", "choose between tea and coffee", "decide for me: stay in or go out", "pick a name from Ana, Luis and Marta", "help me choose: pizza or sushi", "flip a coin to choose between tea and coffee"]
+
+  [[intent.slot]]
+  name = "options"
+  type = "term"
+  required = true
+  repeated = true
+
+  # A coin or a die used to decide between named options.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:tira|tirame|lanza|lanzame|echa|echame)\s+(?:una\s+moneda|un\s+dado)\s+para\s+(?:decidir|elegir|escoger)\s+(?:entre\s+)?(?<options>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:flip|toss|roll|throw)\s+(?:a\s+coin|a\s+die)\s+to\s+(?:decide|choose|pick)\s+(?:between\s+)?(?<options>.+?)[\s?.!]*$'
+
+  # A verb of choosing, then "entre"/"between"/":" and the options.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:[^,.;:!?]*[,.;]\s+)?(?:ayudame\s+a\s+)?(?:elige|escoge|decide|elegir|escoger|decidir)(?:\s+(?:uno|una|algo|por\s+mi))?(?:\s+entre\s+|\s*:\s*)(?<options>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:[^,.;:!?]*[,.;]\s+)?(?:sortea|sorteame|sortear)\s+(?:a\s+|entre\s+|:\s*)?(?<options>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:[^,.;:!?]*[,.;]\s+)?(?:help\s+me\s+)?(?:pick|choose|decide|select)(?:\s+(?:one|something|for\s+me|an?\s+\w+(?:\s+\w+)?))?(?:\s+(?:between|from|among|of)\s+|\s*:\s*)(?<options>.+?)[\s?.!]*$'
+
+  # A verb of choosing with no options: recognised, answered with a hint.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:ayudame\s+a\s+)?(?:elige|escoge|decide|elegir|escoger|decidir)(?:\s+(?:uno|una|algo|por\s+mi))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:help\s+me\s+)?(?:pick|choose|decide)(?:\s+(?:one|something|for\s+me|an?\s+\w+(?:\s+\w+)?))?[\s?.!]*$'
+
+# -------------------------------------------------------------- number
+
+[[intent]]
+id = "random.number"
+priority = 70
+courtesy = false
+
+  [intent.examples]
+  es = ["dame un número del 1 al 10", "número aleatorio entre 1 y 100", "un número al azar", "dime un número entre -5 y 5", "5 números del 1 al 49 sin repetir", "del uno al seis", "un número aleatorio hasta 50"]
+  en = ["give me a random number between 1 and 10", "random number", "pick a number from 1 to 6", "a number between -5 and 5", "5 numbers from 1 to 49 without repeating", "a random number up to 50"]
+
+  [[intent.slot]]
+  name = "low"
+  type = "number"
+
+  [[intent.slot]]
+  name = "high"
+  type = "number"
+
+  [[intent.slot]]
+  name = "count"
+  type = "number"
+
+  [[intent.slot]]
+  name = "distinct"
+  type = "term"
+
+  [[intent.slot]]
+  name = "incomplete"
+  type = "term"
+  internal = true
+
+  # "entre 1 y": no upper bound.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:dame|dime|da|di|genera|generame|sacame|saca|elige|escoge|quiero|necesito)\s+)?(?:un\s+|una\s+)?(?:(?<count>\d+|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce|quince|veinte|treinta|cuarenta|cincuenta|cien)\s+)?numeros?(?:\s+(?:aleatori[oa]s?|al\s+azar))?\s+entre\s+(?<low>(?:menos\s+|-\s*)?[\w.,^]+)\s+y\s*[?.!]*$'
+  slots = { incomplete = "yes" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:(?:give\s+me|get\s+me|pick|choose|generate|draw|tell\s+me|i\s+need|i\s+want)\s+)?(?:an?\s+|one\s+)?(?:(?<count>\d+|two|three|four|five|six|seven|eight|nine|ten|twelve|fifteen|twenty|thirty|forty|fifty|hundred)\s+)?(?:random\s+)?numbers?\s+between\s+(?<low>(?:minus\s+|negative\s+|-\s*)?[\w.,^]+)\s+and\s*[?.!]*$'
+  slots = { incomplete = "yes" }
+
+  # With a range: "del 1 al 10", "entre 1 y 100".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:dame|dime|da|di|genera|generame|sacame|saca|elige|escoge|quiero|necesito)\s+)?(?:un\s+|una\s+)?(?:(?<count>\d+|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce|quince|veinte|treinta|cuarenta|cincuenta|cien)\s+)?numeros?(?:\s+(?:aleatori[oa]s?|al\s+azar))?\s+(?:del?|entre)\s+(?<low>(?:menos\s+|-\s*)?[\w.,^]+)\s+(?:al?|y)\s+(?<high>(?:menos\s+|-\s*)?[\w.,^]+)(?:\s+(?<distinct>sin\s+repetir(?:se)?|sin\s+repeticion(?:es)?|distintos|diferentes|no\s+repetidos))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*del\s+(?<low>(?:menos\s+|-\s*)?[\w.,^]+)\s+al\s+(?<high>(?:menos\s+|-\s*)?[\w.,^]+)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:(?:give\s+me|get\s+me|pick|choose|generate|draw|tell\s+me|i\s+need|i\s+want)\s+)?(?:an?\s+|one\s+)?(?:(?<count>\d+|two|three|four|five|six|seven|eight|nine|ten|twelve|fifteen|twenty|thirty|forty|fifty|hundred)\s+)?(?:random\s+)?numbers?\s+(?:from|between)\s+(?<low>(?:minus\s+|negative\s+|-\s*)?[\w.,^]+)\s+(?:to|and|through)\s+(?<high>(?:minus\s+|negative\s+|-\s*)?[\w.,^]+)(?:\s+(?<distinct>without\s+(?:repeating|repeats|repetition)|with\s+no\s+repeats|no\s+repeats|distinct|unique))?(?:\s+please)?[\s?.!]*$'
+
+  # "hasta 50" / "up to 50": one to the bound.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:dame|dime|da|di|genera|generame|sacame|saca|elige|escoge|quiero|necesito)\s+)?(?:un\s+|una\s+)?(?:(?<count>\d+|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce|quince|veinte|treinta|cuarenta|cincuenta|cien)\s+)?numeros?(?:\s+(?:aleatori[oa]s?|al\s+azar))?\s+hasta\s+(?:el\s+)?(?<high>(?:menos\s+|-\s*)?[\w.,^]+)(?:\s+(?<distinct>sin\s+repetir(?:se)?|sin\s+repeticion(?:es)?|distintos|diferentes|no\s+repetidos))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:(?:give\s+me|get\s+me|pick|choose|generate|draw|tell\s+me|i\s+need|i\s+want)\s+)?(?:an?\s+|one\s+)?(?:(?<count>\d+|two|three|four|five|six|seven|eight|nine|ten|twelve|fifteen|twenty|thirty|forty|fifty|hundred)\s+)?(?:random\s+)?numbers?\s+up\s+to\s+(?<high>(?:minus\s+|negative\s+|-\s*)?[\w.,^]+)(?:\s+(?<distinct>without\s+(?:repeating|repeats|repetition)|with\s+no\s+repeats|no\s+repeats|distinct|unique))?(?:\s+please)?[\s?.!]*$'
+
+  # No range: one to a hundred.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:dame|dime|da|di|genera|generame|sacame|saca|elige|escoge|quiero|necesito)\s+)?(?:un\s+|una\s+)?(?:(?<count>\d+|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce|quince|veinte|treinta|cuarenta|cincuenta|cien)\s+)?numeros?(?:\s+(?:aleatori[oa]s?|al\s+azar))?(?:\s+(?<distinct>sin\s+repetir(?:se)?|sin\s+repeticion(?:es)?|distintos|diferentes|no\s+repetidos))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^[\s]*(?:please\s+)?(?:(?:give\s+me|get\s+me|pick|choose|generate|draw|tell\s+me|i\s+need|i\s+want)\s+)?(?:an?\s+|one\s+)?(?:(?<count>\d+|two|three|four|five|six|seven|eight|nine|ten|twelve|fifteen|twenty|thirty|forty|fifty|hundred)\s+)?(?:random\s+)?numbers?(?:\s+at\s+random)?(?:\s+(?<distinct>without\s+(?:repeating|repeats|repetition)|with\s+no\s+repeats|no\s+repeats|distinct|unique))?(?:\s+please)?[\s?.!]*$'
+
+# ------------------------------------------------------------- replies
+
+# Dice.
+[reply.dice_one]
+es = ["Ha salido un {face}."]
+en = ["It came up {face}."]
+
+[reply.dice_one_plus]
+es = ["Ha salido un {face}, más {modifier}: total {total}."]
+en = ["It came up {face}, plus {modifier}: total {total}."]
+
+[reply.dice_one_minus]
+es = ["Ha salido un {face}, menos {modifier}: total {total}."]
+en = ["It came up {face}, minus {modifier}: total {total}."]
+
+[reply.dice_list]
+es = ["{faces}: total {total}."]
+en = ["{faces}: total {total}."]
+
+[reply.dice_list_plus]
+es = ["{faces}, más {modifier}: total {total}."]
+en = ["{faces}, plus {modifier}: total {total}."]
+
+[reply.dice_list_minus]
+es = ["{faces}, menos {modifier}: total {total}."]
+en = ["{faces}, minus {modifier}: total {total}."]
+
+[reply.dice_the]
+es = ["Dos dados: {faces}, total {total}."]
+en = ["Two dice: {faces}, total {total}."]
+
+[reply.dice_total]
+es = ["Total {total}."]
+en = ["Total {total}."]
+
+[reply.dice_zero]
+es = ["Tengo que tirar al menos un dado."]
+en = ["I have to roll at least one die."]
+
+[reply.dice_sides_min]
+es = ["Un dado necesita al menos 2 caras."]
+en = ["A die needs at least 2 sides."]
+
+[reply.dice_sides_max]
+es = ["Los dados pueden tener como mucho 1000 caras."]
+en = ["Dice can have at most 1000 sides."]
+
+[reply.dice_count_max]
+es = ["Puedo tirar hasta 100 dados a la vez."]
+en = ["I can roll up to 100 dice at once."]
+
+[reply.dice_mixed]
+es = ["Pídeme un solo tipo de dado cada vez."]
+en = ["Ask me for one kind of die at a time."]
+
+[reply.dice_unsupported]
+es = ["Solo tiro dados simples, como 4d6 o 2d8+1."]
+en = ["I only roll plain dice such as 4d6 or 2d8+1."]
+
+[reply.dice_usage]
+es = ["Prueba con: tira un dado, 2d6 o 3d8+2."]
+en = ["Try: roll a die, 2d6 or 3d8+2."]
+
+# Coins.
+[reply.coin_heads]
+es = ["Ha salido cara.", "Cara."]
+en = ["It landed heads.", "Heads."]
+
+[reply.coin_tails]
+es = ["Ha salido cruz.", "Cruz."]
+en = ["It landed tails.", "Tails."]
+
+[reply.coin_list]
+es = ["{faces}."]
+en = ["{faces}."]
+
+[reply.coin_counts]
+es = ["Caras: {heads}, cruces: {tails}."]
+en = ["Heads: {heads}, tails: {tails}."]
+
+[reply.coin_max]
+es = ["Como mucho tiro 100 monedas a la vez."]
+en = ["I can flip at most 100 coins at once."]
+
+[reply.coin_usage]
+es = ["Prueba con: tira una moneda o tira 3 monedas."]
+en = ["Try: flip a coin or flip 3 coins."]
+
+# Picks.
+[reply.pick_chosen]
+es = ["Elijo {option}."]
+en = ["I pick {option}."]
+
+[reply.pick_uncertain]
+es = ["Elijo {option} (entre {options})."]
+en = ["I pick {option} (from {options})."]
+
+[reply.pick_one]
+es = ["Solo me das una opción: {option}."]
+en = ["There's only one option: {option}."]
+
+[reply.pick_many]
+es = ["Puedo elegir entre 1000 opciones como mucho."]
+en = ["I can choose among 1000 options at most."]
+
+[reply.pick_usage]
+es = ["Dime entre qué opciones elegir, por ejemplo: elige entre pizza, sushi y tacos."]
+en = ["Tell me the options, for example: pick between pizza, sushi and tacos."]
+
+# Numbers.
+[reply.number_one]
+es = ["{numbers}."]
+en = ["{numbers}."]
+
+[reply.number_range]
+es = ["{numbers} (entre {low} y {high})."]
+en = ["{numbers} (between {low} and {high})."]
+
+[reply.number_single]
+es = ["{numbers}. El rango tenía un solo valor."]
+en = ["{numbers}. The range had only one value."]
+
+[reply.number_impossible]
+es = ["No puedo sacar {count} números distintos de solo {available}."]
+en = ["I can't draw {count} different numbers from only {available}."]
+
+[reply.number_big]
+es = ["El rango es demasiado grande; llego hasta 10^15."]
+en = ["That range is too large; I go up to 10^15."]
+
+[reply.number_count_max]
+es = ["Como mucho doy 100 números a la vez."]
+en = ["I give at most 100 numbers at once."]
+
+[reply.number_usage]
+es = ["Prueba con: un número del 1 al 10."]
+en = ["Try: a number between 1 and 10."]
+
+[reply.number_incomplete]
+es = ["Falta el otro extremo del rango. Prueba con: un número del 1 al 10."]
+en = ["The other end of the range is missing. Try: a number between 1 and 10."]
+
+# Words the handler reads from here (never answered as a message).
+[reply.word_heads]
+es = ["cara"]
+en = ["heads"]
+
+[reply.word_tails]
+es = ["cruz"]
+en = ["tails"]
+
+[reply.word_and]
+es = ["y"]
+en = ["and"]

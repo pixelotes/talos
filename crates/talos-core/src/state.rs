@@ -8,12 +8,12 @@
 //! expiry (measured with the turns' injected `now`, never the system clock)
 //! starts afresh.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use crate::language::Hold;
 use crate::skill::Expectation;
-use crate::{ConvId, IntentId, Lang, Timestamp};
+use crate::{ConvId, IntentId, Lang, Status, Timestamp};
 
 /// What the engine remembers about one conversation between turns.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,6 +25,39 @@ pub struct ConversationState {
     /// v0.1; open questions arrive in v0.2 (docs/spec/conversation.md
     /// section 3).
     expectation: Option<Expectation>,
+    /// What was said lately, for the reflector's variants.
+    recent: Recent,
+}
+
+/// What Talos said lately in a conversation: enough for the reflector to
+/// avoid repeating itself (docs/spec/reflector.md 6).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub(crate) struct Recent {
+    /// The previous turn's reply text, whatever answered it.
+    pub(crate) last_reply: Option<String>,
+    /// Consecutive deflections that ended in a question, up to the last
+    /// turn.
+    pub(crate) questions_in_row: u8,
+    /// The variant each reflector rule (by language and position) used
+    /// last.
+    variants: BTreeMap<(Lang, u16), usize>,
+}
+
+impl Recent {
+    const NEW: Recent = Recent {
+        last_reply: None,
+        questions_in_row: 0,
+        variants: BTreeMap::new(),
+    };
+
+    /// The variant a rule used last, if it has been used.
+    pub(crate) fn variant(&self, lang: Lang, rule: u16) -> Option<usize> {
+        self.variants.get(&(lang, rule)).copied()
+    }
+
+    pub(crate) fn set_variant(&mut self, lang: Lang, rule: u16, variant: usize) {
+        self.variants.insert((lang, rule), variant);
+    }
 }
 
 impl ConversationState {
@@ -34,6 +67,7 @@ impl ConversationState {
         lang: None,
         last_intent: None,
         expectation: None,
+        recent: Recent::NEW,
     };
 
     /// The number of the turn being answered, from 1; 0 before the first.
@@ -75,6 +109,31 @@ impl ConversationState {
 
     pub(crate) fn set_lang(&mut self, lang: Lang, hold: Hold) {
         self.lang = Some((lang, hold));
+    }
+
+    /// The previous turn's reply, if there was a turn.
+    #[must_use]
+    pub fn last_reply(&self) -> Option<&str> {
+        self.recent.last_reply.as_deref()
+    }
+
+    pub(crate) const fn recent(&self) -> &Recent {
+        &self.recent
+    }
+
+    pub(crate) fn recent_mut(&mut self) -> &mut Recent {
+        &mut self.recent
+    }
+
+    /// Records the turn's reply: the next turn will not repeat it, and a
+    /// run of deflections ending in a question is counted.
+    pub(crate) fn remember_reply(&mut self, reply: &str, status: Status) {
+        self.recent.questions_in_row = if status == Status::Deflected && reply.ends_with('?') {
+            self.recent.questions_in_row.saturating_add(1)
+        } else {
+            0
+        };
+        self.recent.last_reply = Some(reply.to_owned());
     }
 
     pub(crate) fn set_last_intent(&mut self, intent: Option<IntentId>) {
