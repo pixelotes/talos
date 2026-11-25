@@ -25,7 +25,14 @@
 //!   is read.
 //! - **Small automata, no kept caches.** A list is matched as a few small
 //!   multi-pattern automata: building one large one needs a transient peak
-//!   several times its final size, which the allocator keeps. They are the
+//!   several times its final size, which the allocator keeps.
+//! - **Only the automata a text can need.** Each pattern records the words
+//!   any match of it must contain, when it has any (`cuanto es` needs
+//!   "cuanto"; `^(?:hola|buenas)$` needs "hola" or "buenas"). A group of
+//!   patterns whose every member needs a word the text lacks cannot match
+//!   it, so its automaton is neither built nor run for that text: a
+//!   conversation builds the groups its messages could match, not the whole
+//!   list. They are the
 //!   `PikeVM`s the `regex` crate itself would run (same parser, same
 //!   compiler, same leftmost-first and overlapping semantics), driven
 //!   directly so that the scratch space of a search is freed after it
@@ -40,8 +47,11 @@ use regex_automata::{Input, MatchKind, PatternSet};
 use regex_syntax::hir::{Class, Hir, HirKind, Look};
 
 /// Patterns per multi-pattern automaton: small ones keep the build-time
-/// peak low and cost little more to search than one large one.
-const CHUNK: usize = 8;
+/// peak low, and a group is built only when a text could match one of its
+/// patterns, so the smaller the group the less is built for patterns that
+/// could not match (on the footprint chat, 2 and 4 were close and both
+/// beat 8 and 16).
+const CHUNK: usize = 4;
 
 /// The largest automaton built, as the `regex` crate's default.
 const SIZE_LIMIT: usize = 10 << 20;
@@ -52,15 +62,11 @@ pub(crate) struct Patterns {
     entries: Vec<Entry>,
     /// Whether any pattern has a narrow form distinct from its source.
     narrowed: bool,
-    /// The multi-pattern automata, by [`Form`].
-    sets: [OnceLock<Vec<Set>>; 2],
-}
-
-/// Up to [`CHUNK`] patterns matched together.
-#[derive(Debug)]
-struct Set {
-    vm: PikeVM,
-    lengths: Lengths,
+    /// The lengths of text each group of [`CHUNK`] patterns can match.
+    lengths: Vec<Lengths>,
+    /// The multi-pattern automaton of each group, by [`Form`], built when a
+    /// text first could match it; `None` if it could not be built.
+    sets: [Vec<OnceLock<Option<PikeVM>>>; 2],
 }
 
 /// The lengths of text, in bytes, on which a pattern can match: no
@@ -113,6 +119,9 @@ struct Entry {
     /// Its named captures, in order.
     names: Vec<String>,
     lengths: Lengths,
+    /// Words one of which every match contains, when the pattern has such
+    /// words ([`needs`]); `None`: it may match without any.
+    needs: Option<Vec<String>>,
     /// Its own automaton, by [`Form`], built when first read.
     single: [OnceLock<Option<PikeVM>>; 2],
 }
@@ -146,6 +155,7 @@ impl Patterns {
                     narrow: narrow(source),
                     names,
                     lengths: Lengths::of(&hir),
+                    needs: needs(&hir),
                     single: [OnceLock::new(), OnceLock::new()],
                 })
             })
@@ -159,10 +169,16 @@ impl Patterns {
     }
 
     fn from_entries(entries: Vec<Entry>) -> Self {
+        let lengths: Vec<Lengths> = entries
+            .chunks(CHUNK)
+            .map(|chunk| Lengths::union(chunk.iter().map(|e| &e.lengths)))
+            .collect();
+        let unbuilt = || lengths.iter().map(|_| OnceLock::new()).collect();
         Self {
             narrowed: entries.iter().any(|e| e.narrow.is_some()),
+            sets: [unbuilt(), unbuilt()],
+            lengths,
             entries,
-            sets: [OnceLock::new(), OnceLock::new()],
         }
     }
 
@@ -174,10 +190,13 @@ impl Patterns {
         self.entries.is_empty()
     }
 
-    /// Which forms' multi-pattern automata exist: narrow, as written.
+    /// Which forms have any multi-pattern automaton built: narrow, as
+    /// written.
     #[cfg(test)]
     pub(crate) fn built(&self) -> [bool; 2] {
-        self.sets.each_ref().map(|s| s.get().is_some())
+        self.sets
+            .each_ref()
+            .map(|s| s.iter().any(|set| set.get().is_some()))
     }
 
     /// Pattern `i` as written.
@@ -197,30 +216,24 @@ impl Patterns {
     }
 
     fn matches_in(&self, text: &str, form: Form) -> Vec<usize> {
-        let sets = self.sets[form as usize].get_or_init(|| {
-            self.entries
-                .chunks(CHUNK)
-                .map(|chunk| {
-                    let sources: Vec<&str> = chunk.iter().map(|e| e.text(form)).collect();
-                    Some(Set {
-                        vm: build(&sources, MatchKind::All, thompson::WhichCaptures::None)?,
-                        lengths: Lengths::union(chunk.iter().map(|e| &e.lengths)),
-                    })
-                })
-                .collect::<Option<_>>()
-                // Not reached: every pattern parsed. Were it, nothing
-                // would match.
-                .unwrap_or_default()
-        });
         // One scratch space for the whole search, freed when it is done.
         let mut cache = None;
         let mut set = PatternSet::new(CHUNK);
         let input = Input::new(text);
         let mut found = Vec::new();
-        for (n, Set { vm, lengths }) in sets.iter().enumerate() {
-            if !lengths.admit(text) {
+        for (n, chunk) in self.entries.chunks(CHUNK).enumerate() {
+            if !self.lengths[n].admit(text) || !chunk.iter().any(|e| e.may_match(text)) {
                 continue;
             }
+            let built = self.sets[form as usize][n].get_or_init(|| {
+                let sources: Vec<&str> = chunk.iter().map(|e| e.text(form)).collect();
+                build(&sources, MatchKind::All, thompson::WhichCaptures::None)
+            });
+            // Not reached: every pattern parsed. Were it, the group would
+            // match nothing.
+            let Some(vm) = built else {
+                continue;
+            };
             let cache = cache.get_or_insert_with(|| vm.create_cache());
             vm.reset_cache(cache);
             set.clear();
@@ -296,6 +309,39 @@ impl Patterns {
     }
 }
 
+/// Words one of which every match of `hir` contains, when it has such
+/// words: a literal is itself; a group, or a repetition at least once, is
+/// what it repeats; an alternation needs one of its branches' words, when
+/// every branch has some; a sequence needs what its most telling part needs
+/// (the part whose shortest word is longest, then the fewest words).
+/// Classes, assertions and optional parts need nothing.
+fn needs(hir: &Hir) -> Option<Vec<String>> {
+    match hir.kind() {
+        HirKind::Literal(literal) => Some(vec![String::from_utf8(literal.0.to_vec()).ok()?]),
+        HirKind::Capture(capture) => needs(&capture.sub),
+        HirKind::Repetition(repetition) if repetition.min > 0 => needs(&repetition.sub),
+        HirKind::Alternation(branches) => {
+            let mut words = Vec::new();
+            for branch in branches {
+                for word in needs(branch)? {
+                    if !words.contains(&word) {
+                        words.push(word);
+                    }
+                }
+            }
+            Some(words)
+        }
+        HirKind::Concat(parts) => parts.iter().filter_map(needs).max_by(|a, b| {
+            let shortest = |w: &[String]| w.iter().map(String::len).min().unwrap_or(0);
+            shortest(a)
+                .cmp(&shortest(b))
+                .then_with(|| b.len().cmp(&a.len()))
+        }),
+        _ => None,
+    }
+    .filter(|words| !words.is_empty() && words.iter().all(|w| !w.is_empty()))
+}
+
 /// An automaton for `sources`, configured as the `regex` crate configures
 /// its own: a `RegexSet` reports every pattern that matches
 /// (`MatchKind::All`, no captures), a `Regex` the leftmost-first match.
@@ -315,6 +361,14 @@ fn build(sources: &[&str], kind: MatchKind, captures: thompson::WhichCaptures) -
 }
 
 impl Entry {
+    /// Whether the pattern can match `text` at all, as far as the words
+    /// every match of it contains tell.
+    fn may_match(&self, text: &str) -> bool {
+        self.needs
+            .as_ref()
+            .is_none_or(|words| words.iter().any(|w| text.contains(w.as_str())))
+    }
+
     fn text(&self, form: Form) -> &str {
         match (form, &self.narrow) {
             (Form::Narrow, Some(narrow)) => narrow,
@@ -460,6 +514,27 @@ mod tests {
     }
 
     #[test]
+    fn a_group_is_built_only_for_a_text_it_could_match() {
+        let list = Patterns::new([
+            r"^cuanto\s+es\s+\d+$",
+            r"^(?:hola|buenas)(?: talos)?$",
+            r"x+",
+        ])
+        .unwrap();
+        assert_eq!(list.entries[0].needs, Some(vec!["cuanto".to_owned()]));
+        assert_eq!(
+            list.entries[1].needs,
+            Some(vec!["hola".to_owned(), "buenas".to_owned()])
+        );
+        assert_eq!(list.entries[2].needs, Some(vec!["x".to_owned()]));
+        assert_eq!(Patterns::new([r"\d+|hola"]).unwrap().entries[0].needs, None);
+        assert_eq!(list.matches("que tal"), Vec::<usize>::new());
+        assert_eq!(list.built(), [false, false]);
+        assert_eq!(list.matches("buenas"), [1]);
+        assert_eq!(list.built(), [true, false]);
+    }
+
+    #[test]
     fn automata_are_built_when_first_needed_and_only_in_the_form_needed() {
         let list = Patterns::new([r"^(?P<w>\w+) es$", r"\d", "hola"]).unwrap();
         assert_eq!(list.built(), [false, false]);
@@ -581,6 +656,11 @@ mod tests {
         for text in &narrow {
             let found = list.matches_in(text, Form::Narrow);
             assert_eq!(found, list.matches_in(text, Form::Written), "{text}");
+            // The words a pattern needs never hide a match.
+            let each: Vec<usize> = (0..list.len())
+                .filter(|&i| list.is_match(i, text))
+                .collect();
+            assert_eq!(found, each, "{text}");
             for &i in &found {
                 assert_eq!(
                     list.captures_in(i, text, Form::Narrow),

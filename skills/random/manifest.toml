@@ -52,7 +52,12 @@ command = { es = "/dado", en = "/roll", slot = "notation" }
     "lanza un dado porfa", "necesito una tirada de 1d20 para mi partida",
     "me tiras dos dados para el parchís?", "para el juego necesito tirar 3d6",
     "a ver qué sale en un dado de 6", "tira un dado de veinte caras para mí", "haz tú la tirada: 2d6",
-    "dame un resultado de dado"]
+    "dame un resultado de dado",
+    "tira dos dados de seis caras", "tírame los dados", "un dado, porfa", "una tirada de dado",
+    "hazme una tirada de dados", "tira un d20", "me tiras un dado?", "a ver, tira un dado",
+    "venga, lanza los dados", "tira un dado de veinte caras", "tira un dado de 6", "lanza un dado de diez",
+    "tira un par de dados", "me lanzas un dado?", "tira 3 dados", "un d20", "tirada de 2d6", "tira 1d100",
+    "echa un d12", "tira los dados, anda", "dado de seis", "tira el dado otra vez"]
   en = ["roll a die", "roll 2d6", "roll two dice", "d20", "throw 3d8+2", "roll 4 six-sided dice", "roll the dice", "roll a six-sided die",
     "roll a d20", "throw a d6", "roll 2 dice", "toss the dice", "roll three dice", "roll a die for me",
     "2d10", "1d100", "4d6", "d12", "d8+1", "roll 2d6+3", "roll a ten-sided die", "a twelve-sided die please",
@@ -67,7 +72,12 @@ command = { es = "/dado", en = "/roll", slot = "notation" }
     "i'd like you to roll a die", "i don't have dice, can you roll one?", "rol a die", "roll a dice",
     "roll a die pls", "i need a 1d20 roll for my game", "can you roll two dice for monopoly?",
     "for the game i need to roll 3d6", "let's see what a d6 gives", "roll a twenty-sided die for me",
-    "you do the roll: 2d6", "give me a die result"]
+    "you do the roll: 2d6", "give me a die result",
+    "roll me a die", "roll me two dice", "roll some dice", "dice roll please", "roll a d20 for me",
+    "could you roll two dice for me", "roll 2 six-sided dice", "roll a twelve-sided die", "let's roll a die",
+    "roll a couple of dice", "toss two dice", "d6 please", "roll d100", "roll a die for me please",
+    "throw the dice", "i need a dice roll", "roll a d8", "can you throw a die", "roll one die",
+    "roll a dice for me", "roll 4d6", "one d20 please"]
 
   # A guess (no rule matched) finds them next to these words:
   # "oye, lanza tres dados", "échame uno de veinte caras".
@@ -181,6 +191,28 @@ command = { es = "/dado", en = "/roll", slot = "notation" }
   lang = "en"
   regex = '^[\s]*(?:please\s+)?(?:roll|throw|toss)\s+(?<count>\w+)\s+(?:(?<sides>\w+)[\s-]sided\s+)?dice(?:\s+please)?[\s?.!]*$'
 
+  # "tira el dado", "me tiras un dado?".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:a\s+ver|venga|anda|oye),?\s+)?(?:tira|tirame|lanza|lanzame|echa|echame|me\s+(?:tiras|lanzas|echas))\s+(?:el|un)\s+dado(?:\s+(?:otra\s+vez|por\s+mi))?(?:,?\s+(?:por\s+favor|porfa|anda))?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:hazme|haz|dame)\s+)?(?:una\s+)?tirada\s+de\s+(?:dados?|(?<count>\d+)?d(?<sides>\d+))(?:,?\s+(?:por\s+favor|porfa))?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:un\s+)?dado(?:,?\s+(?:por\s+favor|porfa))[\s?.!]*$'''
+
+  # "roll me a die", "can you roll a die", "roll the die".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:please\s+)?(?:can\s+you\s+|could\s+you\s+|let\x27s\s+)?(?:roll|throw|toss|chuck)\s+(?:me\s+)?(?:a|an|one|1|the)\s+(?:die|dice)(?:\s+for\s+me)?(?:,?\s+please)?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:give\s+me|i\s+need)\s+)?(?:a\s+)?(?:dice|die)\s+roll(?:,?\s+please)?[\s?.!]*$'''
+
 [[intent]]
 id = "random.coin"
 priority = 50
@@ -271,7 +303,17 @@ command = { es = "/elige", en = "/pick", slot = "options" }
     "necesito que elijas por mí entre ir andando o en bus", "no me decido, escoge tú: té o café",
     "haz un sorteo entre mis amigos: ana, luis, marta y jorge", "decide tú por mí, ¿lunes o miércoles?",
     "sortea quién paga hoy entre pablo y yo", "elige uno al azar de estos: azul, verde, rojo",
-    "escoge una peli: titanic o avatar"]
+    "escoge una peli: titanic o avatar",
+    "tú eliges: cine o teatro", "elige por mí entre rojo y azul", "cuál cojo, el rojo o el azul?",
+    "cuál elijo: pasta, arroz o ensalada", "échalo a suertes: Ana, Luis o Marta",
+    "a suertes entre Juan y Pedro", "uno de estos: café, té o agua", "sortea quién friega: Juan, Ana o yo",
+    "escoge una opción: sí o no", "elige al azar entre estas: lunes, martes o jueves",
+    "haz un sorteo entre Ana y Pepe", "elige uno: perro o gato", "qué elijo, pizza o hamburguesa? decide tú",
+    "decide por mí: me quedo o me voy", "escógeme uno: azul, verde o negro",
+    "sortéame entre estos tres: A, B y C", "elige entre ir al gimnasio o salir a correr",
+    "de estas opciones elige una: Madrid, Roma, París", "elige uno al azar: mañana o tarde",
+    "quién empieza, yo o mi hermano? elige tú", "escoge entre té y café", "elije entre playa y montaña",
+    "decide entre las dos: la camisa o el jersey"]
   en = ["pick one: red, green, blue", "choose between tea and coffee", "decide for me: stay in or go out", "pick a name from Ana, Luis and Marta", "help me choose: pizza or sushi", "flip a coin to choose between tea and coffee",
     "pick between red and blue", "choose: tea or coffee", "you decide: beach or mountains",
     "pick one: dog, cat or fish", "help me decide between reading and watching a movie",
@@ -298,7 +340,16 @@ command = { es = "/elige", en = "/pick", slot = "options" }
     "i need you to choose for me between walking or taking the bus",
     "i can't decide, you pick: tea or coffee", "draw a name among my friends: ann, lou, martha and george",
     "you decide for me, monday or wednesday?", "pick who pays today, paul or me",
-    "pick one of these at random: blue, green, red", "choose a movie: titanic or avatar"]
+    "pick one of these at random: blue, green, red", "choose a movie: titanic or avatar",
+    "your call: cinema or theatre", "choose for me between red and blue",
+    "which should i take, the red or the blue? you pick", "pick one for me: pasta, rice or salad",
+    "draw lots: Ann, Luke or Mary", "one of these: coffee, tea or water",
+    "randomly pick one: monday, tuesday or thursday", "decide for me: stay or go", "pick one: cat or dog",
+    "choose between going to the gym or going for a run", "pick from these: London, Rome, Paris",
+    "who goes first, me or my brother? you choose", "chose between beach and mountains",
+    "decide between the shirt and the jumper", "pick a winner: Tom, Ann or Sue",
+    "help me choose: book or film", "flip between pizza and sushi for me", "select one at random: a, b or c",
+    "make the call: left or right"]
 
   [[intent.slot]]
   name = "options"
@@ -340,6 +391,19 @@ command = { es = "/elige", en = "/pick", slot = "options" }
 
 # -------------------------------------------------------------- number
 
+  # "decide tú: playa o montaña", "échalo a suertes: Ana o Luis".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:decide|elige|escoge)\s+tu|tu\s+(?:decides|eliges|escoges))\s*[,:]\s*(?<options>.+?)[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:echalo\s+a\s+suertes?|a\s+suertes?)\s*[,:]?\s+(?:entre\s+)?(?<options>.+?)[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:you\s+decide|you\s+choose|you\s+pick|your\s+call|make\s+the\s+call|draw\s+lots)\s*[,:]\s*(?<options>.+?)[\s?.!]*$'''
+
 [[intent]]
 id = "random.number"
 priority = 70
@@ -369,7 +433,18 @@ command = { es = "/numero", en = "/number" }
     "necesito un número aleatorio para un sorteo, del 1 al 200", "me das un número entre 1 y 6?",
     "piensa en un número del 1 al 100 y dímelo", "quiero un número al azar entre 10 y 99",
     "sácame tres números al azar del 1 al 30", "genera un número aleatorio del 1 al 365",
-    "un nº random del 1 al 5"]
+    "un nº random del 1 al 5",
+    "dime un número cualquiera", "un número cualquiera del 1 al 50", "elige un número entre 1 y 20",
+    "escoge un número del 1 al 100", "suelta un número del 1 al 6", "número al azar del 1 al 1000",
+    "saca un número entre 10 y 20", "me das un número aleatorio?", "me dices un número del 1 al 10?",
+    "necesito un número al azar entre 1 y 500", "un número entre cero y nueve", "uno del 1 al 10",
+    "aleatorio entre 1 y 6", "dame un random del 1 al 100", "un número de 1 a 10",
+    "un número entre el 5 y el 15", "tres números aleatorios", "dame dos números del 1 al 100",
+    "un número del uno al cien", "génerame un número entre 1 y 99", "quiero un número al azar",
+    "piensa un número", "dime un número del 0 al 9", "un número aleatorio hasta 20",
+    "seis números del 1 al 49 sin repetir", "número aleatorio, porfa", "me sacas un número del 1 al 20?",
+    "un numero aleatorio", "dame un nº del 1 al 10", "dime un numerito del 1 al 5",
+    "un número al azar entre -10 y 10", "cualquier número del 1 al 30"]
   en = ["give me a random number between 1 and 10", "random number", "pick a number from 1 to 6", "a number between -5 and 5", "5 numbers from 1 to 49 without repeating", "a random number up to 50",
     "give me a number from 1 to 100", "random number between 1 and 6", "a random number between 10 and 20",
     "generate a random number", "pick a random number", "think of a number between 1 and 10",
@@ -390,7 +465,18 @@ command = { es = "/numero", en = "/number" }
     "give me a numbr from 1 to 10", "random numer between 1 and 20", "tell me a # from 1 to 50",
     "i need a random number for a raffle, 1 to 200", "can you give me a number between 1 and 6?",
     "think of a number from 1 to 100 and tell me", "i want a random number between 10 and 99",
-    "draw three random numbers from 1 to 30", "generate a random number from 1 to 365", "rand number 1 to 5"]
+    "draw three random numbers from 1 to 30", "generate a random number from 1 to 365", "rand number 1 to 5",
+    "pick any number from 1 to 20", "any number between 1 and 50", "a random number",
+    "gimme a number from 1 to 10", "choose a number 1 to 10", "number between 1 and 10",
+    "random integer between 1 and 6", "a random integer", "generate a random integer from 0 to 99",
+    "can you give me a random number", "could you pick a number for me",
+    "i need a random number from 1 to 1000", "random number 1-100", "a number 1 through 10",
+    "pick 3 numbers from 1 to 50", "six random numbers between 1 and 49",
+    "give me two numbers between 1 and 100", "say a number between 1 and 5", "name a number from 1 to 10",
+    "come up with a number between 1 and 100", "a random number up to 20", "random num between 1 and 10",
+    "i want a random number", "a number from zero to nine", "rand number 1 to 6",
+    "draw a number from 1 to 30", "give me any number", "random number from 1 to 100 please",
+    "random number between -10 and 10", "five numbers from 1 to 20 without repeating"]
 
   [[intent.slot]]
   name = "low"
@@ -458,6 +544,33 @@ command = { es = "/numero", en = "/number" }
 # ------------------------------------------------------------- replies
 
 # Dice.
+
+  # "aleatorio entre 1 y 6", "un random del 1 al 100".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:dame|dime|genera|saca|elige|escoge|quiero|necesito|piensa|suelta|me\s+(?:das|dices|sacas))\s+)?(?:un\s+|uno\s+)?(?:numero\s+)?(?:random|aleatorio|al\s+azar|cualquiera)\s+(?:del?|entre)\s+(?:el\s+)?(?<low>(?:menos\s+|-\s*)?[\w.,^]+)\s+(?:al?|y)\s+(?:el\s+)?(?<high>(?:menos\s+|-\s*)?[\w.,^]+)[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:piensa|piensame|suelta|sueltame|me\s+(?:das|dices|sacas))\s+(?:un\s+)?numero(?:\s+(?:aleatorio|al\s+azar|cualquiera))?(?:\s+(?:del?|entre)\s+(?:el\s+)?(?<low>(?:menos\s+|-\s*)?[\w.,^]+)\s+(?:al?|y)\s+(?:el\s+)?(?<high>(?:menos\s+|-\s*)?[\w.,^]+))?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*uno\s+del\s+(?<low>(?:menos\s+|-\s*)?[\w.,^]+)\s+al\s+(?<high>(?:menos\s+|-\s*)?[\w.,^]+)[\s?.!]*$'''
+
+  # "random number 1-100", "a number 1 through 10", "gimme a number from 1 to 10".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:please\s+)?(?:(?:gimme|think\s+of|come\s+up\s+with|say|name|select|can\s+you\s+(?:give\s+me|pick|generate)|could\s+you\s+(?:give\s+me|pick|generate))\s+)?(?:an?\s+|any\s+)?(?:random\s+)?(?:number|integer|num)\s+(?:(?:from|between)\s+)?(?<low>(?:minus\s+|negative\s+|-\s*)?\d[\d.,]*|zero|one)\s*(?:to|and|through|-)\s*(?<high>(?:minus\s+|negative\s+|-\s*)?[\w.,]+)(?:\s+please)?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:please\s+)?(?:(?:gimme|think\s+of|come\s+up\s+with|say|name|select|can\s+you\s+(?:give\s+me|pick|generate)|could\s+you\s+(?:give\s+me|pick|generate))\s+)(?:an?\s+|any\s+)?(?:random\s+)?(?:number|integer)(?:\s+(?:for\s+me|please))?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:a|any)\s+)?random\s+(?:integer|num)(?:\s+please)?[\s?.!]*$'''
+
 [reply.dice_one]
 es = ["Ha salido un {face}."]
 en = ["It came up {face}."]

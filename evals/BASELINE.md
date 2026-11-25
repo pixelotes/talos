@@ -106,3 +106,41 @@ All false accepts are near misses. The two new skills are the weakest:
 `preferences.forget` and `preferences.get` 70 % in English. The side-effect
 rule holds `preferences.set` and `preferences.forget` back on purpose: the
 classifier may only offer them for confirmation.
+
+## Close of v0.2 (2026-11-25, after Slice D)
+
+About 900 more training examples and 108 more rules for the weak intents,
+written without sight of the batteries; `/calc` reaches percentages and
+conversions; places are checked against the place table. Rows whose text
+also appears in the specification are now tagged `in-spec` (41 Spanish, 47
+English), and the report gives the figure without them.
+
+| | Spanish | English | Target |
+|---|---|---|---|
+| Built skills, rules only | 55.6 % | 54.0 % | |
+| Built skills, rules and classifier | **88.4 %** (221 of 250) | **87.2 %** (218 of 250) | es ≥ 92 %, en ≥ 95 % |
+| The same, rows not in the specification | 86.3 % (183 of 212) | 84.5 % (175 of 207) | |
+| Wrong intent / no intent (of 380 rows) | 11 / 148 | 8 / 154 | |
+| False accepts (99 rows) | 4 (4.0 %), one of them by a rule | 2 (2.0 %) | ≤ 3 % |
+| Conversation battery: bare catch-all | 15.2 % | 12.1 % | ≤ 15 % by v0.5 |
+
+**The targets are not met.** Spanish is 3.6 points short and English 7.8;
+Spanish false accepts are one row over.
+
+Thresholds, tuned against the batteries as ADR 0008 allows:
+
+| Threshold / margin | es | en | False accepts es / en |
+|---|---|---|---|
+| 0.7 / 0.3 | 86.8 % | 84.8 % | 2 / 1 |
+| **0.6 / 0.3** (kept) | 88.4 % | 87.2 % | 4 / 2 |
+| 0.5 / 0.2 | 89.2 % | 89.2 % | 4 / 2 |
+| 0.45 / 0.15 | 89.2 % | 89.6 % | 5 / 4 |
+
+0.5 / 0.2 scores better here but changes two golden turns for the worse
+("testing 1 2 3" is taken as a sum instead of a presence check), so 0.6 / 0.3
+stays. No threshold reaches the targets: the gap is in the examples and the
+features, not in where the line is drawn.
+
+Floors, held by `crates/talos/tests/eval.rs` on every test run: built-skill
+accuracy ≥ 87 % (es) and ≥ 86 % (en); held-out ≥ 85 % and ≥ 83 %; false
+accepts ≤ 4 and ≤ 3.

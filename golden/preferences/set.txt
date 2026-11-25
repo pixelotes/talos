@@ -1,9 +1,9 @@
 # preferences.set (docs/spec/state.md). Written by hand from the spec.
 #
 # Outcome lines list `key` and the value stored; the spec writes them as
-# "key=name, value=Raúl". A place is stored as typed (capitals added): there
-# is no gazetteer yet, so "Valencia, Venezuela" is not resolved to
-# "Valencia (VE)" and an unknown place is not refused.
+# "key=name, value=Raúl". A place is read with the place table of
+# `timezones`: "Valencia, Venezuela" is "Valencia (VE)", an ambiguous name
+# is asked about, and an unknown place is refused.
 
 [es] U: me llamo Raúl
      T: Mucho gusto, Raúl. Lo recordaré.          → answered · preferences.set · key=name value=Raúl
@@ -27,8 +27,32 @@
 [es] U: recuerda que vivo en Madrid
      T: Vale, vives en Madrid.                    → answered · preferences.set · key=place value=Madrid
 
+# An ambiguous place is asked about as a choice, and the one chosen is
+# stored in a form the place table reads back as that place alone, so
+# `timezones` takes it as the reference place.
 [es] U: estoy en Valencia
-     T: Vale, estás en Valencia.                  → answered · preferences.set · key=place value=Valencia
+     T: ¿Valencia de España o de Venezuela?       → asks · preferences.set · value
+[es] U: la de España
+     T: Vale, estás en Valencia (España).         → answered · preferences.set · key=place value=Valencia (ES)
+[es] U: ¿qué diferencia hay con Londres?
+     T: Londres va 1 hora por detrás de Valencia (España).
+                                                  → answered · timezones.difference · from=Valencia (ES) to=Londres
+[es] U: ¿dónde vivo?
+     T: Vives en Valencia (España).               → answered · preferences.get · key=place
+
+[es] U: estoy en Valencia, Venezuela
+     T: Vale, estás en Valencia (Venezuela).      → answered · preferences.set · key=place value=Valencia (VE)
+
+# A country answered through its capital is remembered as the country.
+[es] U: vivo en Francia
+     T: Vale, vives en Francia.                   → answered · preferences.set · key=place value=Francia
+
+# A place the table does not know is not stored.
+[es] U: vivo en Narnia
+     T: No conozco ese lugar, así que no lo he guardado.
+                                                  → unhandled · preferences.set · key=place value=Narnia
+[es] U: ¿dónde vivo?
+     T: No sé dónde vives.                        → answered · preferences.get · key=place
 
 # A greeting before a self-introduction is the dropped prefix
 # (docs/spec/basics.md, smalltalk.greet).
@@ -67,6 +91,26 @@ Given: hint = en
 
 [en] U: set my location to Bristol
      T: Got it, you're in Bristol.                → answered · preferences.set · key=place value=Bristol
+
+[en] U: I live in Valencia
+     T: Valencia in Spain or in Venezuela?        → asks · preferences.set · value
+[en] U: the Spanish one
+     T: Got it, you live in Valencia (Spain).     → answered · preferences.set · key=place value=Valencia (ES)
+[en] U: what's the time difference with London?
+     T: London is 1 hour behind Valencia (Spain).
+                                                  → answered · timezones.difference · from=Valencia (ES) to=London
+
+[en] U: I live in Cordoba
+     T: Cordoba in Spain or in Argentina?         → asks · preferences.set · value
+[en] U: Argentina
+     T: Got it, you live in Córdoba (Argentina).  → answered · preferences.set · key=place value=Córdoba (AR)
+
+[en] U: I live in France
+     T: Got it, you live in France.               → answered · preferences.set · key=place value=France
+
+[en] U: I live in Narnia
+     T: I don't know that place, so I haven't stored it.
+                                                  → unhandled · preferences.set · key=place value=Narnia
 
 # Quotes are removed; the capitals and punctuation are kept.
 [en] U: my name is "Dr. Sam O'Neil"

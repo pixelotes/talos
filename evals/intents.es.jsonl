@@ -1,4 +1,4 @@
-{"id": "es-0001", "text": "hola", "lang": "es", "intent": "smalltalk.greet"}
+{"id": "es-0001", "text": "hola", "lang": "es", "intent": "smalltalk.greet", "tags": ["in-spec"]}
 {"id": "es-0002", "text": "Buenas tardes, ¿qué tal?", "lang": "es", "intent": "smalltalk.how_are_you"}
 {"id": "es-0003", "text": "ey, buenas", "lang": "es", "intent": "smalltalk.greet", "tags": ["informal"]}
 {"id": "es-0004", "text": "muy buenos días", "lang": "es", "intent": "smalltalk.greet"}
@@ -7,17 +7,17 @@
 {"id": "es-0007", "text": "buenas noches, Talos", "lang": "es", "intent": "smalltalk.bye"}
 {"id": "es-0008", "text": "Hola Talos, ¿me oyes?", "lang": "es", "intent": "smalltalk.greet"}
 {"id": "es-0009", "text": "saludos", "lang": "es", "intent": "smalltalk.greet"}
-{"id": "es-0010", "text": "adiós", "lang": "es", "intent": "smalltalk.bye"}
+{"id": "es-0010", "text": "adiós", "lang": "es", "intent": "smalltalk.bye", "tags": ["in-spec"]}
 {"id": "es-0011", "text": "hasta luego, me voy a dormir", "lang": "es", "intent": "smalltalk.bye"}
 {"id": "es-0012", "text": "nos vemos mañana", "lang": "es", "intent": "smalltalk.bye"}
-{"id": "es-0013", "text": "chao", "lang": "es", "intent": "smalltalk.bye", "tags": ["informal"]}
+{"id": "es-0013", "text": "chao", "lang": "es", "intent": "smalltalk.bye", "tags": ["informal", "in-spec"]}
 {"id": "es-0014", "text": "bueno, pues me piro", "lang": "es", "intent": "smalltalk.bye", "tags": ["informal"]}
 {"id": "es-0015", "text": "adios, hasta la proxima", "lang": "es", "intent": "smalltalk.bye", "tags": ["no-accents"]}
 {"id": "es-0016", "text": "Hasta pronto, Talos.", "lang": "es", "intent": "smalltalk.bye"}
 {"id": "es-0017", "text": "me tengo que ir, un abrazo", "lang": "es", "intent": "smalltalk.bye"}
 {"id": "es-0018", "text": "ya me voy, que tengas buen día", "lang": "es", "intent": "smalltalk.bye"}
 {"id": "es-0019", "text": "hasta la vista", "lang": "es", "intent": "smalltalk.bye"}
-{"id": "es-0020", "text": "gracias", "lang": "es", "intent": "smalltalk.thanks"}
+{"id": "es-0020", "text": "gracias", "lang": "es", "intent": "smalltalk.thanks", "tags": ["in-spec"]}
 {"id": "es-0021", "text": "muchas gracias por la ayuda", "lang": "es", "intent": "smalltalk.thanks"}
 {"id": "es-0022", "text": "Mil gracias, me has salvado", "lang": "es", "intent": "smalltalk.thanks"}
 {"id": "es-0023", "text": "grcias", "lang": "es", "intent": "smalltalk.thanks", "tags": ["typo"]}
@@ -25,9 +25,9 @@
 {"id": "es-0025", "text": "perfecto, gracias", "lang": "es", "intent": "smalltalk.thanks"}
 {"id": "es-0026", "text": "genial, muchisimas gracias", "lang": "es", "intent": "smalltalk.thanks", "tags": ["no-accents"]}
 {"id": "es-0027", "text": "Gracias, Talos. Eres muy amable.", "lang": "es", "intent": "smalltalk.thanks"}
-{"id": "es-0028", "text": "vale, gracias", "lang": "es", "intent": "smalltalk.thanks", "tags": ["informal"]}
+{"id": "es-0028", "text": "vale, gracias", "lang": "es", "intent": "smalltalk.thanks", "tags": ["informal", "in-spec"]}
 {"id": "es-0029", "text": "te debo una", "lang": "es", "intent": "smalltalk.thanks", "tags": ["indirect", "informal"]}
-{"id": "es-0030", "text": "¿cómo estás?", "lang": "es", "intent": "smalltalk.how_are_you"}
+{"id": "es-0030", "text": "¿cómo estás?", "lang": "es", "intent": "smalltalk.how_are_you", "tags": ["in-spec"]}
 {"id": "es-0031", "text": "¿qué tal estás hoy?", "lang": "es", "intent": "smalltalk.how_are_you"}
 {"id": "es-0032", "text": "como estas", "lang": "es", "intent": "smalltalk.how_are_you", "tags": ["no-accents"]}
 {"id": "es-0033", "text": "¿Qué tal te va?", "lang": "es", "intent": "smalltalk.how_are_you"}
@@ -37,11 +37,11 @@
 {"id": "es-0037", "text": "¿qué tal el día?", "lang": "es", "intent": "smalltalk.how_are_you"}
 {"id": "es-0038", "text": "¿cómo te va la vida?", "lang": "es", "intent": "smalltalk.how_are_you", "tags": ["informal"]}
 {"id": "es-0039", "text": "¿estás bien?", "lang": "es", "intent": "smalltalk.how_are_you"}
-{"id": "es-0040", "text": "¿quién eres?", "lang": "es", "intent": "identity.who"}
-{"id": "es-0041", "text": "¿Cómo te llamas?", "lang": "es", "intent": "identity.who"}
+{"id": "es-0040", "text": "¿quién eres?", "lang": "es", "intent": "identity.who", "tags": ["in-spec"]}
+{"id": "es-0041", "text": "¿Cómo te llamas?", "lang": "es", "intent": "identity.who", "tags": ["in-spec"]}
 {"id": "es-0042", "text": "quien eres tu", "lang": "es", "intent": "identity.who", "tags": ["no-accents"]}
-{"id": "es-0043", "text": "¿Quién te ha hecho?", "lang": "es", "intent": "identity.who"}
-{"id": "es-0044", "text": "¿Qué eres exactamente?", "lang": "es", "intent": "identity.who"}
+{"id": "es-0043", "text": "¿Quién te ha hecho?", "lang": "es", "intent": "identity.who", "tags": ["in-spec"]}
+{"id": "es-0044", "text": "¿Qué eres exactamente?", "lang": "es", "intent": "identity.who", "tags": ["in-spec"]}
 {"id": "es-0045", "text": "¿Tienes nombre?", "lang": "es", "intent": "identity.who"}
 {"id": "es-0046", "text": "dime quién eres y qué haces aquí", "lang": "es", "intent": "identity.who", "tags": ["long"]}
 {"id": "es-0047", "text": "¿de dónde sales?", "lang": "es", "intent": "identity.who", "tags": ["informal", "indirect"]}
@@ -50,15 +50,15 @@
 {"id": "es-0050", "text": "¿eres una inteligencia artificial?", "lang": "es", "intent": "identity.nature"}
 {"id": "es-0051", "text": "¿Eres un robot o una persona?", "lang": "es", "intent": "identity.nature"}
 {"id": "es-0052", "text": "¿eres humano?", "lang": "es", "intent": "identity.nature"}
-{"id": "es-0053", "text": "¿Cómo funcionas por dentro?", "lang": "es", "intent": "identity.nature"}
+{"id": "es-0053", "text": "¿Cómo funcionas por dentro?", "lang": "es", "intent": "identity.nature", "tags": ["in-spec"]}
 {"id": "es-0054", "text": "¿Eres un modelo de lenguaje?", "lang": "es", "intent": "identity.nature"}
 {"id": "es-0055", "text": "¿tú piensas de verdad o qué?", "lang": "es", "intent": "identity.nature", "tags": ["informal"]}
 {"id": "es-0056", "text": "¿Estás hecho con redes neuronales?", "lang": "es", "intent": "identity.nature"}
-{"id": "es-0057", "text": "eres una ia", "lang": "es", "intent": "identity.nature", "tags": ["typo", "informal"]}
+{"id": "es-0057", "text": "eres una ia", "lang": "es", "intent": "identity.nature", "tags": ["typo", "informal", "in-spec"]}
 {"id": "es-0058", "text": "¿Hay una persona detrás de estas respuestas?", "lang": "es", "intent": "identity.nature"}
 {"id": "es-0059", "text": "¿Me estoy hablando con una máquina?", "lang": "es", "intent": "identity.nature"}
-{"id": "es-0060", "text": "¿qué sabes hacer?", "lang": "es", "intent": "help.capabilities"}
-{"id": "es-0061", "text": "¿Para qué sirves?", "lang": "es", "intent": "help.capabilities"}
+{"id": "es-0060", "text": "¿qué sabes hacer?", "lang": "es", "intent": "help.capabilities", "tags": ["in-spec"]}
+{"id": "es-0061", "text": "¿Para qué sirves?", "lang": "es", "intent": "help.capabilities", "tags": ["in-spec"]}
 {"id": "es-0062", "text": "¿Qué puedes hacer por mí?", "lang": "es", "intent": "help.capabilities"}
 {"id": "es-0063", "text": "que cosas puedes hacer", "lang": "es", "intent": "help.capabilities", "tags": ["no-accents"]}
 {"id": "es-0064", "text": "Necesito ayuda, no sé qué puedo preguntarte", "lang": "es", "intent": "help.capabilities", "tags": ["indirect"]}
@@ -66,7 +66,7 @@
 {"id": "es-0066", "text": "Dame una lista de todo lo que sabes hacer", "lang": "es", "intent": "help.capabilities", "tags": ["long"]}
 {"id": "es-0067", "text": "¿qué te puedo pedir?", "lang": "es", "intent": "help.capabilities"}
 {"id": "es-0068", "text": "¿qué se te da bien?", "lang": "es", "intent": "help.capabilities", "tags": ["informal"]}
-{"id": "es-0069", "text": "ayuda", "lang": "es", "intent": "help.capabilities"}
+{"id": "es-0069", "text": "ayuda", "lang": "es", "intent": "help.capabilities", "tags": ["in-spec"]}
 {"id": "es-0070", "text": "¿cómo se usa la calculadora?", "lang": "es", "intent": "help.skill"}
 {"id": "es-0071", "text": "¿Cómo te pido que tire un dado?", "lang": "es", "intent": "help.skill"}
 {"id": "es-0072", "text": "no sé cómo enseñarte cosas nuevas, ¿cómo lo hago?", "lang": "es", "intent": "help.skill", "tags": ["indirect"]}
@@ -77,17 +77,17 @@
 {"id": "es-0077", "text": "¿Cómo se hacen las conversiones de unidades?", "lang": "es", "intent": "help.skill"}
 {"id": "es-0078", "text": "¿Cómo le pregunto a Talos por una definición?", "lang": "es", "intent": "help.skill"}
 {"id": "es-0079", "text": "¿Cómo funciona el comando de las preferencias?", "lang": "es", "intent": "help.skill"}
-{"id": "es-0080", "text": "¿qué hora es?", "lang": "es", "intent": "clock.now"}
+{"id": "es-0080", "text": "¿qué hora es?", "lang": "es", "intent": "clock.now", "tags": ["in-spec"]}
 {"id": "es-0081", "text": "dime la hora", "lang": "es", "intent": "clock.now"}
-{"id": "es-0082", "text": "¿Tienes hora?", "lang": "es", "intent": "clock.now"}
+{"id": "es-0082", "text": "¿Tienes hora?", "lang": "es", "intent": "clock.now", "tags": ["in-spec"]}
 {"id": "es-0083", "text": "que hora es ahora mismo", "lang": "es", "intent": "clock.now", "tags": ["no-accents"]}
 {"id": "es-0084", "text": "¿Me puedes decir la hora, por favor?", "lang": "es", "intent": "clock.now"}
-{"id": "es-0085", "text": "hora", "lang": "es", "intent": "clock.now", "tags": ["short"]}
+{"id": "es-0085", "text": "hora", "lang": "es", "intent": "clock.now", "tags": ["short", "in-spec"]}
 {"id": "es-0086", "text": "oye, ¿qué hora tienes?", "lang": "es", "intent": "clock.now", "tags": ["informal"]}
 {"id": "es-0087", "text": "¿Qué hora es en este momento?", "lang": "es", "intent": "clock.now"}
 {"id": "es-0088", "text": "¿Sabes qué hora es?", "lang": "es", "intent": "clock.now"}
 {"id": "es-0089", "text": "la hora actual", "lang": "es", "intent": "clock.now"}
-{"id": "es-0090", "text": "¿qué día es hoy?", "lang": "es", "intent": "clock.date"}
+{"id": "es-0090", "text": "¿qué día es hoy?", "lang": "es", "intent": "clock.date", "tags": ["in-spec"]}
 {"id": "es-0091", "text": "¿A cuánto estamos hoy?", "lang": "es", "intent": "clock.date"}
 {"id": "es-0092", "text": "dime la fecha de hoy", "lang": "es", "intent": "clock.date"}
 {"id": "es-0093", "text": "fecha actual", "lang": "es", "intent": "clock.date"}
@@ -97,9 +97,9 @@
 {"id": "es-0097", "text": "¿Me recuerdas qué fecha tenemos hoy?", "lang": "es", "intent": "clock.date"}
 {"id": "es-0098", "text": "¿en qué día del mes estamos?", "lang": "es", "intent": "clock.date"}
 {"id": "es-0099", "text": "¿Hoy es día 3 o día 4?", "lang": "es", "intent": "clock.date", "tags": ["indirect"]}
-{"id": "es-0100", "text": "¿qué día de la semana es hoy?", "lang": "es", "intent": "clock.weekday"}
+{"id": "es-0100", "text": "¿qué día de la semana es hoy?", "lang": "es", "intent": "clock.weekday", "tags": ["in-spec"]}
 {"id": "es-0101", "text": "¿Hoy es martes?", "lang": "es", "intent": "clock.weekday", "tags": ["indirect"]}
-{"id": "es-0102", "text": "¿Qué día cae el 25 de diciembre?", "lang": "es", "intent": "clock.weekday", "slots": {"date": "--12-25"}}
+{"id": "es-0102", "text": "¿Qué día cae el 25 de diciembre?", "lang": "es", "intent": "clock.weekday", "slots": {"date": "--12-25"}, "tags": ["in-spec"]}
 {"id": "es-0103", "text": "¿Qué día de la semana fue el 1 de enero de 2000?", "lang": "es", "intent": "clock.weekday", "slots": {"date": "2000-01-01"}, "tags": ["long"]}
 {"id": "es-0104", "text": "¿en qué día de la semana caerá mi cumpleaños, el 14 de marzo?", "lang": "es", "intent": "clock.weekday", "slots": {"date": "--03-14"}, "tags": ["long"]}
 {"id": "es-0105", "text": "que dia de la semana es mañana", "lang": "es", "intent": "clock.weekday", "slots": {"date": "+1 d"}, "tags": ["no-accents"]}
@@ -107,7 +107,7 @@
 {"id": "es-0107", "text": "¿A qué día de la semana corresponde el 12 de octubre?", "lang": "es", "intent": "clock.weekday", "slots": {"date": "--10-12"}}
 {"id": "es-0108", "text": "dime en qué día de la semana estamos", "lang": "es", "intent": "clock.weekday"}
 {"id": "es-0109", "text": "¿Qué día cayó el 6 de diciembre de 1978?", "lang": "es", "intent": "clock.weekday", "slots": {"date": "1978-12-06"}}
-{"id": "es-0110", "text": "¿cuánto falta para Navidad?", "lang": "es", "intent": "clock.until"}
+{"id": "es-0110", "text": "¿cuánto falta para Navidad?", "lang": "es", "intent": "clock.until", "tags": ["in-spec"]}
 {"id": "es-0111", "text": "¿Cuántos días quedan para el 1 de enero?", "lang": "es", "intent": "clock.until"}
 {"id": "es-0112", "text": "¿cuanto falta para las 18:00?", "lang": "es", "intent": "clock.until", "tags": ["no-accents"]}
 {"id": "es-0113", "text": "¿Cuánto tiempo ha pasado desde el 1 de enero de 2020?", "lang": "es", "intent": "clock.until"}
@@ -117,7 +117,7 @@
 {"id": "es-0117", "text": "dime cuántos días hay hasta el 15 de agosto", "lang": "es", "intent": "clock.until"}
 {"id": "es-0118", "text": "¿Cuánto queda para el fin de semana?", "lang": "es", "intent": "clock.until", "tags": ["indirect"]}
 {"id": "es-0119", "text": "¿Cuántos meses faltan para el verano?", "lang": "es", "intent": "clock.until", "tags": ["indirect"]}
-{"id": "es-0120", "text": "¿qué hora es en Tokio?", "lang": "es", "intent": "timezones.time_in"}
+{"id": "es-0120", "text": "¿qué hora es en Tokio?", "lang": "es", "intent": "timezones.time_in", "tags": ["in-spec"]}
 {"id": "es-0121", "text": "¿Qué hora es ahora en Nueva York?", "lang": "es", "intent": "timezones.time_in", "slots": {"place": "Nueva York"}}
 {"id": "es-0122", "text": "que hora es en mexico", "lang": "es", "intent": "timezones.time_in", "tags": ["no-accents"]}
 {"id": "es-0123", "text": "Dime la hora en Londres", "lang": "es", "intent": "timezones.time_in", "slots": {"place": "Londres"}}
@@ -127,8 +127,8 @@
 {"id": "es-0127", "text": "Mi hermana vive en Bogotá, ¿qué hora es allí?", "lang": "es", "intent": "timezones.time_in", "slots": {"place": "Bogotá"}, "tags": ["long", "indirect"]}
 {"id": "es-0128", "text": "¿Qué hora marca el reloj en Berlín?", "lang": "es", "intent": "timezones.time_in", "slots": {"place": "Berlín"}}
 {"id": "es-0129", "text": "hora en Lima", "lang": "es", "intent": "timezones.time_in", "slots": {"place": "Lima"}, "tags": ["short"]}
-{"id": "es-0130", "text": "¿cuántas horas de diferencia hay entre Madrid y Tokio?", "lang": "es", "intent": "timezones.difference"}
-{"id": "es-0131", "text": "¿Qué diferencia horaria hay con Nueva York?", "lang": "es", "intent": "timezones.difference"}
+{"id": "es-0130", "text": "¿cuántas horas de diferencia hay entre Madrid y Tokio?", "lang": "es", "intent": "timezones.difference", "tags": ["in-spec"]}
+{"id": "es-0131", "text": "¿Qué diferencia horaria hay con Nueva York?", "lang": "es", "intent": "timezones.difference", "tags": ["in-spec"]}
 {"id": "es-0132", "text": "¿Cuántas horas me separan de California?", "lang": "es", "intent": "timezones.difference", "tags": ["indirect"]}
 {"id": "es-0133", "text": "diferencia horaria entre Londres y Madrid", "lang": "es", "intent": "timezones.difference", "tags": ["short"]}
 {"id": "es-0134", "text": "¿Cuánto se adelanta Berlín respecto a Lisboa?", "lang": "es", "intent": "timezones.difference"}
@@ -167,18 +167,18 @@
 {"id": "es-0167", "text": "¿Cuántas onzas son 250 gramos?", "lang": "es", "intent": "calc.convert"}
 {"id": "es-0168", "text": "20 celsius en fahrenheit", "lang": "es", "intent": "calc.convert", "tags": ["short"]}
 {"id": "es-0169", "text": "¿Cuántos grados Kelvin son 25 grados Celsius?", "lang": "es", "intent": "calc.convert"}
-{"id": "es-0170", "text": "tira un dado", "lang": "es", "intent": "random.dice"}
+{"id": "es-0170", "text": "tira un dado", "lang": "es", "intent": "random.dice", "tags": ["in-spec"]}
 {"id": "es-0171", "text": "lanza 2 dados de seis caras", "lang": "es", "intent": "random.dice", "slots": {"count": 2, "sides": 6}}
-{"id": "es-0172", "text": "Tírame un d20", "lang": "es", "intent": "random.dice", "slots": {"sides": 20}, "tags": ["informal"]}
+{"id": "es-0172", "text": "Tírame un d20", "lang": "es", "intent": "random.dice", "slots": {"sides": 20}, "tags": ["informal", "in-spec"]}
 {"id": "es-0173", "text": "echa un dado, anda", "lang": "es", "intent": "random.dice", "tags": ["informal", "indirect"]}
 {"id": "es-0174", "text": "¿Me tiras tres dados?", "lang": "es", "intent": "random.dice", "slots": {"count": 3}}
 {"id": "es-0175", "text": "tira un dado de 12 caras", "lang": "es", "intent": "random.dice", "slots": {"sides": 12}}
 {"id": "es-0176", "text": "necesito sacar un número del 1 al 6 con un dado", "lang": "es", "intent": "random.dice", "tags": ["indirect", "long"]}
 {"id": "es-0177", "text": "lanza 4d6", "lang": "es", "intent": "random.dice", "slots": {"count": 4, "sides": 6}, "tags": ["short"]}
 {"id": "es-0178", "text": "tirada de dados", "lang": "es", "intent": "random.dice"}
-{"id": "es-0179", "text": "tira una moneda", "lang": "es", "intent": "random.coin"}
-{"id": "es-0180", "text": "¿Cara o cruz?", "lang": "es", "intent": "random.coin"}
-{"id": "es-0181", "text": "echa una moneda al aire", "lang": "es", "intent": "random.coin"}
+{"id": "es-0179", "text": "tira una moneda", "lang": "es", "intent": "random.coin", "tags": ["in-spec"]}
+{"id": "es-0180", "text": "¿Cara o cruz?", "lang": "es", "intent": "random.coin", "tags": ["in-spec"]}
+{"id": "es-0181", "text": "echa una moneda al aire", "lang": "es", "intent": "random.coin", "tags": ["in-spec"]}
 {"id": "es-0182", "text": "lanza una moneda, que decida el azar", "lang": "es", "intent": "random.coin", "tags": ["indirect"]}
 {"id": "es-0183", "text": "a cara o cruz", "lang": "es", "intent": "random.coin", "tags": ["short"]}
 {"id": "es-0184", "text": "Hazme un cara o cruz para decidir quién friega", "lang": "es", "intent": "random.coin", "tags": ["indirect", "informal"]}
@@ -207,12 +207,12 @@
 {"id": "es-0207", "text": "¿Me das un número aleatorio?", "lang": "es", "intent": "random.number"}
 {"id": "es-0208", "text": "dime una frase del día", "lang": "es", "intent": "fortune.tell"}
 {"id": "es-0209", "text": "Cuéntame mi suerte", "lang": "es", "intent": "fortune.tell"}
-{"id": "es-0211", "text": "dime un refrán", "lang": "es", "intent": "fortune.tell"}
+{"id": "es-0211", "text": "dime un refrán", "lang": "es", "intent": "fortune.tell", "tags": ["in-spec"]}
 {"id": "es-0212", "text": "Quiero una galleta de la fortuna", "lang": "es", "intent": "fortune.tell", "tags": ["informal"]}
 {"id": "es-0213", "text": "dame un proverbio", "lang": "es", "intent": "fortune.tell"}
 {"id": "es-0214", "text": "Léeme la buenaventura", "lang": "es", "intent": "fortune.tell", "tags": ["indirect"]}
 {"id": "es-0215", "text": "una frase célebre, por favor", "lang": "es", "intent": "fortune.tell"}
-{"id": "es-0216", "text": "dime algo sabio", "lang": "es", "intent": "fortune.tell"}
+{"id": "es-0216", "text": "dime algo sabio", "lang": "es", "intent": "fortune.tell", "tags": ["in-spec"]}
 {"id": "es-0217", "text": "¿Tienes algún dicho popular para hoy?", "lang": "es", "intent": "fortune.tell", "tags": ["indirect"]}
 {"id": "es-0218", "text": "¿qué significa \"efímero\"?", "lang": "es", "intent": "define.word", "slots": {"word": "efímero"}}
 {"id": "es-0219", "text": "¿Qué quiere decir la palabra ubicuo?", "lang": "es", "intent": "define.word", "slots": {"word": "ubicuo"}}
@@ -265,7 +265,7 @@
 {"id": "es-0266", "text": "¿Madrid es parte de qué?", "lang": "es", "intent": "relations.part_of", "slots": {"part": "Madrid"}}
 {"id": "es-0267", "text": "¿De qué es componente la batería?", "lang": "es", "intent": "relations.part_of", "slots": {"part": "batería"}}
 {"id": "es-0268", "text": "¿qué causa la lluvia?", "lang": "es", "intent": "relations.causes", "slots": {"topic": "lluvia", "direction": "both"}}
-{"id": "es-0269", "text": "¿Por qué llueve?", "lang": "es", "intent": "relations.causes", "slots": {"topic": "lluvia", "direction": "causes_of"}}
+{"id": "es-0269", "text": "¿Por qué llueve?", "lang": "es", "intent": "relations.causes", "slots": {"topic": "lluvia", "direction": "causes_of"}, "tags": ["in-spec"]}
 {"id": "es-0270", "text": "¿Qué provoca un terremoto?", "lang": "es", "intent": "relations.causes", "slots": {"topic": "terremoto", "direction": "both"}}
 {"id": "es-0271", "text": "¿por qué se oxida el hierro?", "lang": "es", "intent": "relations.causes", "slots": {"topic": "oxidación del hierro", "direction": "causes_of"}}
 {"id": "es-0272", "text": "¿Qué origina el arcoíris?", "lang": "es", "intent": "relations.causes", "slots": {"topic": "arcoíris", "direction": "both"}, "tags": ["indirect"]}
@@ -284,7 +284,7 @@
 {"id": "es-0285", "text": "que sabes del sol", "lang": "es", "intent": "relations.about", "slots": {"topic": "sol"}, "tags": ["no-accents"]}
 {"id": "es-0286", "text": "Quiero saber qué hay en tu memoria sobre el hierro", "lang": "es", "intent": "relations.about", "slots": {"topic": "hierro"}, "tags": ["long", "indirect"]}
 {"id": "es-0287", "text": "¿Qué datos tienes del Ebro?", "lang": "es", "intent": "relations.about", "slots": {"topic": "Ebro"}}
-{"id": "es-0288", "text": "¿cómo lo sabes?", "lang": "es", "intent": "relations.provenance"}
+{"id": "es-0288", "text": "¿cómo lo sabes?", "lang": "es", "intent": "relations.provenance", "tags": ["in-spec"]}
 {"id": "es-0289", "text": "¿Estás seguro de eso?", "lang": "es", "intent": "relations.provenance"}
 {"id": "es-0290", "text": "¿De dónde has sacado eso?", "lang": "es", "intent": "relations.provenance"}
 {"id": "es-0291", "text": "¿quién te lo dijo?", "lang": "es", "intent": "relations.provenance"}
@@ -312,7 +312,7 @@
 {"id": "es-0315", "text": "borra de tu memoria que el triángulo tiene cuatro lados", "lang": "es", "intent": "teach.forget", "tags": ["long"]}
 {"id": "es-0316", "text": "Quita lo de las arañas", "lang": "es", "intent": "teach.forget", "tags": ["short"]}
 {"id": "es-0317", "text": "olvidate de lo del motor", "lang": "es", "intent": "teach.forget", "tags": ["no-accents"]}
-{"id": "es-0318", "text": "¿qué te he enseñado?", "lang": "es", "intent": "teach.list"}
+{"id": "es-0318", "text": "¿qué te he enseñado?", "lang": "es", "intent": "teach.list", "tags": ["in-spec"]}
 {"id": "es-0319", "text": "Muéstrame lo que has aprendido", "lang": "es", "intent": "teach.list"}
 {"id": "es-0320", "text": "lista de hechos que te he enseñado", "lang": "es", "intent": "teach.list"}
 {"id": "es-0321", "text": "¿Qué cosas te he dicho hasta ahora?", "lang": "es", "intent": "teach.list"}
@@ -342,7 +342,7 @@
 {"id": "es-0345", "text": "¿Cómo se traduce \"break a leg\" al español?", "lang": "es", "intent": "translate.word", "slots": {"term": "break a leg", "target": "es"}}
 {"id": "es-0346", "text": "¿cual es la palabra inglesa para manzana?", "lang": "es", "intent": "translate.word", "slots": {"term": "manzana", "target": "en"}, "tags": ["no-accents", "indirect"]}
 {"id": "es-0347", "text": "En inglés, ¿cómo se dice \"de nada\"?", "lang": "es", "intent": "translate.word", "slots": {"term": "de nada", "target": "en"}}
-{"id": "es-0348", "text": "me llamo Raúl", "lang": "es", "intent": "preferences.set", "slots": {"key": "name", "value": "Raúl"}}
+{"id": "es-0348", "text": "me llamo Raúl", "lang": "es", "intent": "preferences.set", "slots": {"key": "name", "value": "Raúl"}, "tags": ["in-spec"]}
 {"id": "es-0349", "text": "Llámame Marta", "lang": "es", "intent": "preferences.set", "slots": {"key": "name", "value": "Marta"}}
 {"id": "es-0350", "text": "vivo en Valencia", "lang": "es", "intent": "preferences.set", "slots": {"key": "place", "value": "Valencia"}}
 {"id": "es-0351", "text": "mi ciudad es Sevilla", "lang": "es", "intent": "preferences.set", "slots": {"key": "place", "value": "Sevilla"}}
@@ -351,9 +351,9 @@
 {"id": "es-0354", "text": "Mi nombre es Pablo, apúntalo", "lang": "es", "intent": "preferences.set", "slots": {"key": "name", "value": "Pablo"}, "tags": ["indirect"]}
 {"id": "es-0356", "text": "usa las unidades métricas conmigo", "lang": "es", "intent": "preferences.set", "slots": {"key": "units", "value": "metric"}, "tags": ["indirect"]}
 {"id": "es-0357", "text": "me llamo Elena y vivo en Zaragoza", "lang": "es", "intent": "preferences.set", "tags": ["long"]}
-{"id": "es-0358", "text": "¿cómo me llamo?", "lang": "es", "intent": "preferences.get"}
-{"id": "es-0359", "text": "¿Dónde vivo?", "lang": "es", "intent": "preferences.get"}
-{"id": "es-0360", "text": "¿Qué sabes de mí?", "lang": "es", "intent": "preferences.get"}
+{"id": "es-0358", "text": "¿cómo me llamo?", "lang": "es", "intent": "preferences.get", "tags": ["in-spec"]}
+{"id": "es-0359", "text": "¿Dónde vivo?", "lang": "es", "intent": "preferences.get", "tags": ["in-spec"]}
+{"id": "es-0360", "text": "¿Qué sabes de mí?", "lang": "es", "intent": "preferences.get", "tags": ["in-spec"]}
 {"id": "es-0361", "text": "¿cual es mi ciudad?", "lang": "es", "intent": "preferences.get", "tags": ["no-accents"]}
 {"id": "es-0362", "text": "¿Sabes cómo me llamo?", "lang": "es", "intent": "preferences.get"}
 {"id": "es-0363", "text": "¿Qué unidades prefiero?", "lang": "es", "intent": "preferences.get"}
@@ -361,8 +361,8 @@
 {"id": "es-0365", "text": "dime qué recuerdas de mis preferencias", "lang": "es", "intent": "preferences.get", "tags": ["long"]}
 {"id": "es-0366", "text": "¿Recuerdas dónde vivo?", "lang": "es", "intent": "preferences.get"}
 {"id": "es-0367", "text": "¿Quién soy yo para ti?", "lang": "es", "intent": "preferences.get", "tags": ["indirect"]}
-{"id": "es-0368", "text": "olvida mi nombre", "lang": "es", "intent": "preferences.forget"}
-{"id": "es-0369", "text": "borra mi ciudad", "lang": "es", "intent": "preferences.forget"}
+{"id": "es-0368", "text": "olvida mi nombre", "lang": "es", "intent": "preferences.forget", "tags": ["in-spec"]}
+{"id": "es-0369", "text": "borra mi ciudad", "lang": "es", "intent": "preferences.forget", "tags": ["in-spec"]}
 {"id": "es-0370", "text": "Ya no quiero que recuerdes mis preferencias", "lang": "es", "intent": "preferences.forget"}
 {"id": "es-0371", "text": "olvídate de dónde vivo", "lang": "es", "intent": "preferences.forget"}
 {"id": "es-0372", "text": "elimina mis datos personales", "lang": "es", "intent": "preferences.forget", "tags": ["indirect"]}

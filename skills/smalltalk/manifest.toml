@@ -53,20 +53,25 @@ courtesy = true
     "hola, solo pasaba a saludar", "te saludo, talos", "buenas, aquí ando otra vez", "holaa, buenas tardes",
     "ola k ase", "buenos diass", "wenas tardes", "hola de nuevo, qué alegría", "vengo a saludarte",
     "muy buenas, aquí estoy de vuelta", "holaaaa a todos", "hola hola, buenos días",
-    "hey, buenas", "hey, buenos días", "hey hola", "hey, buenas tardes"]
+    "hey, buenas", "hey, buenos días", "hey hola", "hey, buenas tardes",
+    "ey, qué pasa",
+    "hey, muy buenas", "hey, holi", "hey, buen día"]
   en = ["hi", "hello", "hey", "good morning", "good evening", "hiya", "hello talos",
     "hey there", "hi there", "hello there", "howdy", "yo", "heya", "hey hey", "hello again", "hi again",
     "good afternoon", "morning", "evening", "good morning talos", "hiii", "helloooo", "greetings",
     "hey talos", "hi talos", "hello hello", "well hello", "oh hi", "hey buddy", "hi friend", "hello friend",
-    "g'day", "hullo", "hey you", "good day", "afternoon", "hi, it's me again",
-    "hey, i'm back", "hiya talos", "ahoy", "good morning to you", "hi hi", "hey hey hey", "morning talos",
+    "g'day", "hullo", "good day", "afternoon", "hi, it's me again",
+    "hey, i'm back", "hiya talos", "ahoy", "good morning to you", "hi hi", "morning talos",
     "hey, hello", "hello talos!", "good evening talos", "hi, good morning", "heyyy", "hi talos!",
     "hello hello hello", "hey there talos", "good morning everyone", "hi there friend",
     "hello, good afternoon", "hiya!", "oh hello there", "hey hi", "hello hi", "hey, it's me", "yo talos",
     "greetings, talos", "hellooo there", "hi, hello", "good evening to you", "well hi there", "morning!",
     "hello, just popping in to say hi", "just wanted to say hello", "hiya, back again", "helo", "hii there",
     "goood morning", "hey hey, i'm back", "hi, nice to see you again", "well hello there talos",
-    "hey all", "hello hello, good evening"]
+    "hey all", "hello hello, good evening",
+    "hi buddy", "evening!", "hi there talos", "hellooo", "hallo", "hii", "heyy", "salutations",
+    "howdy partner", "hi, i'm back", "a very good morning", "and a good evening to you",
+    "evening talos"]
 
   # Spanish. Leading "¡"/"¿", trailing "!", "?", "." and the name are optional;
   # stretched letters ("holaaa") are accepted.
@@ -113,6 +118,35 @@ courtesy = true
   lang = "en"
   regex = '^good\s+evening(?:[\s,]+talos)?[\s!?.]*$'
   slots = { daypart = "evening" }
+
+  # "hello again", "oh hi", "g'day".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:oh|well|and)[\s,]+)?(?:hello+|hi+|hiya+|heya|howdy|greetings|hullo|hallo|helo|salutations|ahoy|g\x27day|good\s+day)(?:\s+(?:there|again|friend|buddy|partner|you|hello|hi))?(?:[\s,]+talos)?[\s!?.]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:h?ey+|yo)(?:[\s,]+(?:h?ey+|you|there|talos))*[\s!?.]*$'''
+  slots = { register = "casual" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:and\s+)?(?:a\s+(?:very\s+)?)?(?:good\s+)?evening(?:\s+to\s+you)?(?:[\s,]+talos)?[\s!?.]*$'''
+  slots = { daypart = "evening" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:a\s+(?:very\s+)?)?(?:good\s+)?morning(?:\s+to\s+you)?(?:[\s,]+talos)?[\s!?.]*$'''
+  slots = { daypart = "morning" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^afternoon(?:[\s,]+talos)?[\s!?.]*$'''
+  slots = { daypart = "afternoon" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¡¿!\s]*(?:hola+|holi+s?)(?:\s+(?:hola+|de\s+nuevo|otra\s+vez|amigo|amiga))(?:[\s,]+talos)?[\s!?.]*$'''
 
 [[intent]]
 id = "smalltalk.bye"
@@ -204,7 +238,11 @@ courtesy = true
     "muchas gracias por tu ayuda, de verdad", "te quería dar las gracias", "graciaas", "grax talos",
     "gracias x la ayuda", "gracias, me has salvado", "vale perfecto, mil gracias",
     "solo quería agradecértelo", "gracias por ser tan rápido", "muchisimas gracias", "gracias, eh",
-    "te lo agradezco de corazón"]
+    "te lo agradezco de corazón",
+    "gracias, tío", "gracias majo", "gracias de corazón", "de nuevo, gracias", "muy agradecido",
+    "gracias por contestar", "gracias por la información", "gracias crack", "muchísimas gracias por tu ayuda",
+    "se agradece mucho", "gracias por echarme una mano", "muchas gracias, Talos", "gracias, guapo",
+    "ok, gracias", "vale gracias", "thank you, Talos"]
   en = ["thanks", "thank you", "thanks a lot", "thx", "ty", "much appreciated", "thank you so much",
     "thanks talos", "thank you very much", "thanks so much", "many thanks", "thanks a bunch", "cheers",
     "appreciate it", "i appreciate that", "thank u", "tysm", "thanks!!", "great, thanks",
@@ -220,7 +258,8 @@ courtesy = true
     "i really appreciate it", "thanks buddy", "thanks for the info",
     "thank you so much for your help, really", "i just wanted to say thanks", "thanx", "thnx talos",
     "thanks 4 the help", "thanks, you saved me", "ok perfect, thanks a lot", "just wanted to thank you",
-    "thanks for being so quick", "thank youuu", "thanks, mate", "thank you from the bottom of my heart"]
+    "thanks for being so quick", "thank youuu", "thanks, mate", "thank you from the bottom of my heart",
+    "thanks mate", "a thousand thanks"]
 
   # "no, gracias" is a refusal and deliberately has no pattern.
   [[intent.pattern]]
@@ -234,6 +273,24 @@ courtesy = true
   [[intent.pattern]]
   lang = "en"
   regex = '^(?:(?:ok|okay|great|perfect|cool|alright)[\s,]+)*(?:thanks+|thank\s+(?:you|u)|thx|ty|tysm|cheers|much\s+appreciated|i\s+appreciate\s+it|appreciate\s+it)(?:\s+(?:so|very)\s+much|\s+a\s+lot|\s+a\s+bunch|\s+again)?(?:\s+for\s+(?:the|your)\s+help|\s+for\s+everything)?(?:[\s,]+talos)?[\s!?.]*$'
+
+  # "gracias de verdad", "gracias por la info", "gracias, tío".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¡¿!\s]*(?:(?:vale|ok|okey|bueno|pues|genial|perfecto|estupendo|guay|bien|de\s+acuerdo)[\s,]+)*(?:(?:muchas|muchisimas|mil|un\s+millon\s+de|infinitas)\s+)?(?:gracia+s+|grasias)(?:\s+(?:de\s+verdad|de\s+corazon|otra\s+vez|de\s+nuevo|mil))?(?:\s+por\s+(?:la\s+ayuda|tu\s+ayuda|todo|la\s+info(?:rmacion)?|el\s+dato|contestar|responder|echarme\s+una\s+mano))?(?:[\s,]+(?:tio|tia|majo|maja|crack|guapo|guapa|talos|eh))?[\s!?.]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¡¿!\s]*(?:(?:vale|ok|bueno|genial|perfecto)[\s,]+)*(?:te\s+debo\s+una|(?:muy\s+)?agradecid[oa]|te\s+lo\s+agradezco\s+(?:mucho|un\s+monton)|te\s+agradezco\s+(?:la|tu)\s+ayuda|se\s+agradece\s+mucho|de\s+nuevo,?\s+gracias)(?:[\s,]+talos)?[\s!?.]*$'''
+
+  # "thanks mate", "thank you kindly".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:ok|okay|great|perfect|cool|alright)[\s,]+)*(?:thanks|thank\s+you|cheers|ta)(?:\s+(?:mate|buddy|pal|man|heaps|kindly|again|a\s+million))?(?:[\s,]+talos)?[\s!?.]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:many\s+thanks|a\s+thousand\s+thanks|big\s+thanks|much\s+obliged|i\s+owe\s+you\s+one|thanks\s+for\s+(?:the\s+info|answering|that))(?:[\s,]+talos)?[\s!?.]*$'''
 
 [[intent]]
 id = "smalltalk.how_are_you"

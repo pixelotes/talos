@@ -48,13 +48,21 @@ command = { es = "/refran", en = "/fortune" }
     "kiero un refran", "me apetece un refrán", "necesito algo de sabiduría popular hoy",
     "me dices algún dicho de los de siempre?", "cuéntame algún refrán de esos antiguos",
     "dame una frase de galleta de la fortuna", "a ver qué dice hoy mi fortuna", "regálame un proverbio",
-    "un dicho para hoy"]
+    "un dicho para hoy",
+    "suéltame un refrán", "me dices un refrán?", "sabes algún refrán?", "conoces algún dicho?",
+    "dime una frase sabia", "dame una frase célebre", "un poco de sabiduría, por favor",
+    "dime un dicho de los de antes", "dime uno de tus refranes", "ábreme una galleta de la fortuna",
+    "dime mi fortuna", "un refrancito", "quiero oír un refrán", "una frase para reflexionar",
+    "dame una frase para hoy", "la frase del día", "el refrán del día", "un proverbio chino",
+    "un proverbio, anda", "dime algo sabio, anda", "recítame un refrán", "venga, un refrán",
+    "a ver, un dicho", "me cuentas un proverbio?", "tienes algún refrán para mí?", "dame un dixo",
+    "una frase de sabiduría", "algún refrán que me sirva", "me sueltas un dicho?"]
   en = ["tell me a fortune", "give me a proverb", "fortune cookie", "say something wise", "give me a saying", "tell me my fortune", "fortune", "another one",
     "tell me a proverb", "give me a fortune", "open a fortune cookie", "what does my fortune cookie say",
     "share some wisdom", "say something deep", "a saying please", "give me an old saying",
     "tell me a wise saying", "drop some wisdom", "words of wisdom", "a bit of wisdom please",
     "another proverb", "another saying", "give me another fortune", "i want a fortune", "read my fortune",
-    "fortune please", "quote of the day", "thought of the day", "inspire me",
+    "fortune please", "thought of the day", "inspire me",
     "give me something to think about", "random proverb", "any proverb", "a proverb, please",
     "crack open a fortune cookie", "my fortune", "wisdom of the day", "an adage", "tell me an old adage",
     "a maxim please", "fortune time",
@@ -67,7 +75,13 @@ command = { es = "/refran", en = "/fortune" }
     "i want a saying", "i feel like hearing a proverb", "i need some folk wisdom today",
     "can you tell me one of those old sayings?", "tell me one of those old proverbs",
     "give me a fortune cookie message", "let's see what my fortune says today", "gimme a proverb",
-    "a saying for today"]
+    "a saying for today",
+    "give me a wise saying", "any proverbs?", "do you know any sayings?", "some wisdom, please",
+    "give me some words of wisdom", "an old saying", "tell me one of your proverbs",
+    "i'd like a fortune cookie", "a thought for the day",
+    "saying of the day", "a chinese proverb", "hit me with a proverb", "lay a proverb on me",
+    "got any wise words?", "can i have a fortune?", "read me my fortune", "proverb please",
+    "tell me sumthing wise", "a proverb to start the day", "share some old wisdom", "teach me a proverb"]
 
   [[intent.pattern]]
   lang = "es"
@@ -102,6 +116,37 @@ command = { es = "/refran", en = "/fortune" }
   lang = "en"
   regex = '^[¿¡\s]*(?:(?:tell|give)\s+me\s+)?(?:another|one more)(?:\s+(?:one|fortune|proverb|saying))?[\s?.!]*$'
   slots = { again = "yes" }
+
+  # "me dices un refrán?", "quiero oír un refrán".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:venga|anda|a\s+ver|oye),?\s+)?(?:me\s+(?:dices|cuentas|sueltas|recitas)|recitame|leeme|quiero(?:\s+oir)?|me\s+apetece)\s+(?:un|una|algun|alguna|otro|otra)\s+(?:refran(?:cito)?|dicho|proverbio|galleta\s+de\s+la\s+fortuna)(?:,?\s+(?:anda|porfa|por\s+favor))?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:sabes|conoces|tienes)\s+(?:algun|un|otro)\s+(?:refran|dicho|proverbio)(?:\s+para\s+mi)?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:dime|dame)\s+)?(?:el|la)\s+(?:refran|frase|dicho|proverbio)\s+del\s+dia[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:dime|dame)\s+)?(?:una\s+frase\s+(?:sabia|para\s+(?:pensar|reflexionar|hoy))|(?:algo|un\s+poco)\s+de\s+sabiduria(?:\s+popular)?)(?:,?\s+(?:anda|porfa|por\s+favor))?[\s?.!]*$'''
+
+  # "words of wisdom", "an old saying".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:give|tell|share)\s+(?:me\s+)?)?(?:some\s+)?(?:words\s+of\s+wisdom|wise\s+words|(?:a|an)\s+(?:wise|old)\s+saying|a\s+bit\s+of\s+wisdom)(?:,?\s+please)?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:the|a)\s+)?(?:saying|proverb)\s+(?:of|for)\s+the\s+day[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:do\s+you\s+know|got|have\s+you\s+got)\s+any\s+(?:proverbs|sayings|wise\s+words)[\s?.!]*$'''
+
 
 [reply.saying]
 es = ["{text}"]

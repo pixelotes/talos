@@ -63,7 +63,9 @@ One JSON object per line, UTF-8, ids unique across all files.
     `-N d` for a day relative to today (`+1 d` is tomorrow).
   - A phrase that carries two values for a slot the spec defines once (a name
     *and* a place for `preferences.set`) has no `slots`.
-- `tags` (optional): `typo`, `informal`, `no-accents`, `long`, `short`,
+- `tags` (optional): `in-spec` (the text also appears in the specification, so
+  the row is not held out; `talos eval` reports accuracy with and without
+  these rows), `typo`, `informal`, `no-accents`, `long`, `short`,
   `indirect` (the request is implied rather than stated). Used to slice
   accuracy.
 - The label is the intent the phrase is *recognised* as. Whether Talos can

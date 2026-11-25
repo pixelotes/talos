@@ -1,5 +1,10 @@
 # Knowledge
 
+> **Built in two steps** (owner's ruling, 2026-11-25). v0.3 builds the store,
+> the packs and what a dictionary needs: words, concepts, glosses,
+> translation. Reasoning over relations, teaching facts, confidence and
+> contradiction are v0.6, on the same schema. See [ROADMAP.md](ROADMAP.md).
+
 The knowledge store is what makes Talos semantic instead of a command bot. It
 holds what words mean, how concepts relate, where each fact came from and how
 much it is trusted — and it can be queried, reasoned over, explained and

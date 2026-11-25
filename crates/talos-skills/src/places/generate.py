@@ -2,7 +2,7 @@
 (transitions.txt) from the IANA tzdata installed at /usr/share/zoneinfo.
 
 Development-time only (docs/DEVELOPMENT.md, "Zone data"): the binary never
-reads the host's zoneinfo. For each zone named in places.rs it takes the
+reads the host's zoneinfo. For each zone named in table.rs it takes the
 POSIX TZ rule that zic appends to the compiled TZif file (the rule for every
 year after the file's listed transitions); the fixture lists every change of
 offset in a span of years as Python's zoneinfo computes it from the full
@@ -10,7 +10,7 @@ database, which a test compares with the table.
 
 Usage, from the repository root:
 
-    python3 -I crates/talos-skills/src/timezones/generate.py 2027 2036
+    python3 -I crates/talos-skills/src/places/generate.py 2027 2036
 """
 import re
 import sys
@@ -34,7 +34,7 @@ def offset(zi, t):
 
 
 def main(first, last):
-    places = (HERE / 'places.rs').read_text(encoding='utf-8')
+    places = (HERE / 'table.rs').read_text(encoding='utf-8')
     zones = sorted(set(re.findall(r'"([A-Z][a-z]+/[A-Za-z_/-]+)"', places)))
     version = (ZONEINFO / '+VERSION').read_text().strip()
 

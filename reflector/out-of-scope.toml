@@ -12,11 +12,11 @@
 # - requests to write or invent text (poems, letters, jokes, summaries);
 # - open questions about the world, opinions, advice;
 # - requests for skills not built yet: definitions, translations, what a
-#   thing is or has, teaching, the time in another place,
-#   weather, timers and reminders, devices;
+#   thing is or has, teaching, weather, timers and reminders, devices;
 # - statements about the user or the world;
 # - near misses: phrases that share words with an intent and mean something
-#   else ("el tiempo vuela", "time to go to bed");
+#   else ("el tiempo vuela", "time to go to bed"), and what lies just past
+#   the border of a built skill (a zone's name, an origin, a reminder);
 # - conversational acts that are not intents (laughter, "ok", "vale") and
 #   noise.
 #
@@ -53,7 +53,8 @@ es = [
     "cuándo fue la revolución francesa", "por qué llueve", "cómo se aprende a programar", "qué estudio en la universidad",
 
     # Habilidades que aún no existen: definiciones, traducción, conocimiento,
-    # enseñar, otras zonas horarias, el tiempo, avisos, aparatos.
+    # enseñar, el tiempo que hace, avisos, aparatos, juegos y predicciones;
+    # y cuentas que la calculadora no hace.
     "qué significa efímero", "qué quiere decir procrastinar", "define resiliencia", "significado de la palabra ubicuo",
     "qué es un ornitorrinco", "cómo se dice perro en inglés", "traduce casa al inglés", "qué significa dog en español",
     "cómo se dice gracias en francés", "cómo se dice hola en inglés", "un perro es un animal?", "qué tipos de árboles hay",
@@ -96,11 +97,10 @@ es = [
     "ayúdame, me aburro", "sabes cocinar?", "sabes jugar al ajedrez", "sabes cantar?", "puedes conducir?",
     "cómo estás tan seguro", "cómo está el tráfico", "cómo está tu familia", "cómo se llama esa canción",
 
-    # Más variantes de las familias que más se parecen a un intent: la hora
-    # en otro sitio, preguntas de saber con «quién» y «qué», definiciones,
+    # Más variantes de las familias que más se parecen a un intent: el nombre
+    # de una zona horaria, preguntas de saber con «quién» y «qué», definiciones,
     # «cuánto» que no es una cuenta, «sabes…» que no pregunta por una
     # habilidad, y frases hechas con hora, día, fecha, dado, moneda y número.
-    "qué hora será en sídney",
     "en qué zona horaria está lisboa",
     "quién inventó la bombilla", "quién descubrió américa", "quién pintó el guernica",
     "quién es el rey de españa", "quién canta esta canción", "quién es messi", "quién fue napoleón",
@@ -110,7 +110,7 @@ es = [
     "cuánto cuesta un billete a parís", "cuánto gana un médico", "cuánto vive un perro", "cuánto tarda en hervir un huevo",
     "cuánto dura una película", "cuánto dura el vuelo a nueva york", "cuánta gente hay en el mundo",
     "cuántos idiomas se hablan en la india", "cuántas patas tiene una araña", "cuántos huesos tiene el cuerpo",
-    "sabes quién soy", "sabes dónde estoy", "sabes nadar?", "sabes hablar chino?",
+    "sabes quién soy", "sabes nadar?", "sabes hablar chino?",
     "sabes contar chistes?", "sabes hacer café?", "puedes hacer la compra por mí", "puedes enviar un correo",
     "puedes llamar a mi madre", "puedes reservar mesa", "puedes buscar vuelos baratos", "puedes leer mis mensajes",
     "puedes ver la tele conmigo", "tengo una hora libre", "media hora de cola", "la hora del té", "hora de comer",
@@ -179,7 +179,7 @@ es = [
     "calcula cuánto me queda de hipoteca", "cuánto es demasiado tiempo", "cuánto es mucho dinero",
     "convierte este archivo a pdf", "pasa el documento a word", "convierte el vídeo a mp4", "tira la casa por la ventana",
     "tira para casa", "lanza la pelota", "lanza el anuncio", "ayuda a tu hermano", "ayuda humanitaria",
-    "pide ayuda", "qué sabes de mí", "qué sabes de historia", "qué sabes de fútbol",
+    "pide ayuda", "qué sabes de historia", "qué sabes de fútbol",
 
     # Las formas de frase del reflector (docs/spec/reflector.md 2): opiniones,
     # deseos, planes, hipótesis, quejas, cumplidos, insultos, disculpas,
@@ -225,6 +225,50 @@ es = [
     "mola", "qué bien", "hmm no sé", "nada", "nada, déjalo", "olvídalo", "da igual", "déjalo", "cancelar", "basta",
     "eso es", "exacto", "tienes razón", "no lo sé", "quizás", "puede ser", "por qué?", "y eso?", "qué?", "cómo?",
     "ni idea", "me da igual", "asdf qwer", "aaaaaa", "k", "a", "lol",
+
+    # Al borde de las habilidades: diferencias que no son horarias, horas que
+    # no son la hora de otro sitio, «vivo», «estoy», «llámame» y «olvida» que
+    # no guardan ni borran nada, y «para qué sirve», «qué hace», «eres»,
+    # «refrán», «número», «dados», «gracias», «hola» y «elige» con otro
+    # sentido; cumplidos con «eres» que no preguntan qué es Talos, frases que
+    # piden escribir algo, y textos largos.
+    "qué diferencia hay entre un sapo y una rana", "cuál es la diferencia entre ser y estar",
+    "diferencia entre virus y bacteria", "qué diferencia hay entre un huracán y un tifón",
+    "en qué se diferencian un cocodrilo y un caimán", "cuántas horas duerme un gato", "cuántas horas trabajas al día",
+    "la diferencia de edad entre mis hijos", "cuánto nos llevamos mi hermano y yo",
+    "mi hermano y yo nos llevamos dos años", "nos llevamos fatal", "me llevo bien con mi jefe",
+    "a qué hora abre el súper", "a qué hora sale el sol en Sevilla", "a qué hora es el partido",
+    "a qué hora cierra el banco", "qué hora sería buena para llamar a Japón", "cuántas horas de vuelo hay a Tokio",
+    "cuánto se tarda en llegar a Londres", "cómo es la vida en Tokio", "qué se come en México",
+    "hace calor en Dubái?", "el cambio de hora me mata", "el jet lag es lo peor", "viajar en el tiempo",
+    "mis horas en Londres fueron geniales", "estoy en ello", "estoy en la ducha", "estoy en un atasco",
+    "estoy en una reunión", "estoy en las nubes", "vivo en el quinto piso", "vivo con mis padres", "vivo solo",
+    "vivo de alquiler", "vivo para trabajar", "mi madre vive en Lugo", "mi hermana se llama Ana",
+    "cómo se llama tu creador", "cómo se llama el presidente", "llámame mañana", "llámame cuando puedas",
+    "llámame un taxi", "olvida el tema", "olvídate del asunto", "borra ese mensaje", "borra la pizarra",
+    "no te olvides de comprar pan", "me olvidé las llaves", "dónde está mi móvil", "dónde está Sevilla",
+    "dónde queda Lisboa", "en qué país está Lima", "de dónde eres", "uso gafas", "prefiero el café solo",
+    "prefiero el verano", "uso demasiado el móvil", "cuántos kilómetros hay hasta Madrid", "una milla es mucho",
+    "recuerdas cuando fuimos a París", "para qué sirve la vida", "para qué sirve un abogado", "qué hace un notario",
+    "cómo funciona internet", "quién inventó la calculadora", "dónde puedo comprar una calculadora",
+    "mi calculadora no tiene pilas", "tienes tiempo?", "tienes un momento?", "hay algo de comer?",
+    "para qué sirven las monedas de un céntimo", "eres un sol", "eres un amor", "eres muy humano", "qué humano eres",
+    "los robots nos quitarán el trabajo", "qué opinas de la inteligencia artificial", "la ia es peligrosa",
+    "me gustan los robots", "esto es una broma?", "esto es un sueño?", "estoy hablando demasiado?",
+    "qué significa este refrán", "la suerte del principiante", "qué suerte tienes", "la rueda de la fortuna",
+    "hizo una fortuna con la bolsa", "le costó una fortuna", "una frase en francés", "traduce esta frase",
+    "el número de teléfono de la farmacia", "cuál es tu número favorito", "los números me dan miedo",
+    "número de la seguridad social", "los dados de la abuela", "me ha salido un seis en el parchís",
+    "da las gracias a tu madre", "dile gracias de mi parte", "el día de acción de gracias",
+    "una carta de agradecimiento", "no tienes que darme las gracias", "di hola a mi madre",
+    "saluda a mi abuela de mi parte", "cómo se saluda en japonés", "decide tu futuro",
+    "elige bien con quién te juntas",
+    "la verdad es que eres útil", "eres bastante útil", "eres más majo de lo que pensaba", "eres muy gracioso",
+    "eres listo para ser un programa", "hoy estás muy lento",
+    "dime algo que me alegre el día", "dime algo para animarme", "escríbeme algo que me motive",
+    "la comunidad de vecinos informa de que el ascensor estará fuera de servicio el martes y el miércoles por una revisión, así que rogamos paciencia a los vecinos de los pisos altos y disculpen las molestias",
+    "este fin de semana mi hermana y yo estuvimos en casa de nuestros padres ordenando el trastero y encontramos fotos antiguas, cartas de los abuelos y una caja de discos que nadie recuerda haber comprado",
+    "según el informe publicado esta mañana, las ventas de la región subieron ligeramente en el último trimestre mientras los costes se mantenían, algo que la empresa atribuye a un invierno suave y a la bajada de la luz",
 ]
 
 en = [
@@ -257,7 +301,8 @@ en = [
     "why does it rain", "how do i learn to code", "what should i study at university",
 
     # Skills not built yet: definitions, translation, knowledge, teaching,
-    # other time zones, weather, reminders, devices.
+    # weather, reminders, devices, games and predictions; and sums the
+    # calculator does not do.
     "what does ephemeral mean", "define resilience", "meaning of the word ubiquitous", "what is a platypus",
     "how do you say dog in spanish", "translate house into spanish", "what does perro mean in english",
     "how do you say thank you in french", "how do you say hello in spanish", "is a dog an animal",
@@ -285,11 +330,10 @@ en = [
     "i can't decide", "choosing a career is hard", "i'm happy", "i got promoted", "i'm from boston", "i have two cats",
     "my job is boring", "my favourite number is seven", "life is a lottery", "i teach history",
 
-    # More of the families closest to an intent: the time somewhere else,
+    # More of the families closest to an intent: the name of a time zone,
     # who/what knowledge questions, definitions, "how much/many" that is not
     # a sum, "can you…" that is not about a skill, and set phrases with time,
     # day, date, dice, coin and number.
-    "what time will it be in sydney",
     "what time zone is lisbon in",
     "who invented the light bulb", "who discovered america",
     "who painted the mona lisa", "who is the king of england", "who sings this song", "who is messi", "who was napoleon",
@@ -299,7 +343,7 @@ en = [
     "how much is a ticket to paris", "how much does a doctor earn", "how long do dogs live",
     "how long does it take to boil an egg", "how long is the movie", "how long is the flight to new york",
     "how many people are there in the world", "how many languages are spoken in india", "how many legs does a spider have",
-    "how many bones are in the human body", "do you know who i am", "do you know where i am",
+    "how many bones are in the human body", "do you know who i am", 
     "can you swim?", "can you speak chinese?", "can you tell jokes?",
     "can you make coffee?", "can you do my shopping", "can you send an email", "can you call my mother",
     "can you book a table", "can you find cheap flights", "can you read my messages", "can you watch tv with me",
@@ -354,7 +398,7 @@ en = [
     "what would you do if you were human", "are you afraid of dying", "do you believe in god",
     "who wrote the odyssey", "who invented the telephone", "who is the president of the united states",
     "who won the election", "who is that actor", "who is taylor swift", "who's faster, a cheetah or a lion",
-    "who am i", "who is my father", "collectible coins", "a five cent coin", "how much is an old one euro coin worth",
+    "who is my father", "collectible coins", "a five cent coin", "how much is an old one euro coin worth",
     "the dollar is a strong currency", "currency exchange at the airport", "the dice are loaded", "dice games",
     "a die has six faces", "dice the onions", "serial number", "id number", "the number of the beast", "prime number",
     "my lucky number is 3", "what size shoe do you wear", "population of france", "give me a plumber's number",
@@ -365,7 +409,7 @@ en = [
     "how do you write hello in russian", "calculate how much is left on my mortgage", "how much is too much time",
     "how much is a lot of money", "convert this file to pdf", "turn the document into word", "convert the video to mp4",
     "throw the ball", "throw a party", "roll out the red carpet", "help your brother", "humanitarian aid",
-    "ask for help", "what do you know about me", "what do you know about history", "what do you know about football",
+    "ask for help", "what do you know about history", "what do you know about football",
 
     # The reflector's sentence shapes (docs/spec/reflector.md 2): opinions,
     # wishes, plans, hypotheticals, complaints, compliments, insults,
@@ -421,4 +465,45 @@ en = [
     "seriously?", "no way", "wow", "great", "perfect", "cool", "nice", "awesome", "hmm not sure", "nothing",
     "never mind", "forget it", "whatever", "cancel", "stop", "that's it", "exactly", "you're right", "i don't know",
     "maybe", "could be", "why?", "what?", "huh?", "no idea", "i don't care", "asdf qwer", "aaaaaa", "k", "a",
+
+    # At the edges of the skills: differences that are not about time zones,
+    # hours that are not the time somewhere, "I live", "I'm in", "call me"
+    # and "forget" that store or delete nothing, and "what's it for", "what
+    # does it do", "are you", proverbs, numbers, rolls, thanks, hellos and
+    # picks that mean something else; compliments with "you're" that do not
+    # ask what Talos is, quotes to be written, and long texts.
+    "what's the difference between a frog and a toad", "difference between affect and effect",
+    "what's the difference between weather and climate", "how do alligators and crocodiles differ",
+    "how many hours does a cat sleep", "how many hours do you work a day", 
+    "the age gap between my kids", "what time does the shop open", "what time does the sun rise in Seville",
+    "what time is the match", "when does the bank close", "a good time to call Japan",
+    "how long is the flight to Tokyo", "how long does it take to get to London", "what's life like in Tokyo",
+    "what do they eat in Mexico", "is it hot in Dubai", "is it sunny in Sydney", "time travel",
+    "jet lag is the worst", "time in prison", "the best time of my life", "time out", "in the nick of time",
+    "my time in London was great", "i'm in the shower", "i'm in a meeting", "i'm in trouble", "i'm in love",
+    "i'm on my way", "i live with my parents", "i live alone", "i live on the fifth floor", "my mum lives in Leeds",
+    "my sister is called Anna", "my dog's name is Rex", "call me tomorrow", "call me when you can", "call me a taxi",
+    "call me crazy, but i like rain", "forget the whole thing", "forget about it", "delete that message",
+    "erase the board", "don't forget to buy bread", "i forgot my keys", "where's my phone", "where is Seville",
+    "which country is Lima in", "where are you from", "i wear glasses", "i prefer my coffee black", "i prefer summer",
+    "i use my phone too much", "how many miles to London", "a mile is a long way", "remember the alamo",
+    "remember when we went to Paris", "what's the point of life", "what does a lawyer do",
+    "how does the internet work", "who invented the calculator", "where can i buy a calculator",
+    "my calculator needs batteries", "do you have a minute", "do you have time", "is there anything to eat",
+    "what are pennies for", "you're a star", "you're so human", "robots will take our jobs",
+    "what do you think of ai", "ai is dangerous", "i like robots", "is this the real life", "is this a joke",
+    "is this a dream", "am i talking too much", "beginner's luck", "you're so lucky", "wheel of fortune",
+    "he made a fortune on the stock market", "it cost a fortune", "a phrase in french", "translate this sentence",
+    "the pharmacy's phone number", "what's your favourite number", "numbers scare me", "my social security number",
+    "rock and roll", "roll up your sleeves", "roll the credits", "spring rolls", "roll with it",
+    "let the good times roll", "say thanks to your mum", "tell him thanks from me", "thanksgiving dinner",
+    "a thank you card", "write a thank you note", "you don't have to thank me", "say hi to my mum",
+    "tell her i said hello", "hello kitty", "hi-fi speakers", "morning sickness", "evening classes", 
+    "choose your own adventure", "picking up the kids",
+    "you're actually quite useful", "you're really helpful", "you're not bad at all", "you're kind of funny",
+    "you're pretty smart for a program", "you're a good listener", "you're too slow today",
+    "write me an uplifting quote", "make up a quote about courage", "think up a quote for my wedding card",
+    "the council says the main road will be closed for roadworks from monday until the end of the month, so buses will take a different route through the old town and the market will move to the car park by the station",
+    "my sister and i spent the whole weekend at our parents' house sorting out boxes in the attic, and we found old photos, letters from our grandparents and a box of records nobody remembers buying",
+    "according to the report published this morning, sales in the region rose slightly over the last quarter while costs stayed flat, which the company puts down to a mild winter and lower energy prices",
 ]

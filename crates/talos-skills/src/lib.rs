@@ -13,6 +13,9 @@ use talos_core::{Config, Engine, Error, Manifest, Registration, Skill};
 
 include!(concat!(env!("OUT_DIR"), "/manifests.rs"));
 
+// Shared by `timezones` and `preferences`: the place table and its zones.
+mod places;
+
 /// Declares the built-in skills: each entry is `module::Handler`, where
 /// `src/module.rs` defines the handler and `skills/module/manifest.toml` its
 /// manifest. Declares the modules too.
@@ -48,7 +51,7 @@ pub fn manifest_sources() -> &'static [(&'static str, &'static str)] {
 }
 
 /// The built-in skills, each manifest parsed and paired with its handler,
-/// in catalogue order.
+/// in catalogue order, with their examples' text (for the trainer).
 ///
 /// # Errors
 ///
@@ -56,6 +59,22 @@ pub fn manifest_sources() -> &'static [(&'static str, &'static str)] {
 /// from its directory; [`Error::Registry`] if a manifest has no handler or a
 /// handler no manifest.
 pub fn builtin() -> Result<Vec<Registration>, Error> {
+    registrations(Manifest::parse)
+}
+
+/// As [`builtin`], keeping only the number and digest of the examples
+/// ([`Manifest::parse_lean`]): all an engine needs of them.
+///
+/// # Errors
+///
+/// As [`builtin`].
+pub fn builtin_lean() -> Result<Vec<Registration>, Error> {
+    registrations(Manifest::parse_lean)
+}
+
+fn registrations(
+    parse: fn(&str, &str) -> Result<Manifest, Error>,
+) -> Result<Vec<Registration>, Error> {
     let mut skills = Vec::with_capacity(MANIFESTS.len());
     let mut sources: Vec<&(&str, &str)> = MANIFESTS.iter().collect();
     for handler in handlers() {
@@ -66,7 +85,7 @@ pub fn builtin() -> Result<Vec<Registration>, Error> {
                 Error::Registry(format!("handler `{}` has no manifest", handler.id()))
             })?;
         let (dir, text) = sources.remove(position);
-        let manifest = Manifest::parse(dir, text)?;
+        let manifest = parse(dir, text)?;
         if manifest.id != *dir {
             return Err(Error::Manifest {
                 skill: (*dir).to_owned(),
@@ -99,7 +118,7 @@ pub fn models() -> ModelFiles {
 ///
 /// As [`builtin`] and [`Engine::new`].
 pub fn engine(config: Config) -> Result<Engine, Error> {
-    Ok(Engine::new(config, builtin()?)?.with_models(models()))
+    Ok(Engine::new(config, builtin_lean()?)?.with_models(models()))
 }
 
 /// An engine with every built-in skill and no classifier: rules only, as
@@ -109,7 +128,7 @@ pub fn engine(config: Config) -> Result<Engine, Error> {
 ///
 /// As [`builtin`] and [`Engine::new`].
 pub fn rules_only_engine(config: Config) -> Result<Engine, Error> {
-    Engine::new(config, builtin()?)
+    Engine::new(config, builtin_lean()?)
 }
 
 /// Validates every built-in manifest against its handler: what `talos
@@ -132,6 +151,18 @@ mod tests {
             "catalogue order starts with smalltalk"
         );
         assert!(engine(Config::default()).is_ok());
+        // The lean form is the same manifests without the examples' text.
+        let lean = builtin_lean().unwrap();
+        for ((full, _), (lean, _)) in skills.iter().zip(&lean) {
+            assert_eq!(full.intents.len(), lean.intents.len());
+            for (a, b) in full.intents.iter().zip(&lean.intents) {
+                assert_eq!(a.examples.es.digest(), b.examples.es.digest());
+                assert_eq!(a.examples.en.len(), b.examples.en.len());
+                assert_eq!(b.examples.en.texts(), [] as [String; 0]);
+                assert_eq!(a.patterns, b.patterns);
+            }
+            assert_eq!(full.replies, lean.replies);
+        }
     }
 
     #[test]

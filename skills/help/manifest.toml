@@ -111,7 +111,27 @@ courtesy = false
     "quiero saber qué puedo preguntarte de la hora", "puedes hacer conversiones de unidades o no?",
     "me explicas cómo funcionan los porcentajes contigo", "no entiendo cómo funciona lo de elegir al azar",
     "cómo hago para que me tires un dado", "qué tengo que escribir para convertir unidades",
-    "cómo te pido un número aleatorio exactamente"]
+    "cómo te pido un número aleatorio exactamente",
+    "para qué sirve la calculadora", "qué hace la calculadora", "qué haces con los dados",
+    "qué se puede hacer con los dados", "explícame lo de los dados", "explícame lo de las zonas horarias",
+    "cómo funciona lo de las zonas horarias", "cómo te pregunto la hora de otro país",
+    "cómo te digo dónde vivo", "cómo hago para que recuerdes mi nombre", "instrucciones de la calculadora",
+    "dame ejemplos de conversiones", "pon ejemplos de porcentajes", "qué tipo de cuentas haces",
+    "qué conversiones sabes hacer", "tienes calculadora?", "tienes dados?", "hay calculadora?",
+    "se pueden tirar dados contigo?", "se pueden convertir unidades?", "puedo pedirte porcentajes?",
+    "me enseñas a usar la calculadora", "enséñame a usar los dados", "cómo va lo de los refranes",
+    "cómo va la calculadora", "de qué va lo de los refranes", "info sobre la calculadora",
+    "información sobre los dados", "ayuda zonas horarias", "ayuda con las preferencias",
+    "cómo pido una conversión", "cómo te pido un porcentaje", "qué frases entiendes para la fecha",
+    "qué entiendes de dados", "para qué sirven los dados", "qué puedo hacer con las monedas",
+    "cómo se usa lo de las zonas horarias", "qué hago para que me digas la hora de Tokio",
+    "cómo funcionan las preferencias", "y la calculadora, cómo va?", "lo de los refranes cómo funciona",
+    "ejemplos de uso de los dados", "qué cosas puedo preguntarte sobre fechas",
+    "sabes calcular diferencias horarias?", "sabes decirme la hora de otros países?",
+    "cómo te pido que lances una moneda", "qué tengo que decir para que elijas por mí",
+    "como funciona lo d los dados", "q puedo preguntarte de la calculadora", "explicame q hace el reloj",
+    "ayudame con la calculadora", "no me aclaro con la calculadora", "no sé usar lo de las conversiones",
+    "la calculadora para qué vale"]
   en = ["how do I use the calculator", "what can I ask about dates", "do you do percentages", "how does the dice thing work", "how do I use this",
     "how does the calculator work", "how do i use the dice", "what can i ask about the time",
     "can you convert units", "do you do unit conversions", "how do conversions work",
@@ -138,7 +158,27 @@ courtesy = false
     "i want to know what i can ask about the time", "can you do unit conversions or not?",
     "can you explain how percentages work with you", "i don't get how random picking works",
     "what do i type to make you roll a die", "what do i write to convert units",
-    "how exactly do i ask you for a random number"]
+    "how exactly do i ask you for a random number",
+    "what's the calculator for", "what does the calculator do", "what does the dice thing do",
+    "what can the dice do", "tell me about the calculator", "tell me about the dice feature",
+    "explain the time zone stuff", "how does the time zone thing work",
+    "how do i ask you the time in another city", "how do i tell you where i live",
+    "how do i get you to remember my name", "show me how to use the calculator", "teach me to use the dice",
+    "give me examples for the calculator", "examples of conversions", "some examples of percentages please",
+    "what kind of sums can you do", "what kinds of conversions do you support", "which conversions do you do",
+    "do you have a calculator?", "is there a dice roller?", "do you have a clock?",
+    "is there a way to convert units", "can i ask you for percentages?", "info on the calculator",
+    "more info about the dice", "calculator instructions please", "time zones help", "preferences help",
+    "how should i phrase a conversion", "how do i phrase a dice roll",
+    "what phrases do you understand for dates", "usage for the calculator",
+    "the calculator, how does it work?", "what are the dice for", "what's the coin flip for",
+    "how does the memory thing work", "how do your preferences work",
+    "what can i do with the time zone feature", "what sort of questions can i ask about dates",
+    "can you work out time differences?", "can you tell me the time in other countries?",
+    "how do i get you to flip a coin", "what do i say to make you choose for me",
+    "how dose the dice thing work", "wat can i ask the calculator", "explain wat the clock does",
+    "help me with the calculator", "i can't figure out the calculator", "i don't know how to use conversions",
+    "what's the point of the dice", "walk me through the calculator", "how do you do percentages"]
 
   [[intent.slot]]
   name = "skill"
@@ -187,6 +227,34 @@ courtesy = false
   regex = '^help with (?<skill>.+?)[\s?!.]*$'
 
 # The list: {skills} is one "· summary" line per installed skill.
+
+  # "para qué sirve la calculadora", "explícame lo de los dados": a skill named by
+  # the words people use for it, so "qué hace el Madrid" is not taken.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:y|oye|a\s+ver),?\s+)?(?:para\s+que\s+sirven?|que\s+hacen?|que\s+haces\s+con|que\s+se\s+puede\s+hacer\s+con|de\s+que\s+van?|como\s+van?|como\s+funcionan?|explicame|info(?:rmacion)?\s+(?:de|sobre)|instrucciones\s+(?:de|para)|ayuda(?:\s+(?:de|sobre|para))?|ejemplos\s+(?:de|para|con)|ensename\s+a\s+usar|me\s+ensenas\s+a\s+usar)\s+(?<skill>(?:(?:el|la|los|las|lo\s+de(?:\s+(?:el|la|los|las))?)\s+)?(?:calculadora|calc|porcentajes|conversion(?:es)?(?:\s+de\s+unidades)?|reloj|dados|cara\s+o\s+cruz|numeros\s+(?:aleatorios|al\s+azar)|refranes|zonas?\s+horarias?|husos\s+horarios|preferencias))[\s?!.]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:tienes|hay|se\s+puede\s+usar)\s+(?:una?\s+)?(?<skill>calculadora|reloj|dados|conversiones|refranes|zonas\s+horarias)[\s?!.]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:so|and|ok),?\s+)?what\s+(?:does|do|can)\s+(?<skill>(?:(?:the|your)\s+)?(?:calculator|calc|percentages|conversions|unit\s+conversions?|clock|dice(?:\s+(?:roller|thing|feature))?|coin\s+(?:flip|toss|thing)|heads\s+or\s+tails|random\s+numbers?|fortunes|proverbs|time\s*zones?(?:\s+(?:thing|stuff|feature))?|preferences))\s+do[\s?!.]*$'''
+
+  # "what's the calculator for", "what does the dice thing do".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:so|and|ok),?\s+)?what(?:\x27s|\s+is|\s+are)\s+(?<skill>(?:(?:the|your)\s+)?(?:calculator|calc|percentages|conversions|unit\s+conversions?|clock|dice(?:\s+(?:roller|thing|feature))?|coin\s+(?:flip|toss|thing)|heads\s+or\s+tails|random\s+numbers?|fortunes|proverbs|time\s*zones?(?:\s+(?:thing|stuff|feature))?|preferences))\s+(?:for|good\s+for)[\s?!.]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:so|and|ok),?\s+)?(?:tell\s+me\s+about|explain|info\s+(?:on|about)|more\s+info\s+(?:on|about)|instructions\s+for|examples\s+(?:of|for)|show\s+me\s+how\s+to\s+use|teach\s+me\s+(?:how\s+)?to\s+use|walk\s+me\s+through|usage\s+for)\s+(?<skill>(?:(?:the|your)\s+)?(?:calculator|calc|percentages|conversions|unit\s+conversions?|clock|dice(?:\s+(?:roller|thing|feature))?|coin\s+(?:flip|toss|thing)|heads\s+or\s+tails|random\s+numbers?|fortunes|proverbs|time\s*zones?(?:\s+(?:thing|stuff|feature))?|preferences))(?:\s+please)?[\s?!.]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:do\s+you\s+have|is\s+there)\s+(?:an?\s+)?(?<skill>calculator|clock|dice\s+roller|dice|unit\s+converter|coin\s+flip)[\s?!.]*$'''
+
 [reply.capabilities]
 es = ["Esto es lo que sé hacer:\n{skills}"]
 en = ["Here's what I can do:\n{skills}"]

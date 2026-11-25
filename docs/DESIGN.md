@@ -453,6 +453,4 @@ read in place from the executable's image, never copied to the heap
    ([ADR 0013](adr/0013-external-skills.md)), declared `generated`; Talos
    stays model-free and keeps word-by-word translation from the lexicon for
    when Dédalo is not there. How such a skill is presented to Talos is not
-   designed. Whether the reordering of
-   v0.3 (a dictionary first, the semantic store later) happens is undecided
-   too.
+   designed.

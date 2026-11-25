@@ -60,7 +60,9 @@ command = { es = "/horaen", en = "/timein", slot = "place" }
     "dime qué hora es en Varsovia porfa", "q hora es en dubai", "ke hora es en londres",
     "qué hora es en Seúl ahora mismo", "me dices la hora de Bombay", "hora de Moscú, por favor",
     "qué hora es allí", "y allí qué hora es", "qué hora es en Quito ahorita",
-    "si en Madrid son las 9, qué hora es en Tokio"]
+    "si en Madrid son las 9, qué hora es en Tokio",
+    "qué hora tienen ahora en Seúl", "la hora en Lima, porfa", "hora actual en Berlín",
+    "cómo van de hora en Buenos Aires", "qué hora será ahora en Tokio"]
   en = ["what time is it in Tokyo", "what's the time in New York", "time in London",
     "what time is it in New York right now", "do you know what time it is in Sydney",
     "tell me the time in Los Angeles please", "what time is it in Mexico City",
@@ -89,7 +91,16 @@ command = { es = "/horaen", en = "/timein", slot = "place" }
     "what's today's date in New Zealand", "is it already tomorrow in Tokyo",
     "what time is it in Honolulu", "what time is it in mexico", "whats the time in sydney",
     "wat time is it in london", "current time in Kathmandu", "time in Tehran please",
-    "if it's 9 in Madrid, what time is it in Tokyo", "when it's noon in London what time is it in New York"]
+    "if it's 9 in Madrid, what time is it in Tokyo", "when it's noon in London what time is it in New York",
+    "how late is it in Tokyo", "what time do they have in Rome", "what's the local time for Lisbon",
+    "what hour is it in Moscow", "check the time in Sydney", "look up the time in Toronto",
+    "current time in Seoul", "time now in Berlin", "Tokyo time please", "local time in Dubai please",
+    "what time's it in Paris", "what's the clock saying in Mumbai", "do you know what time it is in Cairo",
+    "how about the time in Mexico City", "time in London right now?", "what time is it over in LA",
+    "what's the time like in Bangkok", "could you check what time it is in Nairobi",
+    "what time is it currently in Athens", "tell me what time it is in Lima", "i need the time in Jakarta",
+    "is it late in Sydney right now", "what time will it be in Sydney now", "what time is it in Hawaii",
+    "wat time is it in Rome", "time in nyc"]
 
   [[intent.slot]]
   name = "place"
@@ -188,7 +199,14 @@ command = { es = "/horaen", en = "/timein", slot = "place" }
   # in Los Angeles please", "do you know the time in New York".
   [[intent.pattern]]
   lang = "en"
-  regex = '^(?:(?:tell me|give me|can you tell me|could you tell me|do you know|i need to know) )?(?:the )?(?:current |local )?time in (?<place>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))(?:,? please)?[\s?.!]*$'
+  regex = '^(?:tell me|give me|can you tell me|could you tell me|do you know|i need to know) (?:the )?(?:current |local )?time in (?<place>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))(?:,? please)?[\s?.!]*$'
+
+  # Bare, "time in Tokyo": also said of things that are no place ("time in
+  # prison"), so a name the place table does not know is let go (`loose`).
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:the )?(?:current |local )?time in (?<place>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))(?:,? please)?[\s?.!]*$'
+  slots = { loose = "yes" }
 
   # "and in Lima?": only right after a question of this skill.
   [[intent.pattern]]
@@ -224,6 +242,37 @@ command = { es = "/horaen", en = "/timein", slot = "place" }
   slots = { form = "convert" }
 
 # --- timezones.difference ----------------------------------------------------------
+
+  # "how late is it in Tokyo", "what time do they have in Rome".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:and|so),?\s+)?how\s+late\s+is\s+it\s+(?:over\s+)?in\s+(?<place>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))(?:\s+(?:now|right\s+now))?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^what\s+time\s+do\s+(?:they|people|you)\s+have\s+(?:over\s+)?in\s+(?<place>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:what(?:\x27s|s|\s+is)\s+the\s+(?:current\s+|local\s+)?time|what\s+hour\s+is\s+it)\s+(?:for|in)\s+(?<place>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:can|could)\s+you\s+)?(?:check|look\s+up|find\s+out|get)\s+(?:me\s+)?(?:the\s+)?(?:current\s+|local\s+)?time\s+in\s+(?<place>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))(?:\s+for\s+me)?(?:,?\s+please)?[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:current\s+|local\s+)?time\s+(?:right\s+)?now\s+in\s+(?<place>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+
+  # "Tokyo time please": a name that is no place is not a time question.
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?<place>[a-z][a-z .\x27-]*?)\s+time(?:\s+(?:now|right\s+now))?,?\s+please[\s?.!]*$'''
+  slots = { loose = "yes" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^what(?:\x27s|s|\s+is)\s+the\s+time\s+like\s+in\s+(?<place>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
 
 [[intent]]
 id = "timezones.difference"
@@ -264,7 +313,22 @@ courtesy = false
     "diferencia horaria con aquí", "cuántas horas de diferencia hay entre Madrid y Buenos Aires",
     "q diferencia horaria hay entre madrid y mexico", "cuantas horas de diferencia hay con japon",
     "diferencia horaria entre Ciudad de México y Chicago", "y con Londres qué diferencia hay",
-    "qué diferencia horaria hay entre Sevilla y Nueva York", "cuántas horas va Delhi por delante de Dubái"]
+    "qué diferencia horaria hay entre Sevilla y Nueva York", "cuántas horas va Delhi por delante de Dubái",
+    "cuántas horas nos llevamos con Japón", "cuántas horas se llevan Madrid y Nueva York",
+    "cuántas horas hay entre Lisboa y Moscú", "qué desfase hay entre Londres y Pekín",
+    "diferencia horaria Madrid-Tokio", "diferencia horaria entre Canarias y la península",
+    "cuántas horas más son en Dubái", "cuántas horas menos tienen en México", "en Tokio van por delante?",
+    "es la misma hora en Lisboa que en Londres?", "Buenos Aires va por detrás de Madrid?",
+    "Tokio está adelantado respecto a Madrid?", "cuánto se llevan Londres y Madrid",
+    "cuántas horas de diferencia tenemos con Chile", "qué diferencia horaria tenemos con Australia",
+    "cuál es el desfase con Nueva York", "a cuántas horas estamos de Japón",
+    "cuánto adelanta Moscú sobre Londres", "va Londres una hora por detrás?",
+    "Lima y Bogotá tienen la misma hora?", "diferencia de horas con Seúl",
+    "cuantas horas de diferencia ay con Mexico", "q diferencia horaria hay con Londres",
+    "cuántas horas le saca Tokio a Madrid", "Nueva York cuántas horas va por detrás",
+    "cuánto desfase hay con Sídney", "qué diferencia de horario hay entre Roma y Atenas",
+    "hay diferencia horaria entre Portugal y España?", "y con Pekín cuántas horas son?",
+    "la diferencia de hora con Buenos Aires", "llevan la misma hora Berlín y París?"]
   en = ["what's the time difference between Madrid and Tokyo", "how many hours ahead is Tokyo of London",
     "how far behind is Los Angeles from Madrid", "time difference between London and Delhi", "is Delhi ahead of Dubai",
     "are Lima and Bogota on the same time", "Mexico City vs Chicago, what's the difference",
@@ -295,7 +359,13 @@ courtesy = false
     "what's the time difference with my city", "difference in hours between Rome and Cairo",
     "time difference between Miami and Madrid please", "and with Sydney",
     "what's the time difference between UTC and Madrid", "how many hours ahead is Dubai of London",
-    "is Lima on the same time as Bogota", "how many hours difference with Lima"]
+    "is Lima on the same time as Bogota", "how many hours difference with Lima",
+    "how many hours ahead is Tokyo", "how far behind are we from New York",
+    "what's the gap between London and Tokyo", "time difference London Tokyo",
+    "how many hours between Paris and Dubai", "is Sydney ahead of us",
+    "is it the same time in Lisbon as in London", "how much later is it in Moscow",
+    "how much earlier is it in Chicago", "what's the time difference to Singapore",
+    "how many hours apart are we from Seoul"]
 
   [[intent.slot]]
   name = "from"
@@ -322,13 +392,27 @@ courtesy = false
   # first place is greedy, so a third place lands in it and is asked about.
   [[intent.pattern]]
   lang = "es"
-  regex = '^[¿¡\s]*(?:y )?(?:(?:dime|me dices) )?(?:(?:que|q|cual es la|cuanta|cuantas horas de|cuantas horas hay de|la) )?(?:diferencia|desfase)(?: horaria| de horas?)?(?: hay| tienen)?(?: de)? entre (?<from>.+) (?:y|e) (?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'
+  regex = '^[¿¡\s]*(?:y )?(?:(?:dime|me dices) )?(?:(?:que|q|cual es la|cuanta|la) )?(?:diferencia (?:horaria|de horas?)|desfase(?: horario| de horas?)?|cuantas horas (?:hay )?de (?:diferencia|desfase))(?: hay| tienen)?(?: de)? entre (?<from>.+) (?:y|e) (?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'
+
+  # The same with a bare "diferencia": also said of things that are no
+  # place ("qué diferencia hay entre un sapo y una rana"), so a name the
+  # place table does not know is not answered (`loose`).
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?(?:(?:dime|me dices) )?(?:(?:que|q|cual es la|cuanta|la) )?diferencia(?: hay| tienen)?(?: de)? entre (?<from>.+) (?:y|e) (?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'
+  slots = { loose = "yes" }
 
   # "diferencia con Tokio", "¿qué diferencia horaria hay con Nueva York?",
   # "cuántas horas de diferencia hay con Bogotá".
   [[intent.pattern]]
   lang = "es"
-  regex = '^[¿¡\s]*(?:y )?(?:(?:dime|me dices) )?(?:(?:que|q|cual es la|cuanta|cuantas horas de|cuantas horas hay de|la) )?(?:diferencia|desfase)(?: horaria| de horas?)?(?: hay| tenemos| tienen)? (?:con|respecto a) (?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))(?: ahora)?[\s?.!]*$'
+  regex = '^[¿¡\s]*(?:y )?(?:(?:dime|me dices) )?(?:(?:que|q|cual es la|cuanta|la) )?(?:diferencia (?:horaria|de horas?)|desfase(?: horario| de horas?)?|cuantas horas (?:hay )?de (?:diferencia|desfase))(?: hay| tenemos| tienen)? (?:con|respecto a) (?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))(?: ahora)?[\s?.!]*$'
+
+  # "qué diferencia hay con Londres": bare, so `loose` as above.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y )?(?:(?:dime|me dices) )?(?:(?:que|q|cual es la|cuanta|la) )?diferencia(?: hay| tenemos| tienen)? (?:con|respecto a) (?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))(?: ahora)?[\s?.!]*$'
+  slots = { loose = "yes" }
 
   # "¿cuántas horas de diferencia hay con?", with the place missing.
   [[intent.pattern]]
@@ -463,6 +547,76 @@ courtesy = false
 # In Spanish `{clock}` carries the verb and the article ("son las 13:42", "es
 # la 01:42") and `{at}` the article only ("las 13:42"); in English both are
 # the bare time. `{note}` is " (ya es lunes)" / " (already Monday)" or empty.
+
+  [[intent.slot]]
+  name = "loose"
+  type = "term"
+  internal = true
+
+  # "cuántas horas nos llevamos con Japón", "cuántas horas se llevan Madrid y Lima".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:y\s+)?(?:cuantas\s+horas|cuanto)\s+nos\s+llevamos\s+con\s+(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { loose = "yes" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:cuantas\s+horas|cuanto)\s+se\s+llevan?\s+(?<from>.+)\s+(?:y|e|con)\s+(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { loose = "yes" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*cuantas\s+horas\s+(?:hay|van)\s+(?:de\s+diferencia\s+)?entre\s+(?<from>.+)\s+(?:y|e)\s+(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { loose = "yes" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*cuantas\s+horas\s+(?:mas|menos)\s+(?:son|es|tienen|van|llevan)\s+en\s+(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { loose = "yes" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:es|hay)\s+la\s+misma\s+hora\s+en\s+(?<from>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))\s+(?:que|y)\s+en\s+(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { form = "same" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))\s+(?:va|esta)\s+(?:por\s+delante|adelantad[oa])\s+(?:de|respecto\s+a|con\s+respecto\s+a)\s+(?<from>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { form = "ahead" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))\s+(?:va|esta)\s+(?:por\s+detras|atrasad[oa])\s+(?:de|respecto\s+a|con\s+respecto\s+a)\s+(?<from>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { form = "behind" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:la\s+)?(?:diferencia\s+horaria|desfase\s+horario)\s+(?<from>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))\s*-\s*(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:que|q|cual\s+es\s+la|cuanta|la)\s+)?(?:diferencia|desfase)\s+de\s+horario\s+(?:hay\s+)?entre\s+(?<from>.+)\s+(?:y|e)\s+(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+
+  # "how much later is it in Moscow".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^how\s+much\s+(?:later|earlier)\s+is\s+it\s+in\s+(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { loose = "yes" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:what\x27s|whats|what\s+is)\s+the\s+(?:time\s+)?gap\s+between\s+(?<from>.+)\s+and\s+(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { loose = "yes" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^how\s+many\s+hours\s+(?:are\s+there\s+)?between\s+(?<from>.+)\s+and\s+(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { loose = "yes" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^is\s+it\s+the\s+same\s+time\s+in\s+(?<from>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))\s+(?:as|and)\s+(?:in\s+)?(?<to>(?:[^\d]+?|(?:utc|gmt) ?[+-]\d{1,2}(?::?\d\d)?))[\s?.!]*$'''
+  slots = { form = "same" }
 
 [reply.time]
 es = ["En {place} {clock}{note}."]

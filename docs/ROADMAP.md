@@ -1,6 +1,6 @@
 # Roadmap
 
-Seven milestones from an empty repository to a 1.0 that replaces the Talos
+Eight milestones from an empty repository to a 1.0 that replaces the Talos
 inside Tomos. Each one ends in something that runs and can be measured.
 
 The rule for the whole plan: **a milestone is done when its exit criteria are
@@ -8,9 +8,9 @@ measured, not when its code exists.** Numbers marked *target* are goals to be
 confirmed or revised by the first real measurement.
 
 ```
-M0 Foundations ─▶ v0.1 Talks ─▶ v0.2 Understands ─▶ v0.3 Knows
+M0 Foundations ─▶ v0.1 Talks ─▶ v0.2 Understands ─▶ v0.3 Dictionary
                                                         │
-                       v1.0 Small hardware ◀─ v0.5 Tools ◀─ v0.4 Serves
+   v1.0 Small hardware ◀─ v0.6 Knows ◀─ v0.5 Tools ◀─ v0.4 Serves
 ```
 
 No dates: the order and the exit criteria are the plan. Sequence can bend
@@ -107,38 +107,45 @@ Recognition that generalises, and multi-turn exchanges.
 
 ---
 
-## v0.3 — Knows things
+## v0.3 — A dictionary
 
-The semantic store. This is the milestone that makes it Talos.
+The store and its first two uses: defining a word and translating one. Split
+from the original v0.3 by the owner on 2026-11-25: the assistant is used for
+direct requests, and reasoning over relations and teaching facts are not
+among them yet. They are milestone v0.6, on the same store.
 
 **Scope**
 
-- Schema, migrations, connection handling, `user.db`.
-- Query layer: definitions, is-a, part-of, kinds-of, causes, neighbourhood;
-  bounded reasoning with paths; confidence aggregation.
+- Schema, migrations, connection handling, `user.db` — the schema as designed
+  in [KNOWLEDGE.md](KNOWLEDGE.md), relations included, so that v0.6 adds
+  queries and not a new store. Preferences and corrections move from
+  `user.toml` into it.
+- Query layer for what this milestone asks: a word to its concepts, a
+  concept's gloss, a concept's words in the other language.
 - Polysemy: ranking, context re-ranking, asking which sense.
-- Teaching: teach, correct, forget, list, export/import; contradiction
-  detection; audit.
-- Skills: `define`, `relations`, `teach`, `translate`.
+- Skills: `define` and `translate` (words and a table of stock phrases).
+- `teach.phrase` only — "when I say X, I mean Y" — which gives the correction
+  table of v0.2 a spoken way in, with listing and removing.
 - Pack format and `talos packs`; a hand-written seed pack; then the core
-  vocabulary pack built from the WordNet family (English and Spanish, aligned).
-- The word-pair lexicon as a pack: cleaning pass, translation fallback, and a
-  measured trial of inducing Spanish senses from it (precision on a reviewed
-  sample decides whether induced senses ship).
-- Spanish glosses: hand-written for the core subset; build-time translation of
-  English glosses for the rest, sampled and reviewed, stored as a separate
-  lower-confidence source.
-- A semantic evaluation battery (questions with expected answers and paths).
+  vocabulary pack built from the WordNet family (English and Spanish,
+  aligned), relations loaded even though nothing queries them yet.
+- The word-pair lexicon as a pack: cleaning pass, translation fallback.
+- Spanish glosses: those the Spanish wordnet has (about a quarter of its
+  concepts). For the rest, the cheap fallbacks, each marked as such: the
+  English gloss, and from v0.5 the opening of the Wikipedia article.
+  Hand-written and build-time-translated glosses wait for v0.6.
+- An evaluation battery for definitions and translations.
 
 **Exit criteria**
 
-- Something taught in one language is answerable in the other.
-- Derived answers state their path; negative answers distinguish "contradicted"
-  from "unknown".
-- Semantic battery ≥ 90 % (*target*).
+- A word is defined in the conversation's language when a gloss exists, and
+  the reply says so when it falls back.
+- A word with several senses is asked about, and the answer picks one.
+- A word is translated in both directions; an unknown one is said to be
+  unknown.
 - With a pack of at least 100,000 concepts attached: resident memory ≤ 20 MB,
   knowledge query p99 ≤ 10 ms on a laptop (*target*).
-- No disk write on a turn that does not teach.
+- No disk write on a turn that changes nothing.
 
 ---
 
@@ -208,6 +215,35 @@ Talos stands on its own ([ADR 0013](adr/0013-external-skills.md), amended).
 - With the network unplugged, every skill either works or says clearly why it
   cannot; no turn hangs beyond its timeout.
 - Stand-alone battery: bare catch-all on ≤ 15 % of turns (*target*).
+
+---
+
+## v0.6 — Knows things
+
+The rest of the semantic store: what the original design called the
+milestone that makes it Talos. It can move after 1.0 if the owner so rules.
+
+**Scope**
+
+- Query layer: is-a, part-of, kinds-of, causes, neighbourhood; bounded
+  reasoning with paths; confidence aggregation.
+- Teaching: teach, correct, forget, list, export/import; contradiction
+  detection; audit.
+- Skills: `relations`, and the rest of `teach`.
+- A measured trial of inducing Spanish senses from the word-pair lexicon
+  (precision on a reviewed sample decides whether induced senses ship).
+- Spanish glosses: hand-written for the core subset; build-time translation
+  of English glosses for the rest, sampled and reviewed, stored as a separate
+  lower-confidence source.
+- A semantic evaluation battery (questions with expected answers and paths).
+
+**Exit criteria**
+
+- Something taught in one language is answerable in the other.
+- Derived answers state their path; negative answers distinguish
+  "contradicted" from "unknown".
+- Semantic battery ≥ 90 % (*target*).
+- No disk write on a turn that does not teach.
 
 ---
 

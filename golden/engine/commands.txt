@@ -7,9 +7,29 @@
 [es] U: /calc 1 + 2
      T: 1 + 2 = 3.                                → answered · calc.arithmetic · expression=1+2
 
+# `/calc` reads the rest of the line as the sentence form would (the
+# command is declared `sentence = true`): a percentage or a conversion
+# reaches its own intent with what that intent's rule captured.
+[es] U: /calc 15% de 80
+     T: El 15 % de 80 es 12.                      → answered · calc.percent · amount=80 percent=15
+
+[es] U: /calc 5 km a millas
+     T: 5 km son ≈ 3,11 mi.                       → answered · calc.convert · amount=5 from=km to=mi
+
+# The conversation's language holds, but a line its rules do not read is
+# read by the other language's.
+[es] U: /calc 15% of 80
+     T: El 15 % de 80 es 12.                      → answered · calc.percent · amount=80 percent=15
+
 Given: hint = en
 [en] U: /calc 1 + 2
      T: 1 + 2 = 3.                                → answered · calc.arithmetic · expression=1+2
+
+[en] U: /calc 15% of 80
+     T: 15% of 80 is 12.                          → answered · calc.percent · amount=80 percent=15
+
+[en] U: /calc 5 km in miles
+     T: 5 km is ≈ 3.11 mi.                        → answered · calc.convert · amount=5 from=km to=mi
 
 # A Spanish name in an English conversation answers in English.
 Given: draw = 4

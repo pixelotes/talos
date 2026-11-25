@@ -34,6 +34,9 @@ pub(crate) struct Row {
     pub(crate) kind: Option<String>,
     /// The status a reject row must get.
     pub(crate) status: Option<String>,
+    /// Tagged `in-spec`: the text also appears in the specification, so
+    /// manifest authors have seen it and the row is not held out.
+    pub(crate) in_spec: bool,
 }
 
 /// What the engine did with a row.
@@ -59,9 +62,23 @@ pub(crate) struct IntentScore {
     /// Rows recognised as no intent.
     pub(crate) missed: usize,
     pub(crate) per_intent: BTreeMap<String, Count>,
+    /// The same, over the rows not tagged `in-spec`.
+    pub(crate) held_out: BTreeMap<String, Count>,
 }
 
 impl IntentScore {
+    /// The held-out rows whose label belongs to one of `skills`.
+    pub(crate) fn built_held_out(&self, skills: &BTreeSet<String>) -> Count {
+        let mut count = Count::default();
+        for (intent, c) in &self.held_out {
+            if skills.contains(intent.split('.').next().unwrap_or_default()) {
+                count.rows += c.rows;
+                count.hits += c.hits;
+            }
+        }
+        count
+    }
+
     /// The rows whose label belongs to one of `skills`.
     pub(crate) fn built(&self, skills: &BTreeSet<String>) -> Count {
         let mut count = Count::default();
@@ -156,6 +173,10 @@ pub(crate) fn parse_rows(text: &str, file: &str) -> Result<Vec<Row>, String> {
             intent: get("intent"),
             kind: get("kind"),
             status: get("status"),
+            in_spec: value
+                .get("tags")
+                .and_then(Json::as_array)
+                .is_some_and(|tags| tags.iter().any(|t| t.as_str() == Some("in-spec"))),
         });
     }
     Ok(rows)
@@ -171,6 +192,11 @@ pub(crate) fn score_intents(rows: &[Row], mut run: impl FnMut(&Row) -> Observed)
         let observed = run(row).intent;
         let hit = observed.as_deref() == Some(label.as_str());
         score.total.rows += 1;
+        if !row.in_spec {
+            let fresh = score.held_out.entry(label.clone()).or_default();
+            fresh.rows += 1;
+            fresh.hits += usize::from(hit);
+        }
         let entry = score.per_intent.entry(label).or_default();
         entry.rows += 1;
         if hit {
@@ -438,6 +464,17 @@ pub(crate) fn render_text(report: &Report) -> String {
             ratio(ba),
             ratio(bb)
         );
+        let (ha, hb) = (
+            a.intents.built_held_out(&report.skills),
+            b.intents.built_held_out(&report.skills),
+        );
+        let _ = writeln!(
+            out,
+            "[{l}]   not in the spec ({} rows)        {} {}",
+            ha.rows,
+            ratio(ha),
+            ratio(hb)
+        );
         let _ = writeln!(
             out,
             "[{l}]   wrong intent / no intent           {:>4} / {:<4}  {:>4} / {:<4}",
@@ -516,6 +553,7 @@ fn scores_json(s: &Scores, skills: &BTreeSet<String>) -> Json {
         })
         .collect();
     let built = s.intents.built(skills);
+    let held_out = s.intents.built_held_out(skills);
     let conversations = s.conversations.map_or(Json::Null, |c| {
         json!({
             "conversations": c.conversations,
@@ -536,6 +574,9 @@ fn scores_json(s: &Scores, skills: &BTreeSet<String>) -> Json {
             "built_rows": built.rows,
             "built_correct": built.hits,
             "built_accuracy": percent(built.hits, built.rows) / 100.0,
+            "built_held_out_rows": held_out.rows,
+            "built_held_out_correct": held_out.hits,
+            "built_held_out_accuracy": percent(held_out.hits, held_out.rows) / 100.0,
             "per_intent": per_intent,
         },
         "reject": {
@@ -588,6 +629,7 @@ mod tests {
             intent: Some(intent.to_owned()),
             kind: None,
             status: None,
+            in_spec: false,
         }
     }
 
@@ -599,6 +641,7 @@ mod tests {
             intent: None,
             kind: Some(kind.to_owned()),
             status: Some(status.to_owned()),
+            in_spec: false,
         }
     }
 

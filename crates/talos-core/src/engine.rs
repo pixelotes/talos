@@ -1069,7 +1069,19 @@ impl Engine {
             let reply = fallback::unknown_command(lang, &shown, help);
             return Handled::fixed(reply, Status::Unhandled, Reason::UNKNOWN_COMMAND, None);
         };
-        let intent = &self.manifests[index].intents[position];
+        let manifest = &self.manifests[index];
+        let intent = &manifest.intents[position];
+        if let Some(read) = self.command_as_sentence(manifest, intent, at, line) {
+            trace.note("command", || {
+                format!(
+                    "`{}` read as a sentence: {} (/{}/)",
+                    line.name, read.intent, read.pattern
+                )
+            });
+            return self
+                .dispatch(cx, at, &read, trace, None)
+                .unwrap_or_else(|| Handled::fallback(lang, Reason::CANNOT, Some(read.intent)));
+        }
         let slot = intent.command.as_ref().and_then(|c| c.slot.clone());
         let captures = match (slot, line.argument.is_empty()) {
             (Some(slot), false) => vec![(slot, line.argument.clone())],
@@ -1097,6 +1109,40 @@ impl Engine {
         };
         self.dispatch(cx, at, &candidate, trace, None)
             .unwrap_or_else(|| Handled::fallback(lang, Reason::CANNOT, Some(intent.id.clone())))
+    }
+
+    /// For a command declared `sentence = true`: its argument read by the
+    /// rules of its own skill, the turn's language first, when the best
+    /// match is another intent of the skill. `None` sends the argument to
+    /// the command's slot as usual.
+    fn command_as_sentence(
+        &self,
+        manifest: &Manifest,
+        intent: &Intent,
+        at: At<'_>,
+        line: &CommandLine,
+    ) -> Option<Candidate> {
+        if !intent.command.as_ref().is_some_and(|c| c.sentence) || line.argument.is_empty() {
+            return None;
+        }
+        let argument = &at.message.folded[line.argument.clone()];
+        let mine = |c: &Candidate| manifest.intents.iter().any(|i| i.id == c.intent);
+        // In each language, the turn's first, the best match among the
+        // skill's own intents; the first that is not the command's intent
+        // answers. A command does not switch the language, so "/calc 15%
+        // of 80" in a Spanish conversation is still read by the English
+        // rules when no Spanish one reads it as something else.
+        let best = [at.lang, at.lang.other()].into_iter().find_map(|lang| {
+            self.rules
+                .candidates(lang, argument, line.argument.start)
+                .into_iter()
+                .find(mine)
+                .filter(|c| c.intent != intent.id)
+        })?;
+        Some(Candidate {
+            source: Source::Command,
+            ..best
+        })
     }
 
     /// Stages 5 and 6 for one candidate; `None` when its skill declines.

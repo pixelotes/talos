@@ -142,7 +142,21 @@ courtesy = false
     "eres un robot o que", "eres humano o maquina", "tienes sentimientos de verdad o no",
     "sientes algo cuando hablamos", "eres un programa o hay alguien ahí",
     "funcionas con inteligencia artificial?", "me pregunto cómo funcionas", "tienes consciencia o no",
-    "en serio, eres una máquina?"]
+    "en serio, eres una máquina?",
+    "qué clase de cosa eres", "eres un bot o qué", "eres algún tipo de ia",
+    "eres un ser humano de verdad", "esto es una ia?", "esto es un bot?", "es esto automático?",
+    "estoy hablando con un bot?", "estoy hablando con una máquina?", "hay alguien de verdad leyendo esto",
+    "hay una persona real al otro lado", "funcionas con ia", "estás hecho con gpt", "qué ia eres",
+    "qué inteligencia artificial usas", "eres de openai", "te ha hecho google", "eres un asistente virtual",
+    "eres un ordenador", "eres solo código", "eres solo un programa", "eres solo un montón de reglas",
+    "sabes que existes", "piensas de verdad", "puedes aprender", "aprendes de lo que te digo",
+    "cómo me entiendes", "cómo sabes lo que quiero decir", "qué hay detrás de ti", "qué te hace funcionar",
+    "usas redes neuronales", "te han entrenado con datos", "eres un robot, no?", "tú eres una ia, verdad?",
+    "no eres humano, a que no?", "sé sincero, eres un bot?", "dime la verdad, eres una persona?",
+    "eres humano o ia", "eres una ia o una persona", "eres una ia de esas", "ere un robot?",
+    "eres una IA o k", "q eres, un programa?", "en el fondo eres una máquina, no?",
+    "tú qué eres, un programa o una persona", "tienes sentimientos o eres una máquina",
+    "tienes emociones de verdad"]
   en = ["are you an AI", "are you human", "do you have feelings", "are you a language model", "are you ChatGPT or Siri", "how do you work", "do you understand me", "what model are you running",
     "are you a robot", "are you a bot", "are you real", "are you a person", "is this a human",
     "am i talking to a human", "are you a machine", "are you artificial intelligence", "are you an llm",
@@ -165,7 +179,23 @@ courtesy = false
     "i wonder if you're a person or a machine", "i want to know if you're an ai", "are you an actual ai?",
     "r u a robot", "are u human", "do you really have feelings or not", "do you feel anything when we talk",
     "are you a program or is someone there", "do you run on artificial intelligence?",
-    "i wonder how you work", "are you conscious or not", "seriously, are you a machine?"]
+    "i wonder how you work", "are you conscious or not", "seriously, are you a machine?",
+    "what kind of thing are you", "what are you, a bot?", "are you some kind of ai",
+    "are you a real human being", "is this an ai?", "is this a bot?", "is this automated?",
+    "am i chatting with a bot", "am i speaking to a machine", "is someone actually reading this",
+    "is there a real person on the other end", "are you powered by ai", "are you built on gpt",
+    "do you run on chatgpt", "which ai are you", "what ai is this", "are you made by openai",
+    "did google make you", "are you a virtual assistant", "are you a computer", "are you software",
+    "are you just code", "are you just a program", "are you just a bunch of rules", "do you know you exist",
+    "do you actually think", "can you learn", "do you learn from what i say", "how do you understand me",
+    "how do you know what i mean", "what's under the hood", "what's powering you",
+    "do you use neural networks", "were you trained on data", "you're a bot, right?",
+    "you're an ai, aren't you", "you're not human, are you?", "be honest, are you a bot",
+    "tell me the truth, are you human", "are you human or ai", "are you ai or human", "r u an ai", "u a bot?",
+    "are you a robot or what", "deep down you're just a machine, right?",
+    "so what are you, a program or a person", "do you have real emotions",
+    "do you feel things or are you a machine", "are you an actual person", "is this a real person typing",
+    "are you a human or a computer"]
 
   [[intent.slot]]
   name = "topic"
@@ -295,6 +325,65 @@ courtesy = false
 
 # identity.who. The creator line is the default configuration: a project by
 # Pixelotes and nothing more (ruling 4).
+
+  # "are you human or ai", "r u a bot or what".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:be\s+honest|seriously|honestly|tell\s+me\s+the\s+truth|so),?\s+)?(?:are\s+(?:you|u)|r\s+u)\s+(?:an?\s+)?(?:real\s+|actual\s+)?(?:ai|bot|chatbot|robot|human(?:\s+being)?|person|machine|computer|program)\s+or\s+(?:an?\s+)?(?:ai|bot|robot|human|person|machine|computer|program|what)[\s?.!]*$'''
+  slots = { topic = "kind" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:(?:so|but)\s+)?(?:you\x27re|youre|you\s+are)\s+(?:just\s+)?(?:an?\s+)?(?:ai|bot|chatbot|robot|machine|program|computer)(?:,?\s+(?:right|aren\x27t\s+you|arent\s+you|no|yes))[\s?.!]*$'''
+  slots = { topic = "kind" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:you\x27re|youre|you\s+are)\s+not\s+(?:a\s+)?(?:human|person|real)(?:,?\s+(?:are\s+you|right))?[\s?.!]*$'''
+  slots = { topic = "kind" }
+
+  # "is this a bot", "am I talking to a machine".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:is\s+this|am\s+i\s+(?:talking|chatting|speaking)\s+(?:to|with))\s+(?:an?\s+)?(?:real\s+)?(?:ai|bot|chatbot|robot|machine|human|person|computer)[\s?.!]*$'''
+  slots = { topic = "kind" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^(?:what|which)\s+(?:ai|model|llm|language\s+model)\s+(?:are\s+you|is\s+this|do\s+you\s+use)[\s?.!]*$'''
+  slots = { topic = "runs_on" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '''^are\s+(?:you|u)\s+(?:just\s+)?(?:an?\s+)?(?:bot|chatbot|computer|program|software|script|virtual\s+assistant|real\s+person|real\s+human)[\s?.!]*$'''
+  slots = { topic = "kind" }
+
+  # "eres humano o ia", "eres un bot o qué".
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:se\s+sincero|en\s+serio|dime\s+la\s+verdad),?\s+)?(?:eres|ere)\s+(?:un\s+|una\s+)?(?:ia|bot|robot|humano|persona|maquina|programa|ordenador)\s+o\s+(?:un\s+|una\s+)?(?:ia|bot|robot|humano|persona|maquina|programa|ordenador|que|k)[\s?.!]*$'''
+  slots = { topic = "kind" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:(?:tu\s+)?eres\s+(?:solo\s+)?(?:un\s+|una\s+)?(?:ia|bot|robot|maquina|programa)|no\s+eres\s+(?:humano|una\s+persona)),?\s+(?:verdad|no|a\s+que\s+si|a\s+que\s+no)[\s?.!]*$'''
+  slots = { topic = "kind" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:esto\s+es|estoy\s+hablando\s+con)\s+(?:un\s+|una\s+)?(?:ia|bot|robot|maquina|persona|humano|programa)(?:\s+de\s+verdad)?[\s?.!]*$'''
+  slots = { topic = "kind" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*(?:que\s+ia|que\s+inteligencia\s+artificial|que\s+modelo\s+de\s+lenguaje)\s+(?:eres|usas)[\s?.!]*$'''
+  slots = { topic = "runs_on" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '''^[¿¡\s]*eres\s+(?:solo\s+)?(?:un\s+)?(?:bot|chatbot|ordenador|asistente\s+virtual)[\s?.!]*$'''
+  slots = { topic = "kind" }
+
 [reply.who_name]
 es = ["Talos."]
 en = ["Talos."]

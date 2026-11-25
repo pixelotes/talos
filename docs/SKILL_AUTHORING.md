@@ -188,8 +188,14 @@ no argument (`/refran`). Give a command only where it helps: an intent with
 several independent slots gets none unless one free-text slot its handler
 already reads covers them; that slot may be `internal`, and the handler
 reports the sentence form's slots from it (`/dado 2d6` → `count=2
-sides=6`). `talos skills check` rejects a name declared twice and a slot the
-intent does not declare.
+sides=6`). When the skill's other intents take sentences the command should
+also reach, add `sentence = true`: the rest of the line is first read by the
+rules of the command's own skill, and if one of another of its intents
+matches, that intent answers with what its rule captured, as the sentence
+would (`/calc 15% de 80` is `calc.percent`, `/calc 5 km a millas` is
+`calc.convert`); otherwise the slot takes the line. `talos skills check`
+rejects a name declared twice, a slot the intent does not declare, and
+`sentence` without a `slot`.
 
 ## 3. The handler
 

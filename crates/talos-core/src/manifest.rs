@@ -14,8 +14,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde::Deserialize;
+use serde::de::{DeserializeOwned, DeserializeSeed, SeqAccess, Visitor};
+use serde::{Deserialize, Deserializer};
 
+use crate::classifier::Fnv;
 use crate::value::SlotType;
 use crate::{Error, IntentId, Lang, render};
 
@@ -125,6 +127,12 @@ pub struct Command {
     /// The slot that receives the rest of the line; `None` for a command
     /// that takes no argument.
     pub slot: Option<String>,
+    /// The rest of the line is first read as a sentence by the rules of the
+    /// command's own skill: if one of another intent of the skill matches
+    /// it, that intent answers with what the rule captured, as the sentence
+    /// form would (`/calc 15% de 80` is `calc.percent`). Otherwise `slot`
+    /// takes it. Requires `slot`.
+    pub sentence: bool,
 }
 
 impl Command {
@@ -148,6 +156,173 @@ pub fn is_command_name(name: &str) -> bool {
     })
 }
 
+/// One language's example phrases (classifier training data): the text,
+/// when kept, and always their number and digest.
+///
+/// Only the trainer and `talos skills check` read the text. The engine
+/// needs no more than the digest, to check that its model was trained on
+/// these examples, so it parses manifests with [`Manifest::parse_lean`]
+/// and never allocates them (docs/DEVELOPMENT.md, "Footprint").
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Examples {
+    texts: Vec<String>,
+    len: usize,
+    digest: u64,
+}
+
+impl Examples {
+    /// Examples kept as written.
+    #[must_use]
+    pub fn new(texts: Vec<String>) -> Self {
+        let mut digest = Digest::new();
+        for text in &texts {
+            digest.add(text);
+        }
+        Self {
+            texts,
+            len: digest.len,
+            digest: digest.finish(),
+        }
+    }
+
+    /// The phrases as written; empty when they were not kept.
+    #[must_use]
+    pub fn texts(&self) -> &[String] {
+        &self.texts
+    }
+
+    /// How many there are, kept or not.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Whether there are none.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// FNV-1a over each phrase (length first) and then their number: the
+    /// same whether the text was kept or not.
+    #[must_use]
+    pub fn digest(&self) -> u64 {
+        self.digest
+    }
+}
+
+impl Default for Examples {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
+
+/// The running digest of a list of phrases ([`Examples::digest`]).
+struct Digest {
+    hash: Fnv,
+    len: usize,
+    blank: bool,
+}
+
+impl Digest {
+    fn new() -> Self {
+        Self {
+            hash: Fnv::new(),
+            len: 0,
+            blank: false,
+        }
+    }
+
+    fn add(&mut self, text: &str) {
+        self.hash.text(text);
+        self.len += 1;
+        self.blank |= text.trim().is_empty();
+    }
+
+    fn finish(mut self) -> u64 {
+        self.hash.bytes(&(self.len as u64).to_le_bytes());
+        self.hash.finish()
+    }
+}
+
+/// A list of phrases read from TOML and digested on the fly, one string at
+/// a time, never allocated: what [`Manifest::parse_lean`] reads examples
+/// into.
+pub(crate) struct Digested {
+    examples: Examples,
+    blank: bool,
+}
+
+impl<'de> Deserialize<'de> for Digested {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct List;
+        struct One<'a>(&'a mut Digest);
+
+        impl<'de> Visitor<'de> for List {
+            type Value = Digested;
+            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("a list of strings")
+            }
+            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Digested, A::Error> {
+                let mut digest = Digest::new();
+                while seq.next_element_seed(One(&mut digest))?.is_some() {}
+                let (len, blank) = (digest.len, digest.blank);
+                Ok(Digested {
+                    examples: Examples {
+                        texts: Vec::new(),
+                        len,
+                        digest: digest.finish(),
+                    },
+                    blank,
+                })
+            }
+        }
+
+        impl<'de> DeserializeSeed<'de> for One<'_> {
+            type Value = ();
+            fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<(), D::Error> {
+                deserializer.deserialize_str(self)
+            }
+        }
+
+        impl Visitor<'_> for One<'_> {
+            type Value = ();
+            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("a string")
+            }
+            fn visit_str<E: serde::de::Error>(self, text: &str) -> Result<(), E> {
+                self.0.add(text);
+                Ok(())
+            }
+        }
+
+        deserializer.deserialize_seq(List)
+    }
+}
+
+/// What a raw example list becomes: [`Examples`], kept or digested.
+pub(crate) trait RawExamples: DeserializeOwned + Blank {
+    fn into_examples(self) -> Examples;
+}
+
+impl RawExamples for Vec<String> {
+    fn into_examples(self) -> Examples {
+        Examples::new(self)
+    }
+}
+
+impl RawExamples for Digested {
+    fn into_examples(self) -> Examples {
+        self.examples
+    }
+}
+
+impl Blank for Digested {
+    fn is_blank(&self) -> bool {
+        self.examples.is_empty() || self.blank
+    }
+}
+
 /// One thing a user can want from a skill.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Intent {
@@ -155,8 +330,9 @@ pub struct Intent {
     pub id: IntentId,
     /// Higher wins among rule matches.
     pub priority: i32,
-    /// Training examples, per language.
-    pub examples: PerLang<Vec<String>>,
+    /// Training examples, per language: kept by [`Manifest::parse`], only
+    /// counted and digested by [`Manifest::parse_lean`].
+    pub examples: PerLang<Examples>,
     /// Certain-match rules.
     pub patterns: Vec<Pattern>,
     /// The slots it declares, in file order.
@@ -201,10 +377,11 @@ pub struct Manifest {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct RawManifest {
+#[serde(bound = "E: DeserializeOwned")]
+struct RawManifest<E> {
     skill: RawSkill,
     #[serde(default)]
-    intent: Vec<RawIntent>,
+    intent: Vec<RawIntent<E>>,
     #[serde(default)]
     reply: BTreeMap<String, RawPerLang<Vec<String>>>,
 }
@@ -225,11 +402,12 @@ struct RawSkill {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct RawIntent {
+#[serde(bound = "E: DeserializeOwned")]
+struct RawIntent<E> {
     id: String,
     priority: i32,
     #[serde(default)]
-    examples: RawPerLang<Vec<String>>,
+    examples: RawPerLang<E>,
     #[serde(default)]
     pattern: Vec<RawPattern>,
     #[serde(default)]
@@ -247,6 +425,8 @@ struct RawCommand {
     en: String,
     #[serde(default)]
     slot: Option<String>,
+    #[serde(default)]
+    sentence: bool,
 }
 
 #[derive(Deserialize)]
@@ -311,7 +491,7 @@ impl<T> Default for RawPerLang<T> {
 }
 
 /// Something that may be empty, so "present but empty" counts as missing.
-trait Blank {
+pub(crate) trait Blank {
     fn is_blank(&self) -> bool;
 }
 
@@ -494,12 +674,18 @@ fn command(
             }
         }
     }
+    if raw.sentence && raw.slot.is_none() {
+        return Err(at(
+            "a command read as a sentence (`sentence = true`) needs a `slot`".to_owned(),
+        ));
+    }
     Ok(Command {
         names: PerLang {
             es: raw.es,
             en: raw.en,
         },
         slot: raw.slot,
+        sentence: raw.sentence,
     })
 }
 
@@ -518,12 +704,28 @@ impl Manifest {
     /// [`Error::Manifest`] if the TOML is malformed, a key is unknown, an id
     /// is badly formed or repeated, a template is malformed, or any summary,
     /// example list or reply lacks one of the two languages.
+    pub fn parse(source: &str, toml_text: &str) -> Result<Self, Error> {
+        Self::parse_as::<Vec<String>>(source, toml_text)
+    }
+
+    /// Parses and validates a manifest as [`Manifest::parse`] does, but
+    /// keeps only the number and digest of its examples, never their text
+    /// ([`Examples`]): what the engine needs. A manifest one accepts the
+    /// other accepts, with the same errors.
+    ///
+    /// # Errors
+    ///
+    /// As [`Manifest::parse`].
+    pub fn parse_lean(source: &str, toml_text: &str) -> Result<Self, Error> {
+        Self::parse_as::<Digested>(source, toml_text)
+    }
+
     #[expect(
         clippy::too_many_lines,
         reason = "validation reads top to bottom, in the order of the file"
     )]
-    pub fn parse(source: &str, toml_text: &str) -> Result<Self, Error> {
-        let raw: RawManifest =
+    fn parse_as<E: RawExamples>(source: &str, toml_text: &str) -> Result<Self, Error> {
+        let raw: RawManifest<E> =
             toml::from_str(toml_text).map_err(|e| Error::manifest(source, e.to_string()))?;
         let id = raw.skill.id;
         if !is_identifier(&id) {
@@ -564,6 +766,10 @@ impl Manifest {
             let examples = intent
                 .examples
                 .both(&id, &format!("intent `{}` examples", intent.id))?;
+            let examples = PerLang {
+                es: examples.es.into_examples(),
+                en: examples.en.into_examples(),
+            };
             let declared = slots(&id, &intent.id, intent.slot)?;
             let patterns = intent
                 .pattern
@@ -779,6 +985,36 @@ en = ["Pong."]
         assert!(error(&with("es = \"/Eco\"\n  en = \"/echo\"")).contains("lower-case"));
         assert!(error(&with("es = \"eco\"\n  en = \"/echo\"")).contains("must be `/`"));
         assert!(error(&with("es = \"/eco\"")).contains("en"));
+        // Read as a sentence first: only with a slot to fall back on.
+        let m = Manifest::parse(
+            "test",
+            &with("es = \"/eco\"\n  en = \"/echo\"\n  slot = \"items\"\n  sentence = true"),
+        )
+        .unwrap();
+        assert!(m.intents[0].command.as_ref().unwrap().sentence);
+        assert!(
+            error(&with("es = \"/eco\"\n  en = \"/echo\"\n  sentence = true"))
+                .contains("needs a `slot`")
+        );
+        // The lean form keeps the count and digest of the examples, not
+        // their text, and accepts and refuses exactly what `parse` does.
+        let lean = Manifest::parse_lean("test", GOOD).unwrap();
+        let full = Manifest::parse("test", GOOD).unwrap();
+        assert_eq!(lean.intents[0].examples.es.texts(), [] as [String; 0]);
+        assert_eq!(
+            lean.intents[0].examples.es.len(),
+            full.intents[0].examples.es.len()
+        );
+        assert_eq!(
+            lean.intents[0].examples.en.digest(),
+            full.intents[0].examples.en.digest()
+        );
+        let blank = GOOD.replace("  en = [\"ping\"]", "  en = [\"ping\", \"  \"]");
+        assert_ne!(blank, GOOD);
+        assert!(
+            Manifest::parse_lean("test", &blank).is_err()
+                && Manifest::parse("test", &blank).is_err()
+        );
 
         let choice = GOOD.replace(
             "  [[intent.slot]]\n  name = \"items\"",

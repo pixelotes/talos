@@ -64,3 +64,42 @@ fn the_text_report_is_printed() {
     assert!(text.contains("[es] intents, built skills") && text.contains("[en] reject ("));
     assert!(text.contains("+classifier"));
 }
+
+/// The floors: recognition may not fall below what was last measured and
+/// recorded (evals/BASELINE.md), per language. They are set a little under
+/// the measured figures, not at the milestone's targets, which are not met
+/// yet; raise them when the figures rise.
+#[test]
+fn recognition_does_not_fall_below_its_floors() {
+    // (language, built-skill accuracy at least, held-out accuracy at least,
+    // false accepts at most)
+    const FLOORS: [(&str, f64, f64, u64); 2] = [("es", 0.87, 0.85, 4), ("en", 0.86, 0.83, 3)];
+    let output = Command::new(env!("CARGO_BIN_EXE_talos"))
+        .args(["eval", "--json", "--dir"])
+        .arg(dir())
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    let report: Json = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(report["classifier"], true, "the floors need the model");
+    for language in report["languages"].as_array().unwrap() {
+        let lang = language["lang"].as_str().unwrap();
+        let (_, built, held_out, accepts) = FLOORS.iter().find(|f| f.0 == lang).unwrap();
+        let intents = &language["intents"];
+        assert!(
+            intents["built_accuracy"].as_f64().unwrap() >= *built,
+            "{lang}: built-skill accuracy {} is under the floor {built}",
+            intents["built_accuracy"]
+        );
+        assert!(
+            intents["built_held_out_accuracy"].as_f64().unwrap() >= *held_out,
+            "{lang}: held-out accuracy {} is under the floor {held_out}",
+            intents["built_held_out_accuracy"]
+        );
+        assert!(
+            language["reject"]["false_accepts"].as_u64().unwrap() <= *accepts,
+            "{lang}: {} false accepts, over the ceiling {accepts}",
+            language["reject"]["false_accepts"]
+        );
+    }
+}

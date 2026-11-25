@@ -102,7 +102,11 @@ Rules that follow from the format:
   unknown-command`, and the reply says how to list them: `help` shows each
   skill's commands after its summary. An intent that needs several
   independent slots either takes one free-text argument its handler reads,
-  or declares no command.
+  or declares no command. `sentence = true` (with `slot`) reads the rest of
+  the line first as a sentence, by the rules of the command's own skill:
+  when one of another of the skill's intents matches, that intent answers
+  with its captures, so `/calc 15% de 80` is the sentence form's
+  `calc.percent`; otherwise the slot takes the line.
 - **`choice` slots** list their options, each with its id and its names in
   both languages: `options = [{ id = "metric", es = ["métrico"], en =
   ["metric"] }, …]`. The slot holds the chosen id.

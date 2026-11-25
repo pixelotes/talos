@@ -22,7 +22,7 @@ Given: draw = 2, 2, 5
 
 # A guess that would change a preference only asks; a yes stores it, a no
 # stores nothing (DESIGN.md section 11).
-[en] U: I go by Liz
+[en] U: I usually go by Liz
      T: Do you want me to call you Liz?           → asks · preferences.set · confirm
 [en] U: yes
      T: Nice to meet you, Liz. I'll remember that.
@@ -30,7 +30,7 @@ Given: draw = 2, 2, 5
 [en] U: what's my name?
      T: Your name is Liz.                         → answered · preferences.get · key=name
 
-[en] U: I go by Liz
+[en] U: I usually go by Liz
      T: Do you want me to call you Liz?           → asks · preferences.set · confirm
 [en] U: no
      T: Okay, nothing stored.                     → answered · preferences.set · confirm=no key=name value=Liz

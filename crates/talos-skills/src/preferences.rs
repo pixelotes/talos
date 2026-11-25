@@ -4,12 +4,15 @@
 //! `cx.remember(…)`; the engine stores it. A request the classifier guessed
 //! changes nothing until the user says yes (DESIGN.md section 11).
 //!
-//! There is no gazetteer yet: a place is stored as the user wrote it (a
-//! leading capital added), once the `place` extractor reads it as a place.
-//! Resolving it to a zone, and refusing a place Talos does not know, belong
-//! to the place table the `timezones` skill brings.
+//! A place is read with the place table `timezones` uses (`crate::places`):
+//! an ambiguous name is asked about as a choice, a country with several
+//! zones asks for a city, a place the table does not know is not stored,
+//! and what is stored is the name the table reads back as that one place,
+//! so that `timezones` takes it as the reference place.
 
 use talos_core::normalise::{fold, normalise};
+
+use crate::places::{self, Found, Option_};
 use talos_core::{
     Call, Choice, Context, Expectation, Lang, Message, PlaceRef, PreferenceChange, Preferences,
     Skill, SkillResult, Units, Value, extract,
@@ -37,6 +40,8 @@ const REPLIES: &[&str] = &[
     "set_kept",
     "set_other",
     "set_unknown_place",
+    "set_which",
+    "set_which3",
     "get_name",
     "get_name_yes",
     "get_name_know",
@@ -300,6 +305,21 @@ fn looks_like_name(raw: &str) -> bool {
             .any(|w| NOT_NAMES.contains(&folded(w).as_str()))
 }
 
+/// Words that, first after "llámame"/"call me", make it a request to be
+/// called (on the phone, later) or an idiom, not a name.
+const NOT_CALLED: &[&str] = &[
+    "manana", "luego", "despues", "cuando", "si", "en", "a", "al", "por", "un", "una", "esta", "este", "ahora",
+    "pronto", "tomorrow", "later", "when", "whenever", "if", "back", "at", "on", "in", "an", "tonight", "soon",
+    "crazy", "now",
+];
+
+/// Whether what follows "llámame"/"call me" can be a name.
+fn called(raw: &str) -> bool {
+    let first = raw.split_whitespace().next().map_or_else(String::new, folded);
+    let first = first.trim_matches(|c: char| !c.is_alphanumeric());
+    !NOT_CALLED.contains(&first)
+}
+
 /// Words that start a "estoy en …"/"I'm in …" that is a situation, not a
 /// place ("estoy en el trabajo", "I'm in bed").
 const NOT_PLACES: &[&str] = &[
@@ -308,28 +328,6 @@ const NOT_PLACES: &[&str] = &[
     "favor", "paro", "the", "a", "an", "it", "that", "this", "bed", "work", "class", "love",
     "trouble", "my", "your", "his", "her", "our", "their", "pain", "charge", "luck", "favour",
     "favor", "time", "shock", "hospital", "town",
-];
-
-/// Countries that span several time zones: Talos asks which city
-/// (docs/spec/conversation.md 2.4).
-const ZONED_COUNTRIES: &[&str] = &[
-    "estados unidos",
-    "los estados unidos",
-    "eeuu",
-    "ee uu",
-    "ee. uu.",
-    "usa",
-    "us",
-    "the us",
-    "the usa",
-    "united states",
-    "the united states",
-    "canada",
-    "rusia",
-    "russia",
-    "brasil",
-    "brazil",
-    "australia",
 ];
 
 /// Unit words of each system, by the start of their match form.
@@ -430,6 +428,29 @@ fn key_choice() -> Vec<Choice> {
     ]
 }
 
+/// "¿Valencia de España o de Venezuela?": a name of several places that
+/// differ, as the place table reads it. The chosen option's value names
+/// that one place alone, so the answer completes the request.
+fn ask_which(name: &str, options: &[Option_]) -> SkillResult {
+    let choices: Vec<Choice> = options
+        .iter()
+        .map(|o| Choice::new(o.value.clone(), o.names.iter()))
+        .collect();
+    let message = match options {
+        [a, b] => Message::new("set_which")
+            .var("name", name)
+            .var("a", &a.region)
+            .var("b", &b.region),
+        [a, b, c, ..] => Message::new("set_which3")
+            .var("name", name)
+            .var("a", &a.region)
+            .var("b", &b.region)
+            .var("c", &c.region),
+        _ => return SkillResult::Ask(Expectation::slot("value"), Message::new("set_ask_city")),
+    };
+    SkillResult::Ask(Expectation::choice("value", choices), message)
+}
+
 /// A confirmation question, or a "no" answered.
 fn ask_confirm(message: Message) -> SkillResult {
     SkillResult::Ask(Expectation::confirm("confirm"), message)
@@ -463,6 +484,10 @@ impl Memory {
                 SkillResult::Ask(Expectation::slot("value"), Message::new("set_ask_name"))
             };
         };
+        if form == Some("call") && !called(raw) {
+            // "llámame mañana", "call me a taxi": not a name.
+            return SkillResult::Decline;
+        }
         if form == Some("soy") && !looks_like_name(raw) {
             // "soy muy pesado", "I'm tired": not a name; the reflector's.
             return SkillResult::Decline;
@@ -504,22 +529,40 @@ impl Memory {
             // place to remember.
             return SkillResult::Decline;
         }
-        let place = match extract::place(&n.original, &n.folded) {
-            Ok(Value::Place(PlaceRef::Name(name))) => {
-                let key = folded(&name);
-                if ZONED_COUNTRIES.contains(&key.trim_end_matches('.')) {
-                    return SkillResult::Ask(
-                        Expectation::slot("value"),
-                        Message::new("set_ask_zones"),
-                    );
-                }
-                with_capitals(&name)
+        let unknown = || {
+            if guessed {
+                SkillResult::Decline
+            } else {
+                SkillResult::Unable(Message::new("set_unknown_place"))
             }
-            Ok(Value::Place(PlaceRef::Zone { label, .. })) => label,
-            Ok(_) => return SkillResult::Decline,
-            Err(_) => return SkillResult::Unable(Message::new("set_unknown_place")),
         };
-        cx.report("value", Value::Text(place.clone()));
+        let (place, reported) = match extract::place(&n.original, &n.folded) {
+            Ok(Value::Place(PlaceRef::Name(name))) => {
+                match places::resolve(&name, call.lang, cx.now().unix_seconds) {
+                    // Stored as Talos writes it, in a form the place table
+                    // reads back as this one place: "Valencia (España)"
+                    // after a choice, "Francia" (not its capital).
+                    Found::One(spot) => (places::stored_name(&spot), spot.report),
+                    Found::Spain(name) => (name.clone(), name),
+                    Found::Several(_) => {
+                        return SkillResult::Ask(
+                            Expectation::slot("value"),
+                            Message::new("set_ask_zones"),
+                        );
+                    }
+                    Found::Choose(name, options) => return ask_which(&name, &options),
+                    // "vivo en el quinto piso": an unknown name that starts
+                    // with an article is a situation, not a place.
+                    Found::Unknown(_) if NOT_PLACES.contains(&first) => return SkillResult::Decline,
+                    Found::Unknown(_) | Found::Unreadable => return unknown(),
+                    Found::Home | Found::Here | Found::There => return SkillResult::Decline,
+                }
+            }
+            Ok(Value::Place(PlaceRef::Zone { label, .. })) => (label.clone(), label),
+            Ok(_) => return SkillResult::Decline,
+            Err(_) => return unknown(),
+        };
+        cx.report("value", Value::Text(reported));
         if guessed && confirm(call) != Some(true) {
             return ask_confirm(Message::new("set_confirm_place").var("place", place));
         }

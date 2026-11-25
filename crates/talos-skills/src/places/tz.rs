@@ -13,7 +13,7 @@ use talos_core::Date;
 
 /// A zone's rule: its standard offset and, if it has one, its summer time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct Rule {
+pub(crate) struct Rule {
     /// Seconds east of UTC outside summer time.
     standard: i32,
     /// Summer time, if the zone observes it.
@@ -136,7 +136,7 @@ impl Reader<'_> {
 
 impl Rule {
     /// A fixed offset from UTC, in seconds: "UTC+2".
-    pub(super) const fn fixed(offset: i32) -> Rule {
+    pub(crate) const fn fixed(offset: i32) -> Rule {
         Rule {
             standard: offset,
             summer: None,
@@ -145,7 +145,7 @@ impl Rule {
 
     /// Reads a POSIX TZ rule. Only the `Mm.w.d` form of a day is read: it
     /// is the one every zone in the table uses.
-    pub(super) fn parse(text: &str) -> Option<Rule> {
+    pub(crate) fn parse(text: &str) -> Option<Rule> {
         let mut r = Reader {
             text: text.as_bytes(),
             at: 0,
@@ -173,7 +173,7 @@ impl Rule {
     }
 
     /// The offset from UTC, in seconds, at an instant.
-    pub(super) fn offset_at(&self, unix: i64) -> i32 {
+    pub(crate) fn offset_at(&self, unix: i64) -> i32 {
         let Some(summer) = self.summer else {
             return self.standard;
         };
@@ -187,16 +187,12 @@ impl Rule {
             // a "summer" offset below the standard one (Dublin).
             !(end <= unix && unix < start)
         };
-        if inside {
-            summer.offset
-        } else {
-            self.standard
-        }
+        if inside { summer.offset } else { self.standard }
     }
 
     /// The changes of offset after `from` and up to `to` (Unix seconds),
     /// in order: when, and the offset from then on.
-    pub(super) fn changes(&self, from: i64, to: i64) -> Vec<(i64, i32)> {
+    pub(crate) fn changes(&self, from: i64, to: i64) -> Vec<(i64, i32)> {
         let Some(summer) = self.summer else {
             return Vec::new();
         };
@@ -222,7 +218,8 @@ impl Day {
     /// The instant this day's change happens in `year`, the wall clock
     /// before it being `offset` seconds east of UTC.
     fn instant(self, year: i32, offset: i32) -> i64 {
-        let first = Date::new(year, self.month, 1).unwrap_or_else(|| Date::from_days_since_epoch(0));
+        let first =
+            Date::new(year, self.month, 1).unwrap_or_else(|| Date::from_days_since_epoch(0));
         // Monday-based weekday of the 1st, and the wanted one.
         let first_weekday = i64::from(first.weekday().days_from_monday());
         let wanted = (i64::from(self.weekday) + 6) % 7;

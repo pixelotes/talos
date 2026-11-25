@@ -112,7 +112,7 @@ command = { es = "/hora", en = "/time" }
   # "time?", "got the time", "tell me the time please".
   [[intent.pattern]]
   lang = "en"
-  regex = '^(?:(?:got|have you got|do you have|tell me|can you tell me|could you tell me|do you know) (?:the )?)?time(?:,? please)?[\s?.!]*$'
+  regex = '^(?:(?:got|have you got|do you have) the |(?:tell me|can you tell me|could you tell me|do you know) (?:the )?)?time(?:,? please)?[\s?.!]*$'
 
 # --- clock.date ----------------------------------------------------------------
 

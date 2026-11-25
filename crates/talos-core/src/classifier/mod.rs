@@ -29,9 +29,10 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 
 use crate::language::Guess;
-use crate::manifest::{Manifest, PerLang};
+use crate::manifest::{Digested, Examples, Manifest, PerLang, RawExamples};
 use crate::rules::Candidate;
 use crate::{Error, IntentId, Lang};
 
@@ -101,10 +102,19 @@ impl Default for Fnv {
 }
 
 #[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RawOutOfScope {
-    es: Vec<String>,
-    en: Vec<String>,
+#[serde(deny_unknown_fields, bound = "E: DeserializeOwned")]
+struct RawOutOfScope<E> {
+    es: E,
+    en: E,
+}
+
+fn parse_out_of_scope_as<E: RawExamples>(text: &str) -> Result<PerLang<Examples>, Error> {
+    let raw: RawOutOfScope<E> =
+        toml::from_str(text).map_err(|e| Error::manifest(OUT_OF_SCOPE, e.to_string()))?;
+    Ok(PerLang {
+        es: raw.es.into_examples(),
+        en: raw.en.into_examples(),
+    })
 }
 
 /// Parses the out-of-scope corpus: `es = [...]` and `en = [...]`.
@@ -113,21 +123,27 @@ struct RawOutOfScope {
 ///
 /// [`Error::Manifest`] (named `out-of-scope`) if the TOML is malformed or a
 /// language is missing.
-pub fn parse_out_of_scope(text: &str) -> Result<PerLang<Vec<String>>, Error> {
-    let raw: RawOutOfScope =
-        toml::from_str(text).map_err(|e| Error::manifest(OUT_OF_SCOPE, e.to_string()))?;
-    Ok(PerLang {
-        es: raw.es,
-        en: raw.en,
-    })
+pub fn parse_out_of_scope(text: &str) -> Result<PerLang<Examples>, Error> {
+    parse_out_of_scope_as::<Vec<String>>(text)
 }
 
-/// The hash of a training corpus: every intent's examples, by skill id and
-/// then in manifest order, Spanish before English, then the out-of-scope
-/// examples. Registration order does not change it; neither do comments
-/// or formatting.
+/// The out-of-scope corpus counted and digested, its text not kept: what
+/// the engine needs to check a model ([`Manifest::parse_lean`]).
+///
+/// # Errors
+///
+/// As [`parse_out_of_scope`].
+pub fn parse_out_of_scope_lean(text: &str) -> Result<PerLang<Examples>, Error> {
+    parse_out_of_scope_as::<Digested>(text)
+}
+
+/// The hash of a training corpus: every intent's id and the digest of its
+/// examples ([`Examples::digest`]), by skill id and then in manifest order,
+/// Spanish before English, then the digests of the out-of-scope examples.
+/// Registration order does not change it; neither do comments or
+/// formatting, nor whether the examples' text was kept.
 #[must_use]
-pub fn corpus_hash(manifests: &[Manifest], out_of_scope: &PerLang<Vec<String>>) -> u64 {
+pub fn corpus_hash(manifests: &[Manifest], out_of_scope: &PerLang<Examples>) -> u64 {
     let mut hash = Fnv::new();
     let mut sorted: Vec<&Manifest> = manifests.iter().collect();
     sorted.sort_by(|a, b| a.id.cmp(&b.id));
@@ -135,21 +151,13 @@ pub fn corpus_hash(manifests: &[Manifest], out_of_scope: &PerLang<Vec<String>>) 
         for intent in &manifest.intents {
             hash.text(intent.id.as_str());
             for lang in Lang::ALL {
-                let examples = intent.examples.get(lang);
-                hash.bytes(&(examples.len() as u64).to_le_bytes());
-                for example in examples {
-                    hash.text(example);
-                }
+                hash.bytes(&intent.examples.get(lang).digest().to_le_bytes());
             }
         }
     }
     hash.text(OUT_OF_SCOPE);
     for lang in Lang::ALL {
-        let examples = out_of_scope.get(lang);
-        hash.bytes(&(examples.len() as u64).to_le_bytes());
-        for example in examples {
-            hash.text(example);
-        }
+        hash.bytes(&out_of_scope.get(lang).digest().to_le_bytes());
     }
     hash.finish()
 }
@@ -164,7 +172,7 @@ pub fn corpus_hash(manifests: &[Manifest], out_of_scope: &PerLang<Vec<String>>) 
 pub fn builtin_corpus_hash(manifests: &[Manifest]) -> Result<u64, Error> {
     Ok(corpus_hash(
         manifests,
-        &parse_out_of_scope(OUT_OF_SCOPE_SOURCE)?,
+        &parse_out_of_scope_lean(OUT_OF_SCOPE_SOURCE)?,
     ))
 }
 
@@ -536,6 +544,11 @@ mod tests {
         let corpus = parse_out_of_scope(OUT_OF_SCOPE_SOURCE).unwrap();
         assert_ne!(corpus.es.len(), 0);
         assert_ne!(corpus.en.len(), 0);
+        let lean = parse_out_of_scope_lean(OUT_OF_SCOPE_SOURCE).unwrap();
+        assert_eq!(lean.es.len(), corpus.es.len());
+        assert_eq!(lean.es.digest(), corpus.es.digest());
+        assert_eq!(lean.en.digest(), corpus.en.digest());
+        assert_eq!(lean.es.texts(), [] as [String; 0]);
         assert!(parse_out_of_scope("es = []").is_err());
         assert!(parse_out_of_scope("es = []\nen = []\nfr = []").is_err());
     }
@@ -554,8 +567,8 @@ mod tests {
             .unwrap()
         };
         let oos = PerLang {
-            es: vec!["a".to_owned()],
-            en: vec!["b".to_owned()],
+            es: Examples::new(vec!["a".to_owned()]),
+            en: Examples::new(vec!["b".to_owned()]),
         };
         let a = parse("a", "uno");
         let b = parse("b", "dos");
@@ -563,10 +576,27 @@ mod tests {
         assert_eq!(one, corpus_hash(&[b.clone(), a.clone()], &oos));
         assert_ne!(one, corpus_hash(&[a.clone(), parse("b", "tres")], &oos));
         let other = PerLang {
-            es: vec!["a".to_owned()],
-            en: vec!["c".to_owned()],
+            es: Examples::new(vec!["a".to_owned()]),
+            en: Examples::new(vec!["c".to_owned()]),
         };
-        assert_ne!(one, corpus_hash(&[a, b], &other));
+        assert_ne!(one, corpus_hash(&[a.clone(), b.clone()], &other));
+        // Kept or digested, the same corpus hashes the same.
+        let lean = |id: &str, example: &str| {
+            Manifest::parse_lean(
+                id,
+                &format!(
+                    "[skill]\nid = \"{id}\"\nsummary.es = \"x\"\nsummary.en = \"x\"\n\
+                     [[intent]]\nid = \"{id}.a\"\npriority = 1\n\
+                     examples.es = [\"{example}\"]\nexamples.en = [\"x\"]\n"
+                ),
+            )
+            .unwrap()
+        };
+        let (lean_a, lean_b) = (lean("a", "uno"), lean("b", "dos"));
+        assert_eq!(lean_a.intents[0].examples.es.texts(), [] as [String; 0]);
+        assert_eq!(lean_a.intents[0].examples.es.len(), 1);
+        let lean_oos = parse_out_of_scope_lean("es = [\"a\"]\nen = [\"b\"]").unwrap();
+        assert_eq!(one, corpus_hash(&[lean_a, lean_b], &lean_oos));
     }
 
     #[test]

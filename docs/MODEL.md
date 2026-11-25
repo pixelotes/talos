@@ -24,8 +24,8 @@ engine uses them. The code is the authority: `crates/talos-core/src/classifier/`
 - **Out-of-scope examples** are in `reflector/out-of-scope.toml` (`es = [...]`,
   `en = [...]`): what no built-in skill handles and the reflector answers or
   refuses. Requests to write text, open questions, opinions and advice,
-  requests for skills not built yet (definitions, translation, the time
-  somewhere else, weather, reminders), statements, near misses that share
+  requests for skills not built yet (definitions, translation, weather,
+  reminders), statements, near misses that share
   words with an intent ("el tiempo vuela", "time to go to bed"), the
   reflector's sentence shapes (docs/spec/reflector.md 2), acknowledgements and
   noise. The file is the out-of-scope class's whole definition: a phrase the
@@ -157,19 +157,24 @@ no file to install. A turn matched by a rule never touches them.
   never panic. The checksum and the order of the vocabulary are verified by
   `Model::verify`, run by the tests, the trainer and `talos skills check`,
   not at start-up (it would read every page).
-- **Corpus hash.** The file records an FNV-1a hash of its training corpus
-  (every intent's examples by skill id and manifest order, Spanish then
-  English, then the out-of-scope corpus; comments and formatting do not
-  count). The engine hashes its own manifests and the embedded
-  `reflector/out-of-scope.toml` at start-up and **refuses** a model whose hash
-  differs: it then runs on rules alone (as it does when `models/` is absent at
+- **Corpus hash.** The file records an FNV-1a hash of its training corpus:
+  every intent's id and the digest of its examples (FNV-1a over each phrase,
+  length first, then their number), by skill id and manifest order, Spanish
+  then English, then the digests of the out-of-scope corpus; comments and
+  formatting do not count. The engine reads its manifests and the embedded
+  `reflector/out-of-scope.toml` at start-up with `Manifest::parse_lean`,
+  which digests each example as the TOML parser hands it over and keeps no
+  text (only the trainer and `talos skills check` need the phrases), and
+  **refuses** a model whose hash differs: it then runs on rules alone (as it does when `models/` is absent at
   build time), the classifier stage says why in the trace, and `talos skills
   check` warns. A test in `talos-skills` fails when the embedded models do not
   match, so a manifest change without retraining cannot pass CI.
 
-Measured on an Apple-silicon Mac, release build: the intent model is 520 KB
-and the language model 100 KB; the stage takes 20 µs at p50 and 32 µs at p99;
-`talos ask "hola"` (a rule turn) stays at 7.0–7.7 MB maximum RSS; a chat whose
+Measured on an Apple-silicon Mac, release build: at the close of v0.2 the
+intent model is 680 KB (26 classes, about 27 000 features) and the language
+model 104 KB; the stage takes 20 µs at p50 and 32 µs at p99 (38/62 µs on a
+loaded machine at the close of v0.2); `talos ask "hola"` (a rule turn) stays
+at 7.5–8.1 MB maximum RSS; a chat whose
 turns reach the classifier adds up to the models' size in clean, file-backed
 pages (see DEVELOPMENT.md, Footprint).
 

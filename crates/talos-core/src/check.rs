@@ -287,7 +287,7 @@ fn examples(report: &mut Report, manifests: &[Manifest]) {
     for manifest in manifests {
         for intent in &manifest.intents {
             for lang in Lang::ALL {
-                for example in intent.examples.get(lang) {
+                for example in intent.examples.get(lang).texts() {
                     let folded = normalise(example).folded;
                     let hits = rules.all_matches(lang, &folded);
                     for (other, priority, pattern) in &hits {

@@ -23,7 +23,7 @@ use talos_core::Lang;
 use talos_core::classifier::{
     Entry, FeatureConfig, Kind, Model, ModelData, OUT_OF_SCOPE, features, num,
 };
-use talos_core::manifest::{Manifest, PerLang};
+use talos_core::manifest::{Examples, Manifest, PerLang};
 use talos_core::normalise::normalise;
 use talos_core::random::{RandomSource, SplitMix64};
 use talos_core::rules::Rules;
@@ -55,21 +55,21 @@ impl Example {
 /// Every intent example and every out-of-scope phrase, in a fixed order:
 /// skills by id, intents in manifest order, Spanish before English.
 #[must_use]
-pub fn corpus(manifests: &[Manifest], out_of_scope: &PerLang<Vec<String>>) -> Vec<Example> {
+pub fn corpus(manifests: &[Manifest], out_of_scope: &PerLang<Examples>) -> Vec<Example> {
     let mut sorted: Vec<&Manifest> = manifests.iter().collect();
     sorted.sort_by(|a, b| a.id.cmp(&b.id));
     let mut out = Vec::new();
     for manifest in sorted {
         for intent in &manifest.intents {
             for lang in Lang::ALL {
-                for text in intent.examples.get(lang) {
+                for text in intent.examples.get(lang).texts() {
                     out.push(Example::new(text, lang, intent.id.as_str()));
                 }
             }
         }
     }
     for lang in Lang::ALL {
-        for text in out_of_scope.get(lang) {
+        for text in out_of_scope.get(lang).texts() {
             out.push(Example::new(text, lang, OUT_OF_SCOPE));
         }
     }

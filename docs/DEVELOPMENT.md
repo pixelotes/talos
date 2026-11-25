@@ -237,12 +237,62 @@ CLI target of ≤ 8 MB resident holds for one-shot rule turns; a chat that
 reaches the classifier and the reflector exceeds it by about 1.5 MB, of which
 the models are under 0.7 MB.
 
+### Closing v0.2: groups built only for texts they could match
+
+Measured 2026-11-25 on the same Mac, release build, seven runs each,
+interleaved; "before" is the tree at the end of Slice C, "after" the tree
+with the corpus and rules of the v0.2 close (skill patterns 273 → 381,
+about 4 400 intent examples).
+
+| max RSS / peak footprint, MB | before | after |
+|---|---|---|
+| `talos ask "hola"` | 7.8–8.5 / 5.9–6.6 | 7.5–8.1 / 5.5–6.1 |
+| the four-turn chat above | 9.9–10.5 / 7.4–8.1 | 9.0–9.5 / 6.4–6.9 |
+| the same plus two turns the classifier answers | 10.2–10.7 / 7.7–8.2 | 9.1–9.7 / 6.5–7.1 |
+| stripped binary | 2 628 144 B | 2 793 440 B (models 0.78 MB) |
+
+**Where it went.** A heap snapshot (`malloc_history -allBySize` on a
+symbolised build of `examples/footprint.rs`) after one turn of each kind
+held 4.0 MB in 19 400 allocations, 2.3 MB of them the pattern automata
+(1.2 MB the rules of both languages, 0.9 MB the reflector's), and the
+malloc zone was 46 % free space left by the transient peaks of building
+them. The manifests' examples were kept in memory, ~3 500 strings, but they
+were not the cost: parsing them without keeping them (below) moved the
+resident set by less than the run-to-run noise. The growth was the rules:
+every pattern of a language's list was built on its first search, and the
+list had grown by two thirds since v0.1; adding the v0.2 close's rules took
+the chat to 11.0–11.4 MB.
+
+**What was done** (nothing a pattern matches changed; a test checks, on
+every golden and example line, that the groups' matches are those of each
+pattern alone):
+
+- **Groups built only when they could match.** Each pattern records the
+  words one of which any match must contain, read from its syntax tree
+  (`cuanto\s+es` needs "cuanto"; an alternation needs a word of each
+  branch; optional parts and classes need nothing). A group whose every
+  pattern needs a word the text lacks is neither built nor searched, so a
+  conversation builds only the groups its messages could match. Groups are
+  now 4 patterns, not 8: with lazy groups, smaller ones build less for
+  patterns that cannot match (2 and 4 were close; 8 and 16 kept more), and
+  rule turns got no slower (p50 14–20 µs).
+- **Examples digested, not kept.** The engine parses manifests with
+  `Manifest::parse_lean` and the out-of-scope corpus with
+  `parse_out_of_scope_lean`: each example is hashed as the TOML parser
+  hands it over and never allocated; the corpus hash (MODEL.md §5) is built
+  from those digests. Only the trainer and `talos skills check` keep the
+  text. This halves manifest parsing time; its effect on memory is small.
+
+**Left.** The chat that reaches the classifier and the reflector is still
+about 1 MB over the 8 MB target, most of it the binary's touched pages, the
+models' clean pages and the reflector's automata and tables.
+
 ## Decisions taken in v0.2 Slice C (`timezones`)
 
 | Question | Taken | Note |
 |---|---|---|
-| Zone data | **no crate**: an in-tree table of 161 IANA zones, each with its POSIX TZ rule (`crates/talos-skills/src/timezones/zones.rs`), evaluated by ~150 lines of own code (`tz.rs`); never the host's zoneinfo | measured below; deterministic by construction; correct from 2027-03-14 for as long as the rules of IANA tzdata 2026f hold |
-| Places | an in-tree gazetteer (`timezones/places.rs`): 293 cities and 141 regions (countries, a few US states, island groups), 753 names in the match form, Spanish and English | compiled by hand from public facts (capitals, the largest cities, the places the specification names); no dataset was downloaded |
+| Zone data | **no crate**: an in-tree table of 161 IANA zones, each with its POSIX TZ rule (`crates/talos-skills/src/places/zones.rs`), evaluated by ~150 lines of own code (`tz.rs`); never the host's zoneinfo | measured below; deterministic by construction; correct from 2027-03-14 for as long as the rules of IANA tzdata 2026f hold |
+| Places | an in-tree gazetteer (`places/table.rs`, read through `crates/talos-skills/src/places.rs`, which `timezones` and `preferences` share): 293 cities and 141 regions (countries, a few US states, island groups), 753 names in the match form, Spanish and English | compiled by hand from public facts (capitals, the largest cities, the places the specification names); no dataset was downloaded |
 | Place slots | `term`, read by the skill with its gazetteer and `extract::place` | the skill splits "Lima y Bogotá", tells same-named cities apart and reports the name it used |
 
 ### Zone data
@@ -294,8 +344,8 @@ for the zones that changed since, which matters only for golden files that
 set such a `now`.
 
 **Updating.** When IANA publishes a change to a zone in the table, install
-the new tzdata, run `python3 -I crates/talos-skills/src/timezones/generate.py
-2027 2036` from the repository root (it reads the zones from `places.rs`)
+the new tzdata, run `python3 -I crates/talos-skills/src/places/generate.py
+2027 2036` from the repository root (it reads the zones from `table.rs`)
 and review the diff of `zones.rs`; move the start of the test's span if a
 one-off change lands later than 14 March 2027.
 
