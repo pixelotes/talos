@@ -6,15 +6,15 @@ use std::fmt::Write as _;
 use std::io::{self, BufRead, IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::Instant;
 
-use serde_json::{Map, Value as Json, json};
+use talos::VERSION;
+use talos::clock::now;
+use talos::wire::outcome_json;
 use talos_core::check::Severity;
-use talos_core::{Config, ConvId, Engine, Lang, Outcome, Status, Timestamp, Turn, Value};
+use talos_core::{Config, ConvId, Engine, Lang, Outcome, Status, Timestamp, Turn};
 
 mod eval;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const USAGE: &str = "\
 usage: talos [options] ask <text>        answer one message, then exit
@@ -22,12 +22,17 @@ usage: talos [options] ask <text>        answer one message, then exit
        talos [options] explain <text>    show how a message is answered, stage by stage
        talos skills list | check         inspect and validate the skill manifests
        talos eval                        score the intent batteries, rules only
+       talos [options] serve             the OpenAI-compatible HTTP server
        talos --version
 
 options: --lang es|en   the caller's language hint
          --seed N       the random source's seed (default 0)
          --json         print the full outcome object (ask, explain) or the report (eval)
          --dir PATH     the batteries' directory (eval; default `evals`)
+         --bind ADDR    the address to listen on (serve; default 127.0.0.1)
+         --port N       the port (serve; default 8099, 0 for any free one)
+         --token TOKEN  the bearer token clients must send (serve; default
+                        $TALOS_TOKEN); required to bind a non-loopback address
 
 exit status of `ask`: 0 answered, 2 deflected, 3 unhandled;
 of `skills check`: 1 when a manifest has errors";
@@ -58,6 +63,15 @@ enum Command {
     SkillsList,
     SkillsCheck,
     Eval(Options, PathBuf),
+    Serve(Options, Serve),
+}
+
+/// The flags of `talos serve`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct Serve {
+    bind: Option<std::net::IpAddr>,
+    port: Option<u16>,
+    token: Option<String>,
 }
 
 /// Parses the arguments after the program name. Flags may come before or
@@ -68,6 +82,8 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
     let mut iter = args.iter();
     let mut flags_done = false;
     let mut dir: Option<&str> = None;
+    let mut serve = Serve::default();
+    let mut serve_flags = false;
     while let Some(arg) = iter.next() {
         let arg = arg.as_str();
         if flags_done || !arg.starts_with("--") && !matches!(arg, "-V" | "-h") {
@@ -89,6 +105,28 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
             "--help" | "-h" => return Ok(Command::Help),
             "--json" => options.json = true,
             "--dir" => dir = Some(value("a directory")?),
+            "--bind" => {
+                let addr = value("an IP address")?;
+                serve.bind = Some(if addr == "localhost" {
+                    std::net::IpAddr::from([127, 0, 0, 1])
+                } else {
+                    addr.parse()
+                        .map_err(|_| format!("`--bind {addr}`: expected an IP address"))?
+                });
+                serve_flags = true;
+            }
+            "--port" => {
+                let port = value("a port number")?;
+                serve.port = Some(
+                    port.parse()
+                        .map_err(|_| format!("`--port {port}`: expected a port number"))?,
+                );
+                serve_flags = true;
+            }
+            "--token" => {
+                serve.token = Some(value("a token")?.to_owned());
+                serve_flags = true;
+            }
             "--lang" => {
                 options.lang = Some(
                     value("es or en")?
@@ -108,6 +146,9 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
     if dir.is_some() && positional.first() != Some(&"eval") {
         return Err("`--dir` is only for `eval`".to_owned());
     }
+    if serve_flags && positional.first() != Some(&"serve") {
+        return Err("`--bind`, `--port` and `--token` are only for `serve`".to_owned());
+    }
     match positional.split_first() {
         Some((&"eval", [])) => Ok(Command::Eval(
             options,
@@ -121,56 +162,13 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
         Some((&("ask" | "explain"), _)) => Err(format!("`{}` needs the text", positional[0])),
         Some((&"chat", [])) => Ok(Command::Chat(options)),
         Some((&"chat", _)) => Err("`chat` takes no text; type it after it starts".to_owned()),
+        Some((&"serve", [])) => Ok(Command::Serve(options, serve)),
+        Some((&"serve", _)) => Err("`serve` takes no text".to_owned()),
         Some((&"skills", ["list"])) => Ok(Command::SkillsList),
         Some((&"skills", ["check"])) => Ok(Command::SkillsCheck),
         Some((&"skills", _)) => Err("`skills` needs `list` or `check`".to_owned()),
         Some((other, _)) => Err(format!("unknown command `{other}`")),
         None => Ok(Command::Help),
-    }
-}
-
-/// The machine's current offset from UTC, by the smallest means that needs
-/// neither `unsafe` nor a date/time crate: the `date` utility, which every
-/// Unix has and which honours `TZ`. `None` where it is missing (Windows,
-/// minimal containers); time-of-day answers then stay time-neutral.
-fn local_offset() -> Option<i32> {
-    let output = std::process::Command::new("date")
-        .arg("+%z")
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    parse_offset(std::str::from_utf8(&output.stdout).ok()?.trim())
-}
-
-/// `+0100`, `-0430`.
-fn parse_offset(text: &str) -> Option<i32> {
-    let sign = match text.as_bytes().first()? {
-        b'+' => 1,
-        b'-' => -1,
-        _ => return None,
-    };
-    let digits = &text[1..];
-    if digits.len() != 4 || !digits.bytes().all(|b| b.is_ascii_digit()) {
-        return None;
-    }
-    let hours: i32 = digits[..2].parse().ok()?;
-    let minutes: i32 = digits[2..].parse().ok()?;
-    Some(sign * (hours * 3_600 + minutes * 60))
-}
-
-/// The current instant, read here in the front end before each turn; the
-/// engine never reads the clock.
-fn now() -> Timestamp {
-    let seconds = match SystemTime::now().duration_since(UNIX_EPOCH) {
-        Ok(after) => i64::try_from(after.as_secs()).unwrap_or(i64::MAX),
-        Err(before) => i64::try_from(before.duration().as_secs()).map_or(i64::MIN, |s| -s),
-    };
-    let now = Timestamp::from_unix(seconds);
-    match local_offset() {
-        Some(offset) => now.with_utc_offset(offset),
-        None => now,
     }
 }
 
@@ -181,53 +179,6 @@ fn exit_status(status: Status) -> u8 {
         Status::Deflected => 2,
         Status::Unhandled => 3,
     }
-}
-
-/// A slot value on the wire: a list as an array of strings, anything else
-/// as its canonical text (numbers with a decimal point, dates in ISO 8601),
-/// so that no number loses exactness.
-fn slot_json(value: &Value) -> Json {
-    match value {
-        Value::List { items, .. } => json!(items),
-        other => json!(other.to_string()),
-    }
-}
-
-/// The full outcome with the field names of the `talos` object of
-/// docs/API.md section 2.
-fn outcome_json(outcome: &Outcome, elapsed_us: u128) -> Json {
-    let slots: Map<String, Json> = outcome
-        .slots
-        .iter()
-        .map(|(name, value)| (name.clone(), slot_json(value)))
-        .collect();
-    let mut object = json!({
-        "reply": outcome.reply,
-        "status": outcome.status.as_str(),
-        "intent": outcome.intent.as_ref().map(talos_core::IntentId::as_str),
-        "slots": slots,
-        "confidence": outcome.confidence,
-        "language": outcome.lang.code(),
-        "reason": outcome.reason.as_ref().map(talos_core::Reason::as_str),
-        "pending": outcome.pending,
-        "generated": outcome.generated,
-        "elapsed_us": u64::try_from(elapsed_us).unwrap_or(u64::MAX),
-    });
-    if let (Some(trace), Some(map)) = (&outcome.trace, object.as_object_mut()) {
-        let steps: Vec<Json> = trace
-            .steps
-            .iter()
-            .map(|s| json!({ "stage": s.stage, "note": s.note }))
-            .collect();
-        let internal: Map<String, Json> = trace
-            .internal_slots
-            .iter()
-            .map(|(name, value)| (name.clone(), slot_json(value)))
-            .collect();
-        map.insert("trace".to_owned(), json!(steps));
-        map.insert("internal_slots".to_owned(), json!(internal));
-    }
-    object
 }
 
 /// Runs one turn of a one-shot command and prints it.
@@ -384,6 +335,53 @@ fn run_eval(engine: &Engine, options: Options, dir: &std::path::Path) -> ExitCod
     }
 }
 
+/// `talos serve`: runs until the process is stopped.
+#[cfg(feature = "server")]
+fn serve(engine: Engine, options: Options, flags: Serve) -> ExitCode {
+    use talos::server::{DEFAULT_ADDR, Server, Settings};
+    let addr = std::net::SocketAddr::new(
+        flags.bind.unwrap_or(DEFAULT_ADDR.ip()),
+        flags.port.unwrap_or(DEFAULT_ADDR.port()),
+    );
+    let mut settings = Settings::new(addr);
+    settings.default_lang = options.lang;
+    settings.token = flags
+        .token
+        .or_else(|| std::env::var("TALOS_TOKEN").ok().filter(|t| !t.is_empty()));
+    let server = match Server::bind(engine, settings) {
+        Ok(server) => server,
+        Err(error @ talos::server::StartError::Bind(..)) => {
+            eprintln!("talos: {error}");
+            return ExitCode::from(EXIT_IO);
+        }
+        Err(error) => {
+            eprintln!("talos: {error}");
+            return ExitCode::from(EXIT_USAGE);
+        }
+    };
+    match server.local_addr() {
+        Ok(addr) => eprintln!("talos {VERSION}: serving on http://{addr}"),
+        Err(error) => {
+            eprintln!("talos: {error}");
+            return ExitCode::from(EXIT_IO);
+        }
+    }
+    match server.run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("talos: {error}");
+            ExitCode::from(EXIT_IO)
+        }
+    }
+}
+
+/// `talos serve` in a build without the `server` feature.
+#[cfg(not(feature = "server"))]
+fn serve(_engine: Engine, _options: Options, _flags: Serve) -> ExitCode {
+    eprintln!("talos: this build has no server; rebuild with `--features server`");
+    ExitCode::from(EXIT_USAGE)
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let command = match parse_args(&args) {
@@ -406,7 +404,8 @@ fn main() -> ExitCode {
         Command::Ask(options, _)
         | Command::Explain(options, _)
         | Command::Chat(options)
-        | Command::Eval(options, _) => *options,
+        | Command::Eval(options, _)
+        | Command::Serve(options, _) => *options,
         Command::SkillsList => Options::default(),
     };
     let config = Config {
@@ -428,6 +427,7 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Command::Eval(options, dir) => run_eval(&engine, options, &dir),
+        Command::Serve(options, flags) => serve(engine, options, flags),
         _ => {
             let stdin = io::stdin();
             let prompt = stdin.is_terminal();
@@ -526,7 +526,25 @@ mod tests {
         assert!(parse(&["ask", "--lang"]).is_err());
         assert!(parse(&["ask", "--seed", "-1", "x"]).is_err());
         assert!(parse(&["--frobnicate"]).is_err());
-        assert!(parse(&["serve"]).is_err());
+        assert_eq!(
+            parse(&["serve"]),
+            Ok(Command::Serve(Options::default(), Serve::default()))
+        );
+        assert_eq!(
+            parse(&["serve", "--bind", "0.0.0.0", "--port=0", "--token", "t"]),
+            Ok(Command::Serve(
+                Options::default(),
+                Serve {
+                    bind: Some([0, 0, 0, 0].into()),
+                    port: Some(0),
+                    token: Some("t".to_owned()),
+                }
+            ))
+        );
+        assert!(parse(&["serve", "--bind", "nowhere"]).is_err());
+        assert!(parse(&["serve", "--port", "70000"]).is_err());
+        assert!(parse(&["serve", "text"]).is_err());
+        assert!(parse(&["ask", "--port", "1", "hi"]).is_err());
         assert_eq!(
             parse(&["eval"]),
             Ok(Command::Eval(Options::default(), PathBuf::from("evals")))
@@ -550,33 +568,6 @@ mod tests {
         assert_eq!(exit_status(Status::Answered), 0);
         assert_eq!(exit_status(Status::Deflected), 2);
         assert_eq!(exit_status(Status::Unhandled), 3);
-    }
-
-    #[test]
-    fn utc_offsets_from_date() {
-        assert_eq!(parse_offset("+0100"), Some(3_600));
-        assert_eq!(parse_offset("-0430"), Some(-16_200));
-        assert_eq!(parse_offset("+0000"), Some(0));
-        assert_eq!(parse_offset("CET"), None);
-        assert_eq!(parse_offset("+01"), None);
-    }
-
-    #[test]
-    fn the_json_outcome_uses_the_api_field_names() {
-        let engine = talos_skills::engine(Config::default()).unwrap();
-        let turn = Turn::new("hello", ConvId::new("t"), Timestamp::from_unix(0));
-        let json = outcome_json(&engine.respond(turn), 12);
-        assert_eq!(json["status"], "answered");
-        assert_eq!(json["intent"], "smalltalk.greet");
-        assert_eq!(json["language"], "en");
-        assert_eq!(json["confidence"], 1.0);
-        assert_eq!(json["reason"], Json::Null);
-        assert_eq!(json["pending"], false);
-        assert_eq!(json["generated"], false);
-        assert_eq!(json["elapsed_us"], 12);
-        assert_eq!(json["reply"], "Hello!");
-        assert!(json["slots"].as_object().unwrap().is_empty());
-        assert!(json.get("trace").is_none());
     }
 
     #[test]

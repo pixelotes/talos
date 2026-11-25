@@ -1,0 +1,45 @@
+[package]
+name = "http-stack"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Independent of the root workspace. Measures three HTTP stacks serving the
+# same fixed JSON body, for docs/adr/0017-http-stack.md. Each server binary is
+# built alone with its feature so that it links only its own stack.
+[workspace]
+
+[features]
+tiny = ["dep:tiny_http"]
+axum = ["dep:axum", "dep:tokio"]
+
+[dependencies]
+tiny_http = { version = "0.12", optional = true }
+axum = { version = "0.8", optional = true, default-features = false, features = ["http1", "tokio"] }
+tokio = { version = "1", optional = true, default-features = false, features = ["rt", "net"] }
+
+[[bin]]
+name = "std-hello"
+path = "src/bin/std_hello.rs"
+
+[[bin]]
+name = "tiny-hello"
+path = "src/bin/tiny_hello.rs"
+required-features = ["tiny"]
+
+[[bin]]
+name = "axum-hello"
+path = "src/bin/axum_hello.rs"
+required-features = ["axum"]
+
+[[bin]]
+name = "load"
+path = "src/bin/load.rs"
+
+# The same release profile as the Talos workspace.
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"

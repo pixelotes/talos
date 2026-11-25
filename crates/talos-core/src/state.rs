@@ -6,7 +6,9 @@
 //! an entry. Memory is bounded: at most a configured number of
 //! conversations, and a conversation idle for longer than the configured
 //! expiry (measured with the turns' injected `now`, never the system clock)
-//! starts afresh.
+//! starts afresh. When the cap is reached the least recently seen
+//! conversation goes; between two seen in the same second, the one used
+//! less recently.
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -155,12 +157,22 @@ struct Entry {
     state: Arc<Mutex<ConversationState>>,
     /// The `now` of its latest turn, in Unix seconds.
     last_seen: i64,
+    /// When it was last entered, counted in entries to the map: the order
+    /// of use, which breaks ties between turns in the same second.
+    used: u64,
+}
+
+/// The map and its use counter, under one lock.
+#[derive(Debug, Default)]
+struct Map {
+    entries: HashMap<ConvId, Entry>,
+    uses: u64,
 }
 
 /// Every live conversation.
 #[derive(Debug)]
 pub(crate) struct Conversations {
-    map: Mutex<HashMap<ConvId, Entry>>,
+    map: Mutex<Map>,
     max: usize,
     idle_seconds: i64,
 }
@@ -174,7 +186,7 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 impl Conversations {
     pub(crate) fn new(max: usize, idle_seconds: u32) -> Self {
         Self {
-            map: Mutex::new(HashMap::new()),
+            map: Mutex::new(Map::default()),
             max: max.max(1),
             idle_seconds: i64::from(idle_seconds),
         }
@@ -185,35 +197,42 @@ impl Conversations {
     /// whole turn.
     pub(crate) fn enter(&self, id: &ConvId, now: Timestamp) -> Arc<Mutex<ConversationState>> {
         let now = now.unix_seconds;
-        let mut map = lock(&self.map);
-        if let Some(entry) = map.get_mut(id) {
+        let mut guard = lock(&self.map);
+        let Map { entries, uses } = &mut *guard;
+        *uses += 1;
+        let used = *uses;
+        if let Some(entry) = entries.get_mut(id) {
             if now.saturating_sub(entry.last_seen) > self.idle_seconds {
                 entry.state = Arc::default();
             }
             entry.last_seen = entry.last_seen.max(now);
+            entry.used = used;
             return Arc::clone(&entry.state);
         }
-        if map.len() >= self.max {
+        if entries.len() >= self.max {
             let idle = self.idle_seconds;
-            map.retain(|_, e| now.saturating_sub(e.last_seen) <= idle);
+            entries.retain(|_, e| now.saturating_sub(e.last_seen) <= idle);
         }
-        while map.len() >= self.max {
-            // The least recently seen goes; ties by id, for determinism.
-            let Some(oldest) = map
+        while entries.len() >= self.max {
+            // The least recently seen goes; in the same second, the least
+            // recently used. Deterministic: the order of use is the order
+            // of the turns.
+            let Some(oldest) = entries
                 .iter()
-                .min_by(|(a_id, a), (b_id, b)| a.last_seen.cmp(&b.last_seen).then(a_id.cmp(b_id)))
+                .min_by_key(|(_, e)| (e.last_seen, e.used))
                 .map(|(id, _)| id.clone())
             else {
                 break;
             };
-            map.remove(&oldest);
+            entries.remove(&oldest);
         }
         let state = Arc::<Mutex<ConversationState>>::default();
-        map.insert(
+        entries.insert(
             id.clone(),
             Entry {
                 state: Arc::clone(&state),
                 last_seen: now,
+                used,
             },
         );
         state
@@ -221,13 +240,13 @@ impl Conversations {
 
     /// Forgets a conversation; its next turn starts afresh.
     pub(crate) fn end(&self, id: &ConvId) {
-        lock(&self.map).remove(id);
+        lock(&self.map).entries.remove(id);
     }
 
     /// How many conversations are held.
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
-        lock(&self.map).len()
+        lock(&self.map).entries.len()
     }
 }
 
@@ -287,5 +306,13 @@ mod tests {
         turn(&store, "b", 100);
         turn(&store, "c", 101);
         assert_eq!(turn(&store, "b", 102), 2);
+        // In the same second, the least recently used goes, whatever its id.
+        let store = Conversations::new(2, 1_000);
+        turn(&store, "b", 0);
+        turn(&store, "a", 0);
+        turn(&store, "b", 0);
+        turn(&store, "c", 0);
+        assert_eq!(turn(&store, "b", 0), 3);
+        assert_eq!(turn(&store, "a", 0), 1);
     }
 }

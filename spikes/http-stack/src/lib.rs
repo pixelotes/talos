@@ -1,0 +1,2 @@
+//! The body every server returns: the size of a Talos chat completion.
+pub const BODY: &str = r#"{"id":"talos-0000000000000001","object":"chat.completion","created":1805046120,"model":"talos","choices":[{"index":0,"message":{"role":"assistant","content":"¡Hola!"},"finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":0,"completion_tokens":0,"total_tokens":0},"talos":{"status":"answered","intent":"smalltalk.greet","confidence":1.0,"language":"es","slots":{},"reason":null,"pending":false,"generated":false,"elapsed_us":12}}"#;

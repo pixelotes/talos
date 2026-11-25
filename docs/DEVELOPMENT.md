@@ -169,6 +169,79 @@ space after construction). Max RSS sits around 8.2 MB, peak footprint
 only its language's narrow automata, and only a wide text builds the
 written form.
 
+## Server
+
+`talos serve` (docs/API.md §2, [ADR 0017](adr/0017-http-stack.md)) is in
+`crates/talos/src/server/`: `http.rs` reads and writes HTTP/1.1, `api.rs`
+is the routes and the OpenAI shapes, `identity.rs` maps a request to a
+conversation. It sits behind the `talos` crate's `server` feature, on by
+default and with no dependency of its own. What `ask`, `chat` and `serve`
+share (the clock, the `talos` object) is in `crates/talos/src/lib.rs`.
+
+```sh
+cargo run --release -- serve                    # 127.0.0.1:8099
+cargo run --release -- serve --port 0           # any free port; the address is printed
+TALOS_TOKEN=s3cret cargo run --release -- serve --bind 0.0.0.0   # off loopback a token is required
+cargo build --release --no-default-features     # a binary without the server
+cargo test -p talos --test server               # the end-to-end tests
+```
+
+```sh
+curl -s http://127.0.0.1:8099/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{"model": "talos", "messages": [{"role": "user", "content": "qué hora es"}]}'
+```
+
+answers (one line, shown here broken):
+
+```json
+{"choices":[{"finish_reason":"stop","index":0,"logprobs":null,
+  "message":{"content":"Son las 12:02.","role":"assistant"}}],
+ "created":1795604532,"id":"talos-0000000000000001","model":"talos",
+ "object":"chat.completion",
+ "talos":{"confidence":1.0,"elapsed_us":10094,"generated":false,"intent":"clock.now",
+  "language":"es","pending":false,"reason":null,"slots":{},"status":"answered"},
+ "usage":{"completion_tokens":0,"prompt_tokens":0,"total_tokens":0}}
+```
+
+with `X-Talos-Status: answered`. Add `"stream": true` for server-sent
+events (`curl -N`), `"metadata": {"conversation": "k"}` or `"user": "k"` to
+name the conversation; without either, sending the history back as OpenAI
+clients do continues it (the transcript fingerprint).
+
+Tests start servers in-process on an ephemeral port with
+`talos::server::{Server, Settings}`, a fixed `Settings::clock` and
+`stopwatch = false` (so `elapsed_us` is 0), and speak HTTP to them with a
+client written in the test. That is the determinism path: the CLI always
+uses the system clock. One test runs the binary itself.
+
+**Measurements** (2026-11-25, Apple-silicon Mac, macOS, release build,
+loopback, three runs each):
+
+| | |
+|---|---|
+| stripped binary without / with `server` | 1 400 864 B / 1 468 192 B (+66 KiB) |
+| crates in the binary's tree | 23 either way (20 third-party) |
+| RSS at rest (started, no request) | 5.5–6.3 MB |
+| RSS after 1 000 / 11 000 requests of fresh one-message conversations (`hola`) | 7.1–7.6 / 7.3–7.6 MB |
+| RSS after 1 000 / 11 000 mixed requests (rule and reflector, both languages) | 9.0–9.4 / 9.0–9.4 MB |
+| server overhead per request, p50 / p99 | 64 / 122–152 µs |
+| round trip, rule turn / reflector turn, p50 | 140 / 730 µs |
+
+How: the binaries are `cargo build --release -p talos` with and without
+`--no-default-features`, sized with `ls -l`. RSS is `ps -o rss` of a running
+`talos serve --port 0`, read one second after start and after each batch.
+Requests go over one keep-alive connection, one at a time:
+`spikes/http-stack/measure.sh` (its `load` client, the same body each time)
+and `cargo run --release -p talos --example serve_load -- ADDR N`, which
+alternates two rule and two reflector messages and reports the round trip,
+the engine's own `elapsed_us`, and their difference, the **overhead**: what
+the server adds (reading and parsing the request and the JSON, identity,
+writing the response, the loopback trip). Every request in both is a fresh
+transcript, so the dialog-state store fills to its 1 024 conversations and
+evicts; memory stops growing there. `spikes/http-stack/` also holds the
+`tiny_http` and `axum` servers the stack was chosen against (ADR 0017).
+
 ## Golden transcripts
 
 Golden files live in `golden/<skill>/<name>.txt` (cross-cutting ones in

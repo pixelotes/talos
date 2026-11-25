@@ -67,6 +67,30 @@ Evidence labels used throughout: **[P]** read on a primary source (project page,
 
 ### 2.3 How many Spanish synsets have a Spanish gloss
 
+**Measured on 2026-11-25** on `wns/mcr/wn-data-spa.tab` from
+https://github.com/bond-lab/omw-data (main branch; 5,995,146 bytes, SHA-256
+`0ec37ce94ee2acc63ad6b120e1051f9841d172778cc24adc0023fb8dccf0a7cd`; header: Multilingual Central Repository, CC BY 3.0). The
+MCR's own server was still unreachable, so the original package was not
+counted.
+
+| | Count |
+|---|---|
+| Synset ids in the file | 78,948 |
+| Synsets with at least one Spanish lemma | 78,417 (54,798 nouns, 12,224 adjectives, 9,541 verbs, 1,854 adverbs) |
+| Lemma-synset pairs | 145,641 |
+| Distinct lemmas | 90,899 |
+| Synsets with a Spanish definition (`spa:def`) | **19,444 — 24.6 %** |
+| Example lines (`spa:exe`) | 1,196 |
+
+So about a quarter of the Spanish synsets carry a Spanish gloss, somewhat
+above the 10–18 % estimated below, and the file is about twice the size the
+OMW 1 table states (38,512 synsets): the repository's current file is a later
+edition than that table describes. Still not measured: how many of these
+glosses are machine-translated, and how many synsets survive the join to Open
+English WordNet through CILI (§6, items 2–3).
+
+The estimates gathered before the measurement, kept for the record:
+
 **No figure could be verified from a primary source.** The primary MCR documents that would hold it were unreachable (adimen.ehu.eus refused connections: README-2016.txt, the LREC'12 and GWC'12 PDFs) or the numbers were not in the abstract. Best available, all second-hand or older:
 
 - "Only around 15% of the glosses in the Spanish version have been translated", README of a University of the Republic (Uruguay) MCR transform tool: https://github.com/pln-fing-udelar/wn-mcr-transform [P as to what the page says; the claim itself is [S] and its version scope is unstated, though that page is the only direct quote found].

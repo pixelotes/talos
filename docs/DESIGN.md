@@ -271,7 +271,7 @@ conversation are serialised; turns of different conversations are independent.
 
 Dialog state is bounded so that memory cannot grow without limit: at most
 `max_conversations` are held (default 1024; the least recently seen goes
-first, ties broken by id), and a conversation idle for longer than
+first, and of two seen in the same second the one used less recently), and a conversation idle for longer than
 `idle_expiry_seconds` (default 30 minutes) starts afresh. Idleness is measured
 with the turns' injected `now`, never the system clock. Both are fields of the
 engine's `Config`, with the random seed (default 0).
@@ -302,7 +302,7 @@ candidate dependency:
 | Need | Candidate | Status |
 |---|---|---|
 | SQLite | `rusqlite` (bundled, FTS5) | undecided; with the knowledge store |
-| HTTP server | `axum` on a single-threaded `tokio` runtime | undecided; behind a `server` feature |
+| HTTP server | `axum` on a single-threaded `tokio` runtime | not used: a small HTTP/1.1 server on `std`, behind the `server` feature ([ADR 0017](adr/0017-http-stack.md), proposed) |
 | CLI | `clap` | not used: arguments are parsed by hand in the binary |
 | Patterns | `regex` | in use (rules; `unicode-perl` only); `aho-corasick` undecided |
 | Serialisation | `serde`, `toml`, `serde_json` | in use: `serde` + `toml` for manifests, `serde_json` in the binary only |
