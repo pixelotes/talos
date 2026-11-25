@@ -11,7 +11,14 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[features]
+# The knowledge store: user.db, packs and the dictionary queries
+# (docs/KNOWLEDGE.md). Off, the engine keeps the user's data in user.toml and
+# has no store; nothing else changes.
+knowledge = ["dep:rusqlite"]
+
 [dependencies]
+rusqlite = { workspace = true, optional = true }
 serde.workspace = true
 toml.workspace = true
 regex-syntax.workspace = true

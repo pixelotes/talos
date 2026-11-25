@@ -68,8 +68,9 @@ value passed from function to function. ([ADR 0004](adr/0004-explicit-turn-pipel
 
 ```
 crates/
-  talos-core/        the engine: turn, pipeline, NLU, dialog, rendering
-  talos-knowledge/   the store: schema, queries, reasoning, packs
+  talos-core/        the engine: turn, pipeline, NLU, dialog, rendering; and,
+                     behind its `knowledge` feature, the store (`knowledge`
+                     module: schema, user.db, packs, queries)
   talos-skills/      built-in skills
   talos/             the binary: CLI and HTTP server
 skills/              skill manifests (TOML), one directory per skill
@@ -79,12 +80,18 @@ evals/               held-out evaluation batteries
 tools/
   train/             offline classifier trainer (Rust, dev-time only, never
                      linked into the binary; docs/MODEL.md)
-  import/            pack builders (WordNet family first)
+  pack/              pack builder: the seed pack from knowledge/seed.toml
+                     (dev-time only)
+  import/            pack builders from external sources (WordNet family first)
+knowledge/           hand-written pack sources (the seed pack)
 docs/
 ```
 
 `talos-core` must not depend on an async runtime, an HTTP stack, or the
-network. That keeps the engine embeddable and its tests fast.
+network. That keeps the engine embeddable and its tests fast. Its only
+non-Rust code is SQLite, behind the `knowledge` feature (on in the `talos`
+binary, off with `--no-default-features`, which leaves the preferences in
+`user.toml` and reads no pack).
 
 ## 3. The turn
 
@@ -308,14 +315,17 @@ and [ADR 0013](adr/0013-external-skills.md).
 |---|---|---|
 | NLU model, compiled rules, skill registry | memory, immutable after start | rebuilt |
 | Dialog state (turn count, language, recent topic, the open question) | memory, per conversation | no |
-| Preferences, taught claims, corrections | `user.db` (v0.3); until then preferences and corrections in `user.toml` | yes |
+| Preferences, corrections, taught claims | `user.db` (v0.3; `user.toml` without the `knowledge` feature) | yes |
 | Packs | `*.talospack`, read-only | yes |
 | Turn log | off by default; batched when on | optional |
 
 The engine is shareable across threads: the immutable parts are shared, dialog
-state sits in a map with one lock per conversation, and SQLite connections come
-from a small pool (WAL mode: many readers, one writer). Turns of the same
-conversation are serialised; turns of different conversations are independent.
+state sits in a map with one lock per conversation, and the knowledge store is
+one read-only SQLite connection (`user.db` as `main`, the packs attached)
+behind a lock; the user store opens `user.db` for each rare write. A pool of
+readers waits for a measured need, since each connection carries its own page
+caches. Turns of the same conversation are serialised; turns of different
+conversations are independent.
 
 Dialog state is bounded so that memory cannot grow without limit: at most
 `max_conversations` are held (default 1024; the least recently seen goes
@@ -327,17 +337,21 @@ engine's `Config`, with the random seed (default 0).
 Nothing is written to disk on an ordinary turn. Writes happen only when the
 user teaches, corrects, or sets a preference.
 
-Until `user.db` exists, what is kept about the user is one small TOML file,
-`user.toml` in the data directory (§10), versioned, holding the
-preferences (name, place, units) and the correction table. The engine keeps
-it in memory and hands every change to a store (`talos_core::user`): the
-front ends' store replaces the file atomically (a temporary file, flushed,
-renamed) and only when a turn's changes differ from what is stored; the
-default store, used by tests, keeps nothing on disk. Handlers never write:
-they ask with `Context::remember`, and the engine applies the change after
-the handler answered. One set per installation: the CLI and every server
-conversation, whatever its API `user`, share it (docs/spec/decisions.md
-ruling 10). Moving to `user.db` is a one-time import of this file.
+What is kept about the user lives in `user.db` in the data directory (§10):
+the preferences (name, place, units) and the correction table as rows, next
+to the knowledge tables (what the user teaches, from v0.6). The engine keeps
+the preferences and corrections in memory and hands every change to a store
+(`talos_core::user::UserStore`): the front ends' store (`UserDb`) writes
+`user.db` in one transaction, and only when a turn's changes differ from what
+is stored; the file is not created until the first such write, and reading
+it opens it read-only, in rollback-journal mode, so no `-wal` or `-shm` file
+appears either. The default store, used by tests, keeps nothing on disk.
+Handlers never write: they ask with `Context::remember`, and the engine
+applies the change after the handler answered. One set per installation: the
+CLI and every server conversation, whatever its API `user`, share it
+(docs/spec/decisions.md ruling 10). A `user.toml` from before v0.3 is
+imported once when there is no `user.db`, then renamed `user.toml.migrated`;
+a build without the `knowledge` feature keeps using `user.toml` itself.
 
 ## 8. Budgets
 
@@ -361,7 +375,7 @@ candidate dependency:
 
 | Need | Candidate | Status |
 |---|---|---|
-| SQLite | `rusqlite` (bundled, FTS5) | undecided; with the knowledge store |
+| SQLite | `rusqlite` with the bundled SQLite, compile options trimmed (no FTS5 yet) | in use behind the `knowledge` feature (default on in the binary): +620 KB, resident memory unchanged; measured against the system library in [DEVELOPMENT.md](DEVELOPMENT.md#the-sqlite-binding) |
 | HTTP server | `axum` on a single-threaded `tokio` runtime | not used: a small HTTP/1.1 server on `std`, behind the `server` feature ([ADR 0017](adr/0017-http-stack.md), proposed) |
 | CLI | `clap` | not used: arguments are parsed by hand in the binary |
 | Patterns | `regex` | in use (rules; `unicode-perl` only); `aho-corasick` undecided |
@@ -386,9 +400,10 @@ numbers to show for each place.
 ```
 $XDG_CONFIG_HOME/talos/talos.toml
 $XDG_DATA_HOME/talos/             ($TALOS_DATA_DIR overrides it)
-    user.toml        preferences and corrections, until user.db
-    user.db
-    packs/
+    user.db          preferences, corrections, what the user teaches
+    user.toml        before v0.3, or without the `knowledge` feature;
+                     imported into user.db once and renamed user.toml.migrated
+    packs/           *.talospack, attached at start (at most ten)
     skills/          user-installed manifests and external skills
 ```
 

@@ -145,6 +145,33 @@ fn same(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 
+/// The attached packs and the packs left out, for `/health`.
+#[cfg(feature = "knowledge")]
+fn packs(shared: &Shared) -> (Vec<Json>, Vec<Json>) {
+    let Some(knowledge) = shared.engine.knowledge() else {
+        return (Vec::new(), Vec::new());
+    };
+    let packs = knowledge
+        .packs()
+        .iter()
+        .map(|p| {
+            let languages: Vec<&str> = p.languages.iter().map(|l| l.code()).collect();
+            json!({ "id": p.id, "version": p.version, "languages": languages })
+        })
+        .collect();
+    let failures = knowledge
+        .refused()
+        .iter()
+        .map(|r| json!({ "pack": r.path.display().to_string(), "error": r.reason }))
+        .collect();
+    (packs, failures)
+}
+
+#[cfg(not(feature = "knowledge"))]
+fn packs(_shared: &Shared) -> (Vec<Json>, Vec<Json>) {
+    (Vec::new(), Vec::new())
+}
+
 /// `GET /health`.
 fn health(shared: &Shared) -> Response {
     let skills: Vec<&str> = shared
@@ -153,12 +180,13 @@ fn health(shared: &Shared) -> Response {
         .iter()
         .map(|m| m.id.as_str())
         .collect();
+    let (packs, failures) = packs(shared);
     let body = json!({
         "status": "ok",
         "version": crate::VERSION,
         "skills": skills,
-        "packs": [],
-        "failures": [],
+        "packs": packs,
+        "failures": failures,
     });
     Response::json(200, to_bytes(&body))
 }

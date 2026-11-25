@@ -243,6 +243,7 @@ pub trait Skill: Send + Sync {
 | `guessed() -> bool` | the classifier, not a rule, recognised the request; it has only the slots its manifest's `guess` cues found |
 | `remember(PreferenceChange)` | asks the engine to store (`Some`) or forget (`None`) a preference; applied only if you answer (`Answer`), and dropped, with the turn failed, if made on a guess without a `confirm` slot answered yes |
 | `skills() -> &[Manifest]` | the installed manifests in catalogue order (for `help`) |
+| `knowledge() -> Option<&Knowledge>` | with the `knowledge` feature: the knowledge store, read-only (`user.db` and the attached packs; docs/KNOWLEDGE.md). `lookup(word, lang)` gives a word's senses through its inflected forms (the conversation's language first, then the other); `gloss`, `words`, `name` and `form_of` per concept and language; `choose_sense` applies docs/spec/knowledge.md 2.2 and names each sense for the question; `stock_phrases`, `word_pairs`; `objects`/`subjects` of a predicate. Typed results, no SQL. `None` when the engine has no store: say the word is unknown. Unit tests pass one with `Context::with_knowledge(&Knowledge::from_source(SEED))` |
 | `report(name, Value)` | puts a slot on the outcome: a default you applied or a value you resolved. It must be a declared, non-internal slot of the intent, or the turn fails |
 
 ### 3.2 What a handler returns

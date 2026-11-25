@@ -4,10 +4,11 @@
 //! goals; docs/spec/decisions.md ruling 10).
 //!
 //! The engine holds the data in memory and hands every change to a
-//! [`UserStore`]. The design's home for it is the SQLite `user.db` of v0.3
-//! (DESIGN.md section 7); until that exists the durable form is a small TOML
-//! file ([`FileStore`]), replaced whole and atomically on each change, whose
-//! few fields map one to one onto the future tables. [`MemoryStore`], the
+//! [`UserStore`]. Its home is the SQLite `user.db` (`knowledge::UserDb`,
+//! with the `knowledge` feature; DESIGN.md section 7). Without that feature
+//! the durable form is the small TOML file of v0.2 ([`FileStore`]), replaced
+//! whole and atomically on each change, whose few fields map one to one
+//! onto `user.db`'s tables; `UserDb` imports it once. [`MemoryStore`], the
 //! engine's default, keeps nothing on disk: tests and golden files use it,
 //! so they never read or write the user's home.
 

@@ -26,6 +26,9 @@ pub enum Error {
     },
     /// The user's data could not be read or kept (`user` module).
     Store(String),
+    /// The knowledge store or a pack could not be read, built or queried
+    /// (`knowledge` module).
+    Knowledge(String),
 }
 
 impl Error {
@@ -45,6 +48,7 @@ impl fmt::Display for Error {
             Error::Render(message) => write!(f, "render: {message}"),
             Error::Script { script, message } => write!(f, "script `{script}`: {message}"),
             Error::Store(message) => write!(f, "user data: {message}"),
+            Error::Knowledge(message) => write!(f, "knowledge: {message}"),
         }
     }
 }

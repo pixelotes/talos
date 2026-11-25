@@ -1,0 +1,10 @@
+# Compile options of the bundled SQLite (libsqlite3-sys reads
+# LIBSQLITE3_FLAGS; DEVELOPMENT.md, "The SQLite binding"). The crate turns on
+# FTS3/4/5, R*Tree, JSON, DBSTAT, STAT4, SOUNDEX, column metadata and
+# extension loading; Talos uses none of them, so they are undefined or
+# omitted here, with the deprecated, shared-cache, progress-callback, UTF-16
+# and memory-statistics code. Every option is one SQLite documents as safe
+# with the amalgamation. Changing this line changes the binary and the
+# bytes of a built pack only through SQLite's own version.
+[env]
+LIBSQLITE3_FLAGS = "-USQLITE_ENABLE_FTS3 -USQLITE_ENABLE_FTS3_PARENTHESIS -USQLITE_ENABLE_FTS5 -USQLITE_ENABLE_RTREE -USQLITE_ENABLE_DBSTAT_VTAB -USQLITE_ENABLE_STAT4 -USQLITE_SOUNDEX -USQLITE_ENABLE_COLUMN_METADATA -USQLITE_ENABLE_LOAD_EXTENSION -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_JSON -DSQLITE_OMIT_DEPRECATED -DSQLITE_OMIT_SHARED_CACHE -DSQLITE_OMIT_PROGRESS_CALLBACK -DSQLITE_OMIT_UTF16 -DSQLITE_OMIT_COMPLETE -DSQLITE_OMIT_GET_TABLE -DSQLITE_OMIT_TCL_VARIABLE -DSQLITE_DEFAULT_MEMSTATUS=0 -DSQLITE_DQS=0 -DSQLITE_LIKE_DOESNT_MATCH_BLOBS -DSQLITE_MAX_EXPR_DEPTH=0"

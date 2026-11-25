@@ -19,6 +19,8 @@ mod error;
 pub mod extract;
 pub mod fallback;
 pub mod golden;
+#[cfg(feature = "knowledge")]
+pub mod knowledge;
 mod lang;
 pub mod language;
 pub mod manifest;
@@ -39,6 +41,8 @@ mod value;
 pub use civil::{Date, Weekday};
 pub use engine::{Config, Engine};
 pub use error::Error;
+#[cfg(feature = "knowledge")]
+pub use knowledge::{Knowledge, UserDb};
 pub use lang::{Lang, UnknownLang};
 pub use manifest::Manifest;
 pub use outcome::{IntentId, Outcome, Reason, Status, Trace, TraceStep};

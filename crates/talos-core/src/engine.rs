@@ -85,6 +85,10 @@ pub struct Engine {
     user: Mutex<UserData>,
     /// Where it is kept; in memory until [`Engine::with_user_store`].
     store: Box<dyn UserStore>,
+    /// The knowledge store handlers read; none until
+    /// [`Engine::use_knowledge`].
+    #[cfg(feature = "knowledge")]
+    knowledge: Option<crate::knowledge::Knowledge>,
 }
 
 /// Intents a taught phrase may never stand for: a short phrase must not be
@@ -311,7 +315,24 @@ impl Engine {
             classifiers: Classifiers::none(),
             user: Mutex::default(),
             store: Box::new(MemoryStore::default()),
+            #[cfg(feature = "knowledge")]
+            knowledge: None,
         })
+    }
+
+    /// Gives handlers this knowledge store (`user.db` and the packs, or a
+    /// pack built in memory for a test), read-only, through
+    /// [`Context::knowledge`]. Until this is called they have none.
+    #[cfg(feature = "knowledge")]
+    pub fn use_knowledge(&mut self, knowledge: crate::knowledge::Knowledge) {
+        self.knowledge = Some(knowledge);
+    }
+
+    /// The knowledge store, if the engine has one.
+    #[cfg(feature = "knowledge")]
+    #[must_use]
+    pub fn knowledge(&self) -> Option<&crate::knowledge::Knowledge> {
+        self.knowledge.as_ref()
     }
 
     /// Keeps the user's data in `store` (a file, for the front ends), and
@@ -486,7 +507,7 @@ impl Engine {
 
         // What the user asked to be remembered, as of this turn's start.
         let preferences = self.user().preferences.clone();
-        let mut cx = Context::new(
+        let cx = Context::new(
             turn.now,
             turn.place.as_ref(),
             random,
@@ -494,6 +515,12 @@ impl Engine {
             &preferences,
             &self.manifests,
         );
+        #[cfg(feature = "knowledge")]
+        let cx = match &self.knowledge {
+            Some(knowledge) => cx.with_knowledge(knowledge),
+            None => cx,
+        };
+        let mut cx = cx;
         let at = At {
             message: &message,
             lang,
@@ -1523,6 +1550,22 @@ mod tests {
                     cx.remember(PreferenceChange::Name(Some("Eva".to_owned())));
                     SkillResult::Unable(Message::new("echo").var("x", "no"))
                 }
+                "t.gloss" => {
+                    #[cfg(feature = "knowledge")]
+                    let gloss = cx.knowledge().and_then(|k| {
+                        let word = call.text.trim_start_matches("glosa ");
+                        let found = k.lookup(word, call.lang).ok()??;
+                        k.gloss(&found.senses[0].concept, call.lang).ok()?
+                    });
+                    #[cfg(not(feature = "knowledge"))]
+                    let gloss: Option<String> = None;
+                    #[cfg(feature = "knowledge")]
+                    let gloss = gloss.map(|g| g.text);
+                    match gloss {
+                        Some(text) => echo(text),
+                        None => SkillResult::Unable(Message::new("echo").var("x", "nada")),
+                    }
+                }
                 "t.bad_report" => {
                     cx.report("mode", Value::Text("x".to_owned()));
                     SkillResult::Answer(Message::new("echo").var("x", "y"))
@@ -1630,6 +1673,12 @@ id = "t.remember_unable"
 priority = 50
 examples = { es = ["x"], en = ["x"] }
 pattern = [{ lang = "es", regex = '^no recuerdes$' }]
+
+[[intent]]
+id = "t.gloss"
+priority = 50
+examples = { es = ["x"], en = ["x"] }
+pattern = [{ lang = "es", regex = '^glosa \w+$' }]
 
 [[intent]]
 id = "t.roll"
@@ -1968,6 +2017,39 @@ en = ["How many?"]
             self.saves.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             Ok(())
         }
+    }
+
+    #[cfg(feature = "knowledge")]
+    #[test]
+    fn handlers_read_the_knowledge_store_through_the_context_and_write_nothing() {
+        const SEED: &str = include_str!("../../../knowledge/seed.toml");
+        let mut e = engine();
+        let store = std::sync::Arc::new(Counting::default());
+        e.use_user_store(Box::new(std::sync::Arc::clone(&store)))
+            .unwrap();
+        let outcome = e.respond(turn("glosa guitarras", None));
+        assert_eq!(outcome.reply, "Eco nada.", "no store, no knowledge");
+        assert_eq!(outcome.status, Status::Unhandled);
+        e.use_knowledge(crate::knowledge::Knowledge::from_source(SEED).unwrap());
+        assert_eq!(
+            e.knowledge().map(crate::knowledge::Knowledge::stores),
+            Some(vec!["core"])
+        );
+        let outcome = e.respond(turn("glosa guitarras", None));
+        assert!(
+            outcome
+                .reply
+                .starts_with("Eco instrumento de cuerda con mástil"),
+            "{}",
+            outcome.reply
+        );
+        assert_eq!(outcome.status, Status::Answered);
+        assert_eq!(e.respond(turn("glosa glarb", None)).reply, "Eco nada.");
+        assert_eq!(
+            store.saves.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "reading the store writes nothing"
+        );
     }
 
     #[test]

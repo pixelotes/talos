@@ -1,0 +1,650 @@
+# The seed pack: the fixture of docs/spec/knowledge.md section 1, all of it
+# (sources, predicates, concepts with their words and glosses in both
+# languages, claims, stock phrases, the word-pair lexicon), hand-written.
+#
+# Build it with one command (byte-identical output for the same source):
+#
+#     cargo run -p talos-pack        # writes target/packs/core.talospack
+#
+# (`talos-pack build SOURCE OUT` builds any pack source.) Copy the result
+# into the data directory's `packs/` to install it.
+#
+# The format is described in docs/KNOWLEDGE.md, "Pack sources". In short:
+#
+# - a word is a lemma ("guitarra"), or an inline table when it needs more:
+#   `rank` (the baseline order of the word's senses, 0 first; default 0),
+#   `pos` (`n`, `v`, `adj`, `adv`; default `n`) and `forms`, the inflected
+#   forms no rule gives, with their features;
+# - `gloss.es` / `gloss.en` is the concept's definition in that language,
+#   copied onto every sense of a word of that language;
+# - glosses quoted in the specification are copied from it; the others were
+#   written for this pack.
+
+[pack]
+id = "core"
+version = "1.0"
+title = "core vocabulary: the fixture of the knowledge specification"
+languages = ["es", "en"]
+license = "MIT"
+notice = "Hand-written for Talos from docs/spec/knowledge.md; MIT licence, like the code."
+# Recorded as `source.added_at` and `claim.created_at`.
+date = "2026-11-25"
+# The source of everything below except the lexicon.
+source = "core"
+
+[[source]]
+name = "core"
+kind = "pack"
+license = "MIT"
+url = "https://github.com/pixelotes/talos"
+
+[[source]]
+name = "lexicon"
+kind = "pack"
+license = "MIT"
+url = "https://github.com/pixelotes/talos"
+
+# docs/spec/knowledge.md 1.2. The inverse is answered from the same claims.
+[[predicate]]
+name = "is_a"
+inverse = "has_kind"
+transitive = true
+
+[[predicate]]
+name = "part_of"
+inverse = "has_part"
+transitive = true
+
+[[predicate]]
+name = "causes"
+inverse = "caused_by"
+transitive = true
+
+# docs/spec/knowledge.md 1.3.
+
+[[concept]]
+id = "core:entity"
+es = ["entidad"]
+en = ["entity"]
+gloss.es = "todo lo que existe, de forma concreta o abstracta"
+gloss.en = "anything that exists, concretely or abstractly"
+
+[[concept]]
+id = "core:physical_entity"
+es = ["entidad física"]
+en = ["physical entity"]
+gloss.es = "entidad que tiene existencia material"
+gloss.en = "an entity that has physical existence"
+
+[[concept]]
+id = "core:object"
+es = ["objeto"]
+en = ["object"]
+gloss.es = "cosa material que se puede ver y tocar"
+gloss.en = "a material thing that can be seen and touched"
+
+[[concept]]
+id = "core:artifact"
+es = ["artefacto"]
+en = ["artifact", "artefact"]
+gloss.es = "objeto hecho por las personas"
+gloss.en = "an object made by people"
+
+[[concept]]
+id = "core:device"
+es = ["dispositivo", "aparato"]
+en = ["device"]
+gloss.es = "objeto hecho para cumplir una función concreta"
+gloss.en = "a thing made for a particular purpose"
+
+[[concept]]
+id = "core:musical_instrument"
+es = ["instrumento musical", "instrumento"]
+en = ["musical instrument", "instrument"]
+gloss.es = "objeto que sirve para producir música"
+gloss.en = "a device for making music"
+
+[[concept]]
+id = "core:string_instrument"
+es = ["instrumento de cuerda"]
+en = ["string instrument", "stringed instrument"]
+gloss.es = "instrumento musical que suena al hacer vibrar sus cuerdas"
+gloss.en = "an instrument that sounds when its strings are made to vibrate"
+
+[[concept]]
+id = "core:wind_instrument"
+es = ["instrumento de viento"]
+en = ["wind instrument"]
+gloss.es = "instrumento musical que suena al soplar en él"
+gloss.en = "a musical instrument played by blowing into it"
+
+[[concept]]
+id = "core:percussion_instrument"
+es = ["instrumento de percusión"]
+en = ["percussion instrument"]
+gloss.es = "instrumento musical que suena al golpearlo"
+gloss.en = "a musical instrument played by striking it"
+
+[[concept]]
+id = "core:electronic_instrument"
+es = ["instrumento electrónico"]
+en = ["electronic instrument"]
+gloss.es = "instrumento musical que produce su sonido por medios electrónicos"
+gloss.en = "a musical instrument that makes its sound electronically"
+
+[[concept]]
+id = "core:guitar"
+es = ["guitarra"]
+en = ["guitar"]
+gloss.es = "instrumento de cuerda con mástil y caja de resonancia, que se toca punteando o rasgueando las cuerdas"
+gloss.en = "a string instrument with a fretted neck and a hollow body, played by plucking or strumming"
+
+[[concept]]
+id = "core:electric_guitar"
+es = ["guitarra eléctrica"]
+en = ["electric guitar"]
+gloss.es = "guitarra cuyo sonido se recoge y se amplifica por medios eléctricos"
+gloss.en = "a guitar whose sound is picked up and amplified electrically"
+
+[[concept]]
+id = "core:classical_guitar"
+es = ["guitarra clásica", "guitarra española"]
+en = ["classical guitar", "Spanish guitar"]
+gloss.es = "guitarra con cuerdas de nailon y caja de resonancia de madera"
+gloss.en = "a guitar with nylon strings and a wooden sound box"
+
+[[concept]]
+id = "core:violin"
+es = ["violín"]
+en = ["violin", "fiddle"]
+gloss.es = "instrumento de cuerda que se toca con arco, apoyado entre el hombro y la barbilla"
+gloss.en = "a string instrument played with a bow and held under the chin"
+
+[[concept]]
+id = "core:bandurria"
+es = ["bandurria"]
+gloss.es = "instrumento de cuerda pequeño, con seis pares de cuerdas, que se toca con púa"
+
+[[concept]]
+id = "core:dulcimer"
+en = ["dulcimer"]
+gloss.en = "a string instrument whose strings are stretched over a flat sound box"
+
+[[concept]]
+id = "core:flute"
+es = ["flauta"]
+en = ["flute"]
+gloss.es = "instrumento de viento en forma de tubo con agujeros"
+gloss.en = "a wind instrument shaped like a tube with holes"
+
+[[concept]]
+id = "core:drum"
+es = ["tambor"]
+en = ["drum"]
+gloss.es = "instrumento de percusión formado por una membrana tensa sobre una caja hueca"
+gloss.en = "a percussion instrument made of a skin stretched over a hollow body"
+
+[[concept]]
+id = "core:synthesizer"
+es = ["sintetizador"]
+en = ["synthesizer", "synthesiser"]
+gloss.es = "instrumento electrónico que genera y modifica sonidos"
+gloss.en = "an electronic instrument that generates and shapes sounds"
+
+[[concept]]
+id = "core:neck"
+es = ["mástil"]
+en = [{ lemma = "neck", rank = 1 }]
+gloss.es = "parte larga y estrecha de un instrumento de cuerda, sobre la que se pisan las cuerdas"
+gloss.en = "the long narrow part of a string instrument, where the strings are pressed"
+
+[[concept]]
+id = "core:neck_body"
+es = ["cuello"]
+en = [{ lemma = "neck", rank = 0 }]
+gloss.es = "parte del cuerpo que une la cabeza con los hombros"
+gloss.en = "the part of the body that joins the head to the shoulders"
+
+[[concept]]
+id = "core:sound_box"
+es = ["caja de resonancia"]
+en = ["sound box", "soundbox"]
+gloss.es = "cuerpo hueco del instrumento que amplifica el sonido"
+gloss.en = "the hollow body of an instrument that makes its sound louder"
+
+[[concept]]
+id = "core:string"
+es = [{ lemma = "cuerda", rank = 1 }]
+en = ["string"]
+gloss.es = "hilo tenso de un instrumento que suena al vibrar"
+gloss.en = "a stretched cord on an instrument that sounds when it vibrates"
+
+[[concept]]
+id = "core:rope"
+es = [{ lemma = "cuerda", rank = 0 }, "soga"]
+en = ["rope"]
+gloss.es = "conjunto de hilos retorcidos que sirve para atar o colgar cosas"
+gloss.en = "a thick cord of twisted strands used to tie or hang things"
+
+[[concept]]
+id = "core:fret"
+es = ["traste"]
+en = ["fret"]
+# es: no gloss (docs/spec/knowledge.md 1.3).
+gloss.en = "one of the raised metal strips across the neck of a guitar"
+
+[[concept]]
+id = "core:capo"
+es = ["cejilla"]
+en = ["capo"]
+gloss.es = "pieza que se sujeta al mástil para subir a la vez el tono de todas las cuerdas"
+# en: no gloss (docs/spec/knowledge.md 1.3).
+
+[[concept]]
+id = "core:pickup"
+es = [{ lemma = "pastilla", rank = 1 }]
+en = ["pickup"]
+gloss.es = "pieza de la guitarra eléctrica que convierte la vibración de las cuerdas en señal eléctrica"
+gloss.en = "the part of an electric guitar that turns string vibration into an electric signal"
+
+[[concept]]
+id = "core:pill"
+es = [{ lemma = "pastilla", rank = 0 }, "píldora"]
+en = ["pill", "tablet"]
+gloss.es = "porción pequeña y sólida de medicamento que se traga"
+gloss.en = "a small solid dose of medicine that is swallowed"
+
+[[concept]]
+id = "core:bank"
+es = [{ lemma = "banco", rank = 0 }]
+en = [{ lemma = "bank", rank = 0 }]
+gloss.es = "empresa que guarda dinero, da préstamos y ofrece otros servicios financieros"
+gloss.en = "a business that keeps money, lends it and offers other financial services"
+
+[[concept]]
+id = "core:financial_institution"
+es = ["entidad financiera"]
+en = ["financial institution"]
+gloss.es = "organización que gestiona dinero"
+gloss.en = "an organization that deals with money"
+
+[[concept]]
+id = "core:organisation"
+es = ["organización"]
+en = ["organization", "organisation"]
+gloss.es = "grupo de personas organizado para un fin"
+gloss.en = "a group of people organised for a purpose"
+
+[[concept]]
+id = "core:company"
+es = ["empresa"]
+en = ["company"]
+gloss.es = "organización que se dedica a una actividad económica"
+gloss.en = "an organization that does business"
+
+[[concept]]
+id = "core:bench"
+es = [{ lemma = "banco", rank = 0 }]
+en = ["bench"]
+gloss.es = "asiento largo en el que caben varias personas"
+gloss.en = "a long seat for several people"
+
+[[concept]]
+id = "core:seat"
+es = ["asiento"]
+en = ["seat"]
+gloss.es = "mueble o lugar hecho para sentarse"
+gloss.en = "a piece of furniture or a place made for sitting"
+
+[[concept]]
+id = "core:furniture"
+es = ["mueble"]
+en = ["piece of furniture", "furniture"]
+gloss.es = "objeto que se usa para equipar una casa o un local"
+gloss.en = "an object used to furnish a home or a room"
+
+[[concept]]
+id = "core:school_of_fish"
+es = [{ lemma = "banco", rank = 2 }, "banco de peces"]
+en = [{ lemma = "school", rank = 1 }, "shoal"]
+gloss.es = "grupo grande de peces que nadan juntos"
+gloss.en = "a large group of fish swimming together"
+
+[[concept]]
+id = "core:school"
+es = ["escuela", "colegio"]
+en = [{ lemma = "school", rank = 0 }]
+gloss.es = "lugar donde se enseña a los niños"
+gloss.en = "a place where children are taught"
+
+[[concept]]
+id = "core:group"
+es = ["grupo"]
+en = ["group"]
+gloss.es = "conjunto de personas, animales o cosas"
+gloss.en = "a number of people, animals or things together"
+
+[[concept]]
+id = "core:riverbank"
+es = ["orilla", "ribera"]
+en = [{ lemma = "bank", rank = 1 }, "riverbank"]
+gloss.es = "tierra que bordea un río"
+gloss.en = "the land along the side of a river"
+
+[[concept]]
+id = "core:river"
+es = ["río"]
+en = ["river"]
+gloss.es = "corriente de agua que fluye hacia el mar, un lago u otro río"
+gloss.en = "a stream of water that flows into the sea, a lake or another river"
+
+[[concept]]
+id = "core:heat"
+es = ["calor"]
+en = ["heat"]
+gloss.es = "energía que hace subir la temperatura de las cosas"
+gloss.en = "the energy that makes things warm"
+
+[[concept]]
+id = "core:evaporation"
+es = ["evaporación"]
+en = ["evaporation"]
+gloss.es = "paso de un líquido a vapor"
+gloss.en = "the change of a liquid into vapour"
+
+[[concept]]
+id = "core:cloud"
+es = ["nube"]
+en = ["cloud"]
+gloss.es = "masa de gotas de agua suspendida en el aire"
+gloss.en = "a mass of water droplets floating in the air"
+
+[[concept]]
+id = "core:rain"
+es = [
+  "lluvia",
+  { lemma = "llover", pos = "v", forms = { llueve = "pres,3sg", llueven = "pres,3pl", llueva = "subj,3sg" } },
+]
+en = ["rain", { lemma = "rain", pos = "v" }]
+gloss.es = "agua que cae de las nubes en gotas"
+gloss.en = "water falling from clouds in drops"
+
+[[concept]]
+id = "core:flood"
+es = ["inundación"]
+en = ["flood"]
+gloss.es = "agua que cubre un terreno que suele estar seco"
+gloss.en = "water covering land that is usually dry"
+
+[[concept]]
+id = "core:storm"
+es = ["tormenta"]
+en = ["storm"]
+gloss.es = "tiempo violento, con viento fuerte, lluvia y a menudo rayos"
+gloss.en = "violent weather with strong wind, rain and often lightning"
+
+[[concept]]
+id = "core:drought"
+es = ["sequía"]
+en = ["drought"]
+gloss.es = "largo periodo sin lluvia"
+gloss.en = "a long period without rain"
+
+[[concept]]
+id = "core:earthquake"
+es = ["terremoto"]
+en = ["earthquake"]
+gloss.es = "sacudida brusca del suelo"
+gloss.en = "a sudden shaking of the ground"
+
+[[concept]]
+id = "core:cold"
+es = ["frío"]
+en = [{ lemma = "cold", rank = 0 }, "cold weather"]
+gloss.es = "temperatura baja"
+gloss.en = "a low temperature"
+
+[[concept]]
+id = "core:common_cold"
+es = ["resfriado", "catarro"]
+en = [{ lemma = "cold", rank = 0 }, "common cold"]
+gloss.es = "infección leve de nariz y garganta"
+gloss.en = "a mild infection of the nose and throat"
+
+[[concept]]
+id = "core:virus"
+es = ["virus"]
+en = ["virus"]
+gloss.es = "agente infeccioso diminuto que solo se multiplica dentro de células vivas"
+gloss.en = "a tiny infectious agent that only multiplies inside living cells"
+
+[[concept]]
+id = "core:whale"
+es = ["ballena"]
+en = ["whale"]
+gloss.es = "mamífero marino de gran tamaño"
+gloss.en = "a very large sea mammal"
+
+[[concept]]
+id = "core:mammal"
+es = ["mamífero"]
+en = ["mammal"]
+gloss.es = "animal vertebrado cuyas crías se alimentan de la leche de la madre"
+gloss.en = "a vertebrate animal whose young feed on their mother's milk"
+
+[[concept]]
+id = "core:fish"
+es = ["pez"]
+en = [{ lemma = "fish", forms = { fish = "pl" } }]
+gloss.es = "animal vertebrado que vive en el agua y respira por branquias"
+gloss.en = "a vertebrate animal that lives in water and breathes through gills"
+
+[[concept]]
+id = "core:animal"
+es = ["animal"]
+en = ["animal"]
+gloss.es = "ser vivo que se mueve por sí mismo y se alimenta de otros"
+gloss.en = "a living thing that moves by itself and feeds on others"
+
+[[concept]]
+id = "core:organism"
+es = ["organismo", "ser vivo"]
+en = ["organism", "living thing"]
+gloss.es = "ser que vive"
+gloss.en = "a living being"
+
+[[concept]]
+id = "core:celestial_body"
+es = ["cuerpo celeste"]
+en = ["celestial body", "heavenly body"]
+gloss.es = "objeto natural del espacio, como un planeta o una estrella"
+gloss.en = "a natural object in space, such as a planet or a star"
+
+[[concept]]
+id = "core:planet"
+es = ["planeta"]
+en = ["planet"]
+gloss.es = "cuerpo celeste grande que gira alrededor de una estrella"
+gloss.en = "a large celestial body that moves round a star"
+
+[[concept]]
+id = "core:dwarf_planet"
+es = ["planeta enano"]
+en = ["dwarf planet"]
+gloss.es = "cuerpo celeste que gira alrededor del Sol sin haber despejado su órbita"
+gloss.en = "a celestial body that orbits the Sun without having cleared its orbit"
+
+[[concept]]
+id = "core:pluto"
+kind = "entity"
+es = ["Plutón"]
+en = ["Pluto"]
+gloss.es = "planeta enano del sistema solar, más allá de Neptuno"
+gloss.en = "a dwarf planet of the solar system, beyond Neptune"
+
+[[concept]]
+id = "core:earth"
+kind = "entity"
+es = ["Tierra"]
+en = ["Earth"]
+gloss.es = "planeta en el que vivimos"
+gloss.en = "the planet we live on"
+
+[[concept]]
+id = "core:mars"
+kind = "entity"
+es = ["Marte"]
+en = ["Mars"]
+gloss.es = "cuarto planeta del sistema solar"
+gloss.en = "the fourth planet of the solar system"
+
+[[concept]]
+id = "core:solar_system"
+kind = "entity"
+es = ["sistema solar"]
+en = ["solar system"]
+gloss.es = "el Sol y los cuerpos que giran a su alrededor"
+gloss.en = "the Sun and the bodies that move round it"
+
+# docs/spec/knowledge.md 1.4; `id` is the claim's number (C01 is 1).
+# Confidence 1.0 unless given.
+[relations]
+claims = [
+  { id = 1, s = "core:guitar", p = "is_a", o = "core:string_instrument" },
+  { id = 2, s = "core:electric_guitar", p = "is_a", o = "core:guitar" },
+  { id = 3, s = "core:classical_guitar", p = "is_a", o = "core:guitar" },
+  { id = 4, s = "core:violin", p = "is_a", o = "core:string_instrument" },
+  { id = 5, s = "core:bandurria", p = "is_a", o = "core:string_instrument" },
+  { id = 6, s = "core:dulcimer", p = "is_a", o = "core:string_instrument" },
+  { id = 7, s = "core:string_instrument", p = "is_a", o = "core:musical_instrument" },
+  { id = 8, s = "core:wind_instrument", p = "is_a", o = "core:musical_instrument" },
+  { id = 9, s = "core:percussion_instrument", p = "is_a", o = "core:musical_instrument" },
+  { id = 10, s = "core:electronic_instrument", p = "is_a", o = "core:musical_instrument" },
+  { id = 11, s = "core:flute", p = "is_a", o = "core:wind_instrument" },
+  { id = 12, s = "core:drum", p = "is_a", o = "core:percussion_instrument" },
+  { id = 13, s = "core:synthesizer", p = "is_a", o = "core:electronic_instrument" },
+  { id = 14, s = "core:musical_instrument", p = "is_a", o = "core:device" },
+  { id = 15, s = "core:device", p = "is_a", o = "core:artifact" },
+  { id = 16, s = "core:artifact", p = "is_a", o = "core:object" },
+  { id = 17, s = "core:object", p = "is_a", o = "core:physical_entity" },
+  { id = 18, s = "core:physical_entity", p = "is_a", o = "core:entity" },
+  { id = 19, s = "core:neck", p = "part_of", o = "core:guitar" },
+  { id = 20, s = "core:sound_box", p = "part_of", o = "core:guitar" },
+  { id = 21, s = "core:string", p = "part_of", o = "core:guitar" },
+  { id = 22, s = "core:fret", p = "part_of", o = "core:neck" },
+  { id = 23, s = "core:pickup", p = "part_of", o = "core:electric_guitar" },
+  { id = 24, s = "core:sound_box", p = "part_of", o = "core:electric_guitar", negated = true, confidence = 0.9 },
+  { id = 25, s = "core:string", p = "part_of", o = "core:violin" },
+  { id = 26, s = "core:sound_box", p = "part_of", o = "core:violin" },
+  { id = 27, s = "core:bank", p = "is_a", o = "core:financial_institution" },
+  { id = 28, s = "core:financial_institution", p = "is_a", o = "core:organisation" },
+  { id = 29, s = "core:bench", p = "is_a", o = "core:seat" },
+  { id = 30, s = "core:seat", p = "is_a", o = "core:furniture" },
+  { id = 31, s = "core:school_of_fish", p = "is_a", o = "core:group" },
+  { id = 32, s = "core:riverbank", p = "part_of", o = "core:river" },
+  { id = 33, s = "core:heat", p = "causes", o = "core:evaporation" },
+  { id = 34, s = "core:evaporation", p = "causes", o = "core:cloud", confidence = 0.9 },
+  { id = 35, s = "core:cloud", p = "causes", o = "core:rain", confidence = 0.8 },
+  { id = 36, s = "core:rain", p = "causes", o = "core:flood", confidence = 0.5 },
+  { id = 37, s = "core:storm", p = "causes", o = "core:rain", confidence = 0.95 },
+  { id = 38, s = "core:virus", p = "causes", o = "core:common_cold" },
+  { id = 39, s = "core:cold", p = "causes", o = "core:common_cold", negated = true, confidence = 0.9 },
+  { id = 40, s = "core:whale", p = "is_a", o = "core:mammal" },
+  { id = 41, s = "core:whale", p = "is_a", o = "core:fish", negated = true },
+  { id = 42, s = "core:mammal", p = "is_a", o = "core:animal" },
+  { id = 43, s = "core:fish", p = "is_a", o = "core:animal" },
+  { id = 44, s = "core:animal", p = "is_a", o = "core:organism" },
+  { id = 45, s = "core:organism", p = "is_a", o = "core:physical_entity" },
+  { id = 46, s = "core:planet", p = "is_a", o = "core:celestial_body" },
+  { id = 47, s = "core:dwarf_planet", p = "is_a", o = "core:celestial_body" },
+  { id = 48, s = "core:pluto", p = "is_a", o = "core:planet", valid_to = "2006-08-24" },
+  { id = 49, s = "core:pluto", p = "is_a", o = "core:dwarf_planet", valid_from = "2006-08-24" },
+  { id = 50, s = "core:earth", p = "is_a", o = "core:planet" },
+  { id = 51, s = "core:mars", p = "is_a", o = "core:planet" },
+  { id = 52, s = "core:earth", p = "part_of", o = "core:solar_system" },
+  { id = 53, s = "core:mars", p = "part_of", o = "core:solar_system" },
+  { id = 54, s = "core:pluto", p = "part_of", o = "core:solar_system" },
+  { id = 55, s = "core:celestial_body", p = "is_a", o = "core:physical_entity" },
+]
+
+# docs/spec/knowledge.md 1.6. Each entry has both sides; a side lists its
+# variants best first, each optionally with a note in both languages saying
+# when it is the one to use.
+
+[[phrase]]
+id = "buenos_dias"
+es = ["buenos días"]
+en = ["good morning"]
+
+[[phrase]]
+id = "buenas_tardes"
+es = ["buenas tardes"]
+en = [
+  "good afternoon",
+  { text = "good evening", note.es = "a última hora de la tarde, hasta que anochece", note.en = "later in the day, until dark" },
+]
+
+[[phrase]]
+id = "buenas_noches"
+es = ["buenas noches"]
+en = [
+  { text = "good evening", note.es = "para saludar, ya de noche", note.en = "as a greeting after dark" },
+  { text = "good night", note.es = "al despedirse", note.en = "when leaving" },
+]
+
+[[phrase]]
+id = "de_nada"
+es = ["de nada"]
+en = ["you're welcome"]
+
+[[phrase]]
+id = "lo_siento"
+es = ["lo siento"]
+en = ["I'm sorry"]
+
+[[phrase]]
+id = "encantado"
+es = [
+  { text = "encantado", note.es = "si quien habla es hombre", note.en = "said by a man" },
+  { text = "encantada", note.es = "si quien habla es mujer", note.en = "said by a woman" },
+  { text = "encantado de conocerte", note.es = "si quien habla es hombre", note.en = "said by a man" },
+  { text = "encantada de conocerte", note.es = "si quien habla es mujer", note.en = "said by a woman" },
+]
+en = ["nice to meet you"]
+
+[[phrase]]
+id = "que_tal"
+es = ["¿qué tal?"]
+en = ["how are you?", "how's it going?"]
+
+[[phrase]]
+id = "salud_estornudo"
+es = [{ text = "¡salud!", note.es = "al estornudar", note.en = "after a sneeze" }]
+en = ["bless you"]
+
+[[phrase]]
+id = "salud_brindis"
+es = [{ text = "¡salud!", note.es = "al brindar", note.en = "when drinking a toast" }]
+en = ["cheers"]
+
+[[phrase]]
+id = "buen_provecho"
+# No fixed English equivalent.
+approximate = true
+es = ["buen provecho"]
+en = ["enjoy your meal"]
+
+# docs/spec/knowledge.md 1.8: word → candidate translations, best first. No
+# concepts, senses or relations; its own source.
+[lexicon]
+source = "lexicon"
+pairs = [
+  { from = "es", word = "pandereta", to = ["tambourine"] },
+  { from = "es", word = "gaita", to = ["bagpipes", "bagpipe"] },
+  { from = "es", word = "tamboril", to = ["drum", "tabor"] },
+  { from = "es", word = "guitarra", to = ["guitar"] },
+  { from = "en", word = "tambourine", to = ["pandereta"] },
+  { from = "en", word = "accordion", to = ["acordeón"] },
+  { from = "en", word = "cord", to = ["cuerda", "cordón"] },
+  { from = "en", word = "guitar", to = ["guitarra"] },
+]

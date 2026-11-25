@@ -59,6 +59,18 @@ option for many small packs only (merging saves memory and a factor 2-5 on point
 does not remove the need for generated queries). Full method, numbers, query plans and what
 was not measured: [pack attachment spike](../research/pack-attachment.md).
 
+## Implementation notes (v0.3 Slice A, 2026-11-25)
+
+The spike's three constraints are part of the implementation: no views
+(queries generated per attached database, results combined in Rust),
+`immutable=1` with a 256 KiB page cache per pack, foreign keys off. Packs are
+found in the data directory's `packs/`, pass a structural check before they
+are attached (a pack failing it, or of another schema version, is left out
+with a reason and Talos runs without it), and are verified whole by
+`talos packs check`. Hand-written packs are built from TOML sources by
+`tools/pack`; `tools/import/` keeps the builders from external sources.
+Details in [KNOWLEDGE.md](../KNOWLEDGE.md) §7.
+
 ## Alternatives considered
 
 - **Merge everything into one database on import.** Fastest queries; loses

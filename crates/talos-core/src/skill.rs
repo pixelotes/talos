@@ -303,8 +303,9 @@ pub enum PreferenceChange {
 /// Everything a handler may use besides the request itself, and nothing
 /// else (docs/SKILLS.md section 2): the injected clock, the caller's place,
 /// the turn's random source, this conversation's state, the user's
-/// preferences, and the installed skills. A handler reads no system clock,
-/// no environment, no files and no global state.
+/// preferences, the installed skills and, with the `knowledge` feature, the
+/// knowledge store (read-only). A handler reads no system clock, no
+/// environment, no files and no global state.
 #[derive(Debug)]
 pub struct Context<'a> {
     now: Timestamp,
@@ -313,6 +314,8 @@ pub struct Context<'a> {
     conversation: &'a ConversationState,
     preferences: &'a Preferences,
     skills: &'a [Manifest],
+    #[cfg(feature = "knowledge")]
+    knowledge: Option<&'a crate::knowledge::Knowledge>,
     /// Slots the handler reported for the outcome.
     reported: Slots,
     /// Whether the request was recognised by the classifier, not a rule.
@@ -337,6 +340,8 @@ impl<'a> Context<'a> {
             conversation,
             preferences,
             skills,
+            #[cfg(feature = "knowledge")]
+            knowledge: None,
             reported: Slots::new(),
             guessed: false,
             changes: Vec::new(),
@@ -357,6 +362,25 @@ impl<'a> Context<'a> {
     pub fn with_preferences(mut self, preferences: &'a Preferences) -> Self {
         self.preferences = preferences;
         self
+    }
+
+    /// The same context with a knowledge store: what the engine passes when
+    /// it has one ([`crate::Engine::use_knowledge`]), and what a handler's
+    /// unit tests pass (`Knowledge::from_source` of the seed).
+    #[cfg(feature = "knowledge")]
+    #[must_use]
+    pub fn with_knowledge(mut self, knowledge: &'a crate::knowledge::Knowledge) -> Self {
+        self.knowledge = Some(knowledge);
+        self
+    }
+
+    /// The knowledge store: `user.db` and the attached packs, read-only
+    /// (docs/KNOWLEDGE.md). `None` when the engine has none; a handler then
+    /// says it does not know, as for an unknown word.
+    #[cfg(feature = "knowledge")]
+    #[must_use]
+    pub const fn knowledge(&self) -> Option<&'a crate::knowledge::Knowledge> {
+        self.knowledge
     }
 
     /// The same context as for a request the classifier recognised, for a

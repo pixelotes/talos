@@ -21,6 +21,8 @@ usage: talos [options] ask <text>        answer one message, then exit
        talos [options] chat              a conversation on stdin/stdout
        talos [options] explain <text>    show how a message is answered, stage by stage
        talos skills list | check         inspect and validate the skill manifests
+       talos packs list                  the knowledge packs found, and any left out
+       talos packs info | check <file>   what a pack holds; verify it whole
        talos eval                        score the batteries, rules only and with the classifier
        talos [options] serve             the OpenAI-compatible HTTP server
        talos --version
@@ -35,7 +37,8 @@ options: --lang es|en   the caller's language hint
                         $TALOS_TOKEN); required to bind a non-loopback address
 
 exit status of `ask`: 0 answered, 2 deflected, 3 unhandled;
-of `skills check`: 1 when a manifest has errors";
+of `skills check`: 1 when a manifest has errors;
+of `packs`: 1 when a pack is refused or has errors";
 
 /// Wrong arguments (BSD `EX_USAGE`).
 const EXIT_USAGE: u8 = 64;
@@ -62,8 +65,17 @@ enum Command {
     Chat(Options),
     SkillsList,
     SkillsCheck,
+    Packs(Packs),
     Eval(Options, PathBuf),
     Serve(Options, Serve),
+}
+
+/// `talos packs …`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Packs {
+    List,
+    Info(PathBuf),
+    Check(PathBuf),
 }
 
 /// The flags of `talos serve`.
@@ -167,6 +179,10 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
         Some((&"skills", ["list"])) => Ok(Command::SkillsList),
         Some((&"skills", ["check"])) => Ok(Command::SkillsCheck),
         Some((&"skills", _)) => Err("`skills` needs `list` or `check`".to_owned()),
+        Some((&"packs", ["list"])) => Ok(Command::Packs(Packs::List)),
+        Some((&"packs", ["info", file])) => Ok(Command::Packs(Packs::Info(PathBuf::from(file)))),
+        Some((&"packs", ["check", file])) => Ok(Command::Packs(Packs::Check(PathBuf::from(file)))),
+        Some((&"packs", _)) => Err("`packs` needs `list`, `info FILE` or `check FILE`".to_owned()),
         Some((other, _)) => Err(format!("unknown command `{other}`")),
         None => Ok(Command::Help),
     }
@@ -412,6 +428,29 @@ fn serve(engine: Engine, options: Options, flags: Serve) -> ExitCode {
 }
 
 /// `talos serve` in a build without the `server` feature.
+/// `talos packs …`: prints the report; fails when a pack is refused or
+/// has errors.
+#[cfg(feature = "knowledge")]
+fn packs(command: &Packs) -> ExitCode {
+    let (report, ok) = match command {
+        Packs::List => talos::packs::list(),
+        Packs::Info(path) => talos::packs::info(path),
+        Packs::Check(path) => talos::packs::check(path),
+    };
+    print!("{report}");
+    if ok {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
+}
+
+#[cfg(not(feature = "knowledge"))]
+fn packs(_command: &Packs) -> ExitCode {
+    eprintln!("talos: this build has no knowledge store; rebuild with `--features knowledge`");
+    ExitCode::from(EXIT_USAGE)
+}
+
 #[cfg(not(feature = "server"))]
 fn serve(_engine: Engine, _options: Options, _flags: Serve) -> ExitCode {
     eprintln!("talos: this build has no server; rebuild with `--features server`");
@@ -437,6 +476,7 @@ fn main() -> ExitCode {
             return ExitCode::SUCCESS;
         }
         Command::SkillsCheck => return skills_check(),
+        Command::Packs(command) => return packs(command),
         Command::Ask(options, _)
         | Command::Explain(options, _)
         | Command::Chat(options)
@@ -455,15 +495,20 @@ fn main() -> ExitCode {
             return ExitCode::from(EXIT_SOFTWARE);
         }
     };
-    // What the user asked to be remembered: the turn commands read and
-    // write it; `eval` and `skills list` never touch it, so a battery's
-    // score does not depend on who ran it.
+    // What the user asked to be remembered, and the packs: the turn
+    // commands read them; `eval` and `skills list` never touch them, so a
+    // battery's score does not depend on who ran it.
     if matches!(
         command,
         Command::Ask(..) | Command::Explain(..) | Command::Chat(_) | Command::Serve(..)
-    ) && let Some(warning) = talos::data::attach_user_store(&mut engine)
-    {
-        eprintln!("talos: {warning}");
+    ) {
+        if let Some(warning) = talos::data::attach_user_store(&mut engine) {
+            eprintln!("talos: {warning}");
+        }
+        #[cfg(feature = "knowledge")]
+        for warning in talos::data::attach_knowledge(&mut engine) {
+            eprintln!("talos: {warning}");
+        }
     }
     match command {
         Command::Ask(options, text) => one_shot(&engine, options, text, false),

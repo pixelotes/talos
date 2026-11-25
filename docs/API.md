@@ -91,9 +91,11 @@ with the `server` feature of the `talos` crate (on by default;
 | `POST` | `/v1/chat/completions` | OpenAI-compatible chat |
 
 `/health` answers
-`{"status": "ok", "version": "…", "skills": ["calc", …], "packs": [], "failures": []}`;
-`packs` and `failures` stay empty until there are packs and external skills
-to fail.
+`{"status": "ok", "version": "…", "skills": ["calc", …], "packs": [{"id": "core", "version": "1.0", "languages": ["es", "en"]}], "failures": [{"pack": "/…/packs/old.talospack", "error": "built for schema version 0; …"}]}`:
+`packs` are the attached knowledge packs in the order they are asked;
+`failures` the packs found in the data directory and left out, with the
+reason (external skills will join them). Both are empty without packs, and
+in a build without the `knowledge` feature.
 
 HTTP/1.1 (and 1.0) with keep-alive. Request bodies come with
 `Content-Length` or chunked; `Expect: 100-continue` is honoured. Every
@@ -228,8 +230,8 @@ What Talos remembers about its user (name, place, units; the correction
 table) is not dialog state and is not keyed by any of these: there is one set
 per installation, shared by every conversation of the server and by the CLI
 (docs/spec/decisions.md ruling 10). A preference set over the API is there
-for `talos chat`, and the reverse. It is kept in `user.toml` in the data
-directory (`$TALOS_DATA_DIR`, else `$XDG_DATA_HOME/talos`, else
+for `talos chat`, and the reverse. It is kept in `user.db` (`user.toml` in a
+build without the `knowledge` feature) in the data directory (`$TALOS_DATA_DIR`, else `$XDG_DATA_HOME/talos`, else
 `~/.local/share/talos`; `TALOS_DATA_DIR=` empty keeps it for the run only),
 written only on a turn that changes it ([DESIGN.md](DESIGN.md) §7).
 

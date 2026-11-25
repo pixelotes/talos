@@ -35,6 +35,11 @@ regex = { version = "1.12", default-features = false, features = ["std", "unicod
 unicode-normalization = "0.1.24"
 # `talos ask --json` (API.md s.1) now, the HTTP server's bodies later; std only.
 serde_json = { version = "1.0.140", default-features = false, features = ["std"] }
+# The knowledge store (ADR 0005, DEVELOPMENT.md "The SQLite binding"): SQLite
+# compiled from the bundled amalgamation, trimmed by LIBSQLITE3_FLAGS in
+# .cargo/config.toml. No optional rusqlite feature is used. Behind the
+# `knowledge` feature of talos-core.
+rusqlite = { version = "0.37", default-features = false, features = ["bundled"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

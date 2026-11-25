@@ -14,8 +14,9 @@
 
 ```sh
 cargo fmt --all --check                                  # formatting
-cargo clippy --workspace --all-targets -- -D warnings    # lints
-cargo test --workspace                                   # tests
+cargo clippy --workspace --all-targets --all-features -- -D warnings   # lints
+cargo test --workspace --all-features                    # tests, with the knowledge store
+cargo test --workspace --no-default-features             # tests, without it (user.toml, no packs)
 cargo deny check                                         # licences, advisories, bans
 cargo build --release                                    # small, stripped binary
 TALOS_BLESS=1 cargo test -p talos-skills --test golden   # regenerate golden files
@@ -23,12 +24,14 @@ cargo run --release -p talos-train                       # retrain the classifie
 cargo run --release -p talos-train -- --check            # fail if models/ is not what training gives
 cargo run --release -p talos-train -- --cv 5             # cross-validate on the training corpus
 cargo run --release -- eval                              # score the batteries, rules only and with the classifier
+cargo run -p talos-pack                                  # build the seed pack (knowledge/seed.toml) into target/packs/core.talospack
+cargo run -p talos -- packs check target/packs/core.talospack   # verify a pack whole
 ```
 
 Lints are shared through `[workspace.lints]` in `Cargo.toml`
 (`unsafe_code` is forbidden). `spikes/` is excluded from the workspace;
-`tools/` holds development-time workspace members (the trainer), never linked
-into the binary.
+`tools/` holds development-time workspace members (the trainer, the pack
+builder), never linked into the binary.
 
 Retrain after changing any manifest's `[intent.examples]` or
 `reflector/out-of-scope.toml`: the engine refuses models trained on another
@@ -58,9 +61,9 @@ cargo zigbuild --release --target aarch64-unknown-linux-musl
 ls -l target/aarch64-unknown-linux-musl/release/talos
 ```
 
-The musl target gives a static binary that runs on any ARM64 Linux. With no
-third-party dependencies yet, `cargo build --target ...` only needs a linker
-for the target, which is what zig provides.
+The musl target gives a static binary that runs on any ARM64 Linux. Besides
+a linker, the bundled SQLite of the `knowledge` feature needs a C compiler
+for the target; zig provides both (`cargo zigbuild` sets `CC`).
 
 ## Decisions taken in Slice A
 
@@ -348,6 +351,96 @@ the new tzdata, run `python3 -I crates/talos-skills/src/places/generate.py
 2027 2036` from the repository root (it reads the zones from `table.rs`)
 and review the diff of `zones.rs`; move the start of the test's span if a
 one-off change lands later than 14 March 2027.
+
+## Decisions taken in v0.3 Slice A (the store)
+
+The first part of [plans/v0.3.md](plans/v0.3.md): the SQLite store, `user.db`,
+packs, the seed pack and the dictionary queries. The design is
+[KNOWLEDGE.md](KNOWLEDGE.md); what is settled here is how it was built.
+
+| Question | Taken | Note |
+|---|---|---|
+| SQLite binding | `rusqlite` 0.37 with the **bundled** SQLite 3.50, compile options trimmed in `.cargo/config.toml` (`LIBSQLITE3_FLAGS`) | measured below; no system library to depend on (the Pi build is a static musl binary), +620 KB on the binary, memory unchanged within noise. `rusqlite` with no optional feature; it and `libsqlite3-sys` are MIT, SQLite is public domain, their dependencies MIT/Apache-2.0 except `foldhash` (Zlib, through `hashlink`; allowed by `deny.toml`). Both contain `unsafe` (they are the FFI binding); the project's own code has none |
+| Feature | `knowledge` on `talos-core` (off by default there), on by default in `talos` (`knowledge = ["talos-core/knowledge"]`) and in `talos-pack` | `--no-default-features` builds the binary without SQLite, byte for byte the size it had before (2 793 440 B): preferences and corrections stay in `user.toml`, `talos packs` says the build has no store. `talos-core` stays synchronous |
+| Where the code is | `talos_core::knowledge` (schema, migrations, `user.db`, packs, queries, inflection, sense choice, the pack builder's core); the placeholder crate `talos-knowledge` was removed | the store must be reachable from `Context` and engine tests must build one, which a crate depending on `talos-core` could not give `talos-core` |
+| Full-text search | compiled out (no FTS5); `gloss_fts` is not in schema version 1 | the plan's ruling: a dictionary looks words up by key. FTS5 costs 117 KB; a later schema version adds the table by migration and the flag back |
+| `user.db` journal | rollback journal (`journal_mode=DELETE`), `synchronous=FULL`, not WAL | reading a WAL database creates `-wal`/`-shm` files, a write on a turn that changes nothing; one process, rare writes |
+| Connections | the user store opens `user.db` per save (and read-only per load); the knowledge store holds one read-only connection (`user.db` as `main`, packs attached) behind a mutex | saves are rare; a pool of readers waits for a measured need (each would multiply the page caches) |
+| Packs at start | structural check only (Talos's `application_id`, schema version, `meta.kind = pack`, every table, a complete manifest); a page-by-page `integrity_check` is `talos packs check` | `integrity_check` reads the whole file, ~100 MB for a vocabulary pack, against a 100 ms cold start; a damaged page found later fails that query, honestly |
+| Seed pack | **beside the binary, not embedded**: `knowledge/seed.toml` is built by `cargo run -p talos-pack` into `target/packs/core.talospack` (122 880 B) and installed by copying it into the data directory's `packs/`; tests build it in memory from the source (`Knowledge::from_source`) | it is the specification's fixture standing in for the core-vocabulary pack: always present it would answer next to, and collide with, the vocabulary pack of Slice C (same words, other concept ids). Packs travel apart from the binary (ADR 0006); embedding would also put 120 KB in every binary |
+| Pack source format | TOML, read with the `toml` the engine already has; the format is in [KNOWLEDGE.md](KNOWLEDGE.md) §7, "Pack sources" | built in memory and written with `VACUUM INTO`: the same source gives the same bytes (a test builds twice and compares; debug and release builds agree). The bytes depend on SQLite's version and compile options, which `Cargo.lock` and `.cargo/config.toml` fix |
+| Inflected forms | rules in `talos-core/src/knowledge/inflect.rs` (tables of endings, both ways), exceptions as `form` rows of a pack | a vocabulary pack extends the exceptions by writing rows (the wordnets' exception lists), not code; regular forms are not stored |
+
+### The SQLite binding
+
+Measured 2026-11-25 on an Apple-silicon Mac, release profile, each build
+from the same tree with only the binding changed. Memory is max RSS / peak
+footprint in MB, median of seven runs (five for the lookups), from
+`/usr/bin/time -l`. The large pack is a synthetic one of the vocabulary
+pack's shape (`talos-pack synthetic 120000`: 120 000 concepts, 173 833
+English and 122 794 Spanish lexemes, 347 951 senses with glosses, 239 998
+claims; 97 MB). "Lookups" is `examples/knowledge_footprint.rs` in `talos`:
+the engine built as `talos ask` builds it, then 2 000 words each looked up
+(senses through the inflection rules), its first sense's gloss, its words in
+the other language and the sense choice.
+
+| | stripped binary | `ask "hola"`, no data directory | `ask "hola"`, large pack attached | 2 000 lookups, large pack | one lookup, p50 / p99 |
+|---|---|---|---|---|---|
+| before (no store) | 2 793 440 B | 7.6 / 5.6 | — | — | — |
+| `--no-default-features` (store compiled out) | 2 793 440 B | — | — | — | — |
+| bundled, `libsqlite3-sys`'s default options | 3 733 104 B | 7.5 / 5.4 | 8.2 / 5.5 | 9.2 / 6.5 | 190 / 320 µs |
+| bundled, trimmed options (**chosen**) | 3 413 760 B | 7.7 / 5.7 | 8.3 / 5.7 | 8.7 / 6.1 | 56 / 110 µs |
+| the same with FTS5 kept | 3 530 624 B | — | — | — | — |
+| system library (`/usr/lib/libsqlite3.dylib`) | 2 862 256 B + the library | 7.7 / 5.7 | 8.2 / 5.9 | 8.7 / 6.5 | 72 / 124 µs |
+
+Run-to-run spread is about ±0.3 MB. `ask "hola"` with the seed pack
+attached: 8.3 / 5.7. Wall time of `ask "hola"` (21 runs, median, including
+process start and the `date` call): 64.9 ms before, 64.8 ms with the store
+and no data directory, 68.8 ms with the large pack attached.
+
+Reading it:
+
+- **Memory is far inside the budget.** With a 97 MB pack attached and 2 000
+  lookups done, the process stays under 9 MB resident (budget: 20 MB with
+  one large pack). Packs are attached with a 256 KiB page cache each and no
+  mmap, so what the pack holds does not become resident.
+- **The trimmed build is 3× faster per lookup** than the default options.
+  Most likely STAT4, which the default build enables: with `sqlite_stat4`
+  in the pack the planner re-prepares a statement whenever a bound value
+  could change its plan, so the cached statements are not reused. Not
+  verified beyond this comparison.
+- **The system library** is the smallest binary, but it is a run-time
+  dependency whose version and options vary by host, and the static musl
+  build for the Pi cannot use it.
+- Trimmed: FTS3/4/5, R*Tree, DBSTAT, STAT4, SOUNDEX, column metadata and
+  extension loading undefined; JSON, deprecated APIs, shared cache, the
+  progress callback, UTF-16, `sqlite3_complete`, `get_table` and TCL
+  variables omitted; memory statistics off; double-quoted strings refused;
+  no expression-depth limit. All are options SQLite supports with the
+  amalgamation.
+
+Reproduce with `cargo build --release -p talos --example knowledge_footprint`,
+`talos-pack synthetic 120000 DIR/packs/synthetic.talospack`, a word list
+(`sqlite3 PACK "select lemma from lexeme where lang='en' limit 2000"`) and
+`TALOS_DATA_DIR=DIR /usr/bin/time -l target/release/examples/knowledge_footprint WORDS`.
+
+Not measured: the Raspberry Pi (the cross build of the bundled SQLite with
+`cargo zigbuild` was not run here), a cold OS page cache, and Spanish
+lookups at scale.
+
+### Where the user's data lives (from v0.3)
+
+| | |
+|---|---|
+| `user.db` | preferences (`preference`: key, value) and the user-correction table (`correction`, `correction_slot`), next to the knowledge tables; not created until the first save; read read-only |
+| `user.toml` | read once when there is no `user.db`, written into a new `user.db`, then renamed `user.toml.migrated` (never deleted; if that name is taken it stays as it is). A `user.toml` that cannot be read creates no `user.db` and is reported like any unreadable store. Once `user.db` exists a `user.toml` is ignored |
+| `packs/*.talospack` | attached at start in file-name order, read-only and immutable; up to ten (SQLite's limit with `user.db` as `main`); a pack refused is reported on stderr (`talos ask`, `chat`, `serve`) and in `/health`'s `failures` |
+
+The guarantees are those of v0.2: an ordinary turn writes nothing (tests:
+`reading_writes_nothing`, `a_fresh_data_directory_gets_nothing_written_by_a_question`,
+and the engine's own count of saves), an unreadable store is never
+overwritten, and tests never touch the user's home (in-memory stores, the
+seed built in memory, temporary directories).
 
 ## Server
 

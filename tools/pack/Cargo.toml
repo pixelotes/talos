@@ -1,0 +1,29 @@
+[package]
+name = "talos-pack"
+description = "Builder of Talos knowledge packs from their sources (dev-time only)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["knowledge"]
+# The builder is the store's own code; a workspace build without the store
+# (`--no-default-features`) skips it.
+knowledge = ["talos-core/knowledge", "dep:rusqlite"]
+
+# The crate the binary reads packs with, so a pack is built by the code that
+# queries it; rusqlite directly only for the synthetic pack.
+[dependencies]
+talos-core.workspace = true
+rusqlite = { workspace = true, optional = true }
+
+[[bin]]
+name = "talos-pack"
+path = "src/main.rs"
+required-features = ["knowledge"]

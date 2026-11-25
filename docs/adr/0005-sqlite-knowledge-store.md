@@ -71,6 +71,17 @@ the design.
   [0012](0012-no-language-model.md) holds. Details in
   [KNOWLEDGE.md](../KNOWLEDGE.md).
 
+## Implementation notes (v0.3 Slice A, 2026-11-25)
+
+Built as decided, with three settlements recorded in
+[DEVELOPMENT.md](../DEVELOPMENT.md#decisions-taken-in-v03-slice-a-the-store):
+`rusqlite` with the bundled SQLite, trimmed, behind a `knowledge` feature
+(+620 KB, resident memory unchanged); **FTS5 is not compiled in** until
+search needs it (the schema adds `gloss_fts` then, by migration); and
+`user.db` uses the **rollback journal, not WAL**, because reading a WAL
+database creates files, which would be a write on a turn that changes
+nothing. One writer and many readers still holds.
+
 ## Alternatives considered
 
 - **In-memory graph loaded from files.** Fast, simple, and violates the

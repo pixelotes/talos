@@ -122,6 +122,62 @@ CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);  -- schema versio
 The schema is versioned in `meta`. Migrations are forward-only and run at
 start-up on `user.db`; packs declare the schema version they were built for.
 
+### As built (schema version 1, v0.3)
+
+The tables above are in `talos-core/src/knowledge/schema.rs`, as written,
+relations and audit included although nothing queries them before v0.6, with
+these settlements:
+
+- **No `gloss_fts` yet.** Full-text search is not part of v0.3 and FTS5 is
+  compiled out of the bundled SQLite (117 KB); the version that brings search
+  adds the table by migration.
+- **Three more tables in every database**, which the design names without
+  spelling out: `phrase` (a stock phrase's wordings: `entry` groups both
+  sides, `lang`, `text` as written, `form` in the match form, `rank`,
+  `approximate`, `source_id`; indexed on `form` and `entry`), `phrase_note`
+  (when a wording is the one to use, per language: «al despedirse» /
+  "when leaving") and `word_pair` (the lexicon of §7: `lang`, `word`, `form`,
+  `target`, `rank`, `source_id`; indexed on `form, lang`). A pack without
+  phrases or pairs leaves them empty.
+- **`user.db` alone** has `preference` (key, value) and `correction` /
+  `correction_slot` (phrase, intent, slot values): what was `user.toml`.
+- **`meta`** holds `schema_version` and `kind` (`user` or `pack`), and in a
+  pack its manifest (§7). Every Talos database has `PRAGMA application_id`
+  `0x544C4F53` ("TLOS").
+- **`form.form` is the match form** (lower case, no accents, single spaces,
+  no end punctuation), the form every lookup is made in, so "violin" finds
+  *violín*. Each lexeme has one `form` row for its lemma (`features` null)
+  and one per exception no rule gives (`features` such as `pl`, `pres,3sg`);
+  regular forms are not stored ("Inflected forms" below).
+- **`sense.rank`** is the baseline order of a word's senses (§5). The order
+  of a concept's words in one language (which one names it) is rank, then
+  the order the pack wrote them.
+- Foreign keys are off: the `REFERENCES` clauses document, the pack builder
+  and `talos packs check` verify.
+
+### Inflected forms
+
+A typed word is read back to its lemma by rules in
+`talos-core/src/knowledge/inflect.rs`, tables of endings run both ways:
+
+- English: plural and third person (`-s`, `-es`, `-ies`, `-ves`), `-men`,
+  `-ing`, `-ed`, `-ied` (with a doubled consonant undone and a dropped `e`
+  restored), comparative and superlative. A phrase inflects its last word.
+- Spanish: plural (`-s`, `-es`, `-ces` → `-z`), gender (`-a` → `-o`,
+  `-ora` → `-or`, and their plurals), the regular endings of the three
+  conjugations (present, preterite, imperfect, present subjunctive, future,
+  conditional, gerund, participle). A phrase inflects every word before its
+  first preposition ("guitarras eléctricas", "cajas de resonancia").
+
+A rule's candidate counts only when a lexeme with that lemma and a part of
+speech the rule applies to exists (a verb ending never reads a noun), so a
+rule that over-generates costs a lookup, not a wrong answer. Forms no rule
+gives are data: `form` rows of a pack ("fish" plural of *fish*, "llueve" of
+*llover*). The vocabulary pack extends them by writing rows (the wordnets'
+exception lists), never by changing the rules. The same rules write a
+regular plural for translation ("violines", "guitarras eléctricas"); a
+stored exception comes first, in the match form.
+
 ## 3. Queries Talos answers
 
 | Question | Mechanism |
@@ -198,12 +254,27 @@ overhears.
 
 ## 7. Packs
 
-A pack is a read-only SQLite file with this schema, a manifest row in `meta`
-(name, version, languages, licence, source), and an FTS index.
+A pack is a read-only SQLite file with this schema and a manifest in `meta`
+(`id`, `version`, `title`, `languages`, `license`, `notice`: the notices its
+licence and its sources' licences ask for), its sources in `source`, and
+`kind = pack`. It is built for exactly one schema version; a pack of another
+version is refused. (The FTS index waits for search; see §2.)
+
+Packs live in the data directory's `packs/` as `*.talospack` and are
+attached at start in file-name order. Before attaching, each passes a
+structural check: Talos's application id, the schema version, every table,
+a complete manifest, an id no attached pack has. A pack that fails is left
+out with a reason, shown on stderr, in `talos packs list` and in `/health`,
+and Talos runs without it. `talos packs check FILE` adds SQLite's
+page-by-page integrity check and the references the builder guarantees;
+`talos packs info FILE` shows the manifest and the counts.
 
 - Packs are attached at start-up, read-only and immutable, each with a small
-  page cache of its own. Views present `user.db` and the packs as one store
-  **for simple lookups only**.
+  page cache of its own (256 KiB). No views are built: the dictionary
+  queries run once per attached database, `user.db` first, and their results
+  are combined in Rust; a word found in several databases is one word
+  (lexemes match by language, lemma and part of speech), and a concept's
+  gloss comes from the first database that has one.
 - Recursive and joining queries are generated per attached database and their
   results combined; they are never written against the union views. The spike
   in [pack-attachment.md](research/pack-attachment.md) measured the same
@@ -212,12 +283,83 @@ A pack is a read-only SQLite file with this schema, a manifest row in `meta`
 - Cross-pack references cannot be enforced by SQLite, so foreign keys are a
   build-time check of the pack builder, not a run-time constraint.
 - The bundled SQLite allows ten attached databases, which bounds the number
-  of packs in use at once.
+  of packs in use at once (ten: `user.db` is the connection's own database).
 - Concept identifiers are global text keys, so packs compose without
   renumbering.
 - Packs are distributed separately from the binary. Their licence is their
   own: a pack built from a share-alike source carries that obligation without
   touching the code's licence.
+
+### Pack sources
+
+A hand-written pack is a TOML source built by `tools/pack`
+(`cargo run -p talos-pack -- build SOURCE OUT`; with no arguments it builds
+the seed, `knowledge/seed.toml`, into `target/packs/core.talospack`). The
+build runs in memory and writes the file with `VACUUM INTO`, so the same
+source gives the same bytes. Tests build the same source into an in-memory
+database (`Knowledge::from_source`), so they answer from exactly the pack
+that ships.
+
+```toml
+[pack]                    # the manifest; `source` names the source of what follows
+id = "core"
+version = "1.0"
+title = "…"
+languages = ["es", "en"]
+license = "MIT"
+notice = "…"
+date = "2026-11-25"       # source.added_at, claim.created_at
+source = "core"
+
+[[source]]                # one per source: name, kind, license, url
+name = "core"
+kind = "pack"
+
+[[predicate]]
+name = "part_of"
+inverse = "has_part"
+transitive = true
+
+[[concept]]
+id = "core:rain"
+kind = "class"            # default; "entity" for a named thing
+es = ["lluvia", { lemma = "llover", pos = "v", forms = { llueve = "pres,3sg" } }]
+en = ["rain", { lemma = "rain", pos = "v" }]
+gloss.es = "agua que cae de las nubes en gotas"
+gloss.en = "water falling from clouds in drops"
+
+[relations]
+claims = [
+  { id = 35, s = "core:cloud", p = "causes", o = "core:rain", confidence = 0.8 },
+  { id = 48, s = "core:pluto", p = "is_a", o = "core:planet", valid_to = "2006-08-24" },
+]
+
+[[phrase]]                # a stock phrase: both sides, wordings best first
+id = "buenas_noches"
+es = ["buenas noches"]
+en = [{ text = "good night", note.es = "al despedirse", note.en = "when leaving" }]
+
+[lexicon]                 # word pairs, under their own source
+source = "lexicon"
+pairs = [{ from = "es", word = "gaita", to = ["bagpipes", "bagpipe"] }]
+```
+
+A word is a lemma, or an inline table with `rank` (default 0), `pos` (`n`,
+`v`, `adj`, `adv`; default `n`) and `forms` (the exceptions). A gloss is
+copied onto every sense of a word of its language. The build refuses what
+does not hold together: an unknown concept, predicate, source or language, a
+gloss with no word in its language, a concept with no word, a duplicate.
+
+The seed pack is the fixture of [docs/spec/knowledge.md](spec/knowledge.md)
+§1, all of it: 63 concepts with their words in both languages (69 Spanish
+and 75 English lexemes, 152 senses, every gloss the fixture does not leave
+out), the 55 claims, the three predicates, the ten stock phrases and the
+eight entries of the word-pair lexicon. The glosses the specification quotes
+are copied from it; the others were written for the pack. It is one file
+with two sources (`core` and `lexicon`), where the fixture installs two
+packs; the lexicon of §7 proper is its own pack. The seed is shipped beside
+the binary, not in it: it stands in for the core-vocabulary pack and would
+collide with it (DEVELOPMENT.md, v0.3 Slice A).
 
 ### Sources for the first packs
 

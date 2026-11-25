@@ -9,7 +9,10 @@ repository.workspace = true
 publish.workspace = true
 
 [features]
-default = ["server"]
+default = ["server", "knowledge"]
+# user.db, knowledge packs and `talos packs` (docs/KNOWLEDGE.md). Off, the
+# user's data stays in user.toml and no pack is read.
+knowledge = ["talos-core/knowledge"]
 # `talos serve` (docs/API.md section 2). Adds no dependency: the HTTP/1.1
 # server is written on `std` (ADR 0017). Off, the binary has no listener.
 server = []
@@ -32,3 +35,7 @@ path = "src/main.rs"
 [[example]]
 name = "serve_load"
 required-features = ["server"]
+
+[[example]]
+name = "knowledge_footprint"
+required-features = ["knowledge"]
