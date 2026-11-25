@@ -446,13 +446,15 @@ seed built in memory, temporary directories).
 ## Decisions taken in v0.3 Slice C (the vocabulary pack)
 
 The vocabulary pack is built from the WordNet family
-([wordnet-sources.md](research/wordnet-sources.md) §2.3.1, §4) by
-`talos-pack wordnet` (`tools/pack/src/wordnet.rs`). Its sources and the
-built pack are not committed.
+([wordnet-sources.md](research/wordnet-sources.md) §2.3.1, §4) and Wikidata's
+Spanish descriptions (§2.3.2) by `talos-pack wordnet`
+(`tools/pack/src/wordnet.rs`, `wikidata.rs`). The four downloaded sources and
+the built pack are not committed; the Wikidata snapshot, a CC0 export,
+is (`knowledge/sources/`).
 
 ### The vocabulary pack
 
-**Getting the sources** (once; about 21 MB). Put the three files in one
+**Getting the sources** (once; about 23 MB). Put the four files in one
 directory, at its top level or one directory down (`DIR/wordnet-en/…` works):
 
 | File | From | SHA-256 |
@@ -460,19 +462,32 @@ directory, at its top level or one directory down (`DIR/wordnet-en/…` works):
 | `english-wordnet-2025-plus.xml.gz` | Open English WordNet 2025+, https://en-word.net/static/ (downloads page: https://en-word.net/downloads) | `31f4af16c54b532fd5484d4cc33aee588a31bb5b70683ae8197842fde5b586bc` |
 | `ili-map-pwn30.tab` | the CILI repository, https://github.com/globalwordnet/cili (top level) | `13b6741395a8bdf20e5a19686ffa49167653696d4f523db17a79dce3211a6627` |
 | `wn-data-spa.tab` | the Open Multilingual Wordnet data, https://github.com/bond-lab/omw-data, `wns/mcr/` | `0ec37ce94ee2acc63ad6b120e1051f9841d172778cc24adc0023fb8dccf0a7cd` |
+| `ili-map-pwn31.tab` | the CILI repository (top level); joins Wikidata's WordNet 3.1 synset ids to concepts; not needed with `--no-wikidata` | `f6068d5506323b244a12d082206633630ad0176987caab3d044cbadb09223eb7` |
 
+The fifth input, Wikidata's Spanish descriptions of the items with a WordNet
+3.1 synset id (P8814), is in the repository as
+`knowledge/sources/wikidata-p8814-es.tsv` (CC0; what it is, its query, date
+and how to refresh it: `knowledge/sources/README.md`) and is read from there
+whatever the directory.
 **Building it:**
 
 ```sh
 cargo run --release -p talos-pack -- wordnet DIR                 # → target/packs/vocabulary.talospack
 cargo run --release -p talos-pack -- wordnet DIR OUT.talospack   # elsewhere
+cargo run --release -p talos-pack -- wordnet DIR --wikidata FILE # another Wikidata snapshot
+cargo run --release -p talos-pack -- wordnet DIR --no-wikidata   # without Wikidata: two sources
 cargo run -p talos -- packs check target/packs/vocabulary.talospack
 cargo test -p talos-pack --test vocabulary                       # properties of the built pack
 cargo run --release -p talos-pack --example vocabulary_sample    # everyday words, for reading
 ```
 
-The builder checks each file's SHA-256 and refuses any other file unless
-given `--unverified` (the manifest then says `source_files_verified = no`).
+The builder checks the SHA-256 of each downloaded file and refuses any other
+file unless given `--unverified` (the manifest then says
+`source_files_verified = no`); the snapshot is not pinned (it is versioned by
+the repository) and its sum goes to the manifest's `source_files`. If the
+snapshot or `ili-map-pwn31.tab` is missing, or a line of the snapshot is not
+a row, the build stops and says so; it builds without Wikidata only with
+`--no-wikidata`, never silently.
 Beside the pack it writes `vocabulary.NOTICE` (the notice, also in the
 manifest) and `vocabulary.report.txt` (every count, and every row dropped
 with the reason). The same files give the same bytes (checked: two builds,
@@ -489,7 +504,8 @@ its `NOTICE` into the data directory's `packs/`. The tests of
 | One typed word, several lexemes | lexemes sharing a match form ("dog" n/v, "CAT"/"cat", "árbol"/"arbol"): the main one keeps its ranks, the others' start at 1 (15 352 lexemes). Main: most senses, a noun's counted twice, then lower case | without it, "cat" tied CAT scan with the animal and every noun–verb pair tied at rank 0, so sense choice always asked; now "tree" is the plant, "run" the verb |
 | Spanish sense order | the Spanish file has none. A Spanish sense borrows the rank of its concept in the word's *pivot*, the English word found on most of its concepts (same case, then best ranks, then most senses); a concept the pivot does not name ranks after all the pivot's senses | a guess from the only signal there is; "coche" → car, then railcar; "pan" → bread, not Pan. Wrong for some words (below) |
 | A concept's Spanish words | by that rank, then a plural of another of its words last (507 senses: "ríos" beside "río"), a feminine after its masculine, then the word most frequent in the Spanish file's own definitions and examples, then most concepts | this decides the Spanish name of a concept ("dog" → perro, not canino) |
-| Glosses | the synset's definition on every English sense (source `oewn`); the MCR definition on every Spanish sense of the concept (source `mcr-spa`); several definitions joined with "; " (4 synsets) | a gloss's source is its sense's source, as in the seed |
+| Glosses | the synset's definition on every English sense (source `oewn`); the MCR definition on every Spanish sense of the concept (source `mcr-spa`); several definitions joined with "; " (4 synsets); a Spanish sense with no MCR gloss gets Wikidata's Spanish description of its concept (source `wikidata`, below) | a gloss's source is its sense's source, as in the seed |
+| Wikidata descriptions | P8814 synset id → CILI id (`ili-map-pwn31.tab`, an adjective also as `-s`) → the concept; when several items describe one concept, the lowest Q number's; skipped when the description is empty or, in the match form, one of the concept's own Spanish words (76 concepts); never over an MCR gloss; English senses untouched | a description defines nothing when it only repeats a word; no other judgement of what is a definition is made. Short labels, nouns almost only, mostly entities; some sit on a sense other than the one ranked first (wordnet-sources.md §2.3.2). The snapshot's export ended in a query timeout and may be incomplete |
 | Forms | the `Form` elements of the entries (the WordNet exception lists: "geese", "went", "better"), features from the part of speech and the ending (noun `pl`; verb `ger` for -ing, `pres,3sg` for -s, `pres` for am/are, else `past`; adjective `sup` for -st, else `cmp`) | the lists do not say which form a form is; "past" stands for past and participle. Some are forms the rules also give ("abetted"); they are kept as the source lists them |
 | Relations | `is_a` (hypernym), `instance_of` (instance hypernym), `part_of`, `member_of`, `substance_of` (the meronyms, subject the part), `causes`, `similar_to` and `antonym_of` (symmetric, both directions as the source gives them); each pair once | `instance_of` is not `is_a` (the seed writes Pluto `is_a` planet; v0.6 decides whether its closure follows both). Antonyms are sense relations in the source and become concept claims here (7 990 links → 7 612 claims): which word of the concept was meant is lost |
 | Concept kind | `entity` for a synset with an instance hypernym (7 736), else `class` | |
@@ -503,10 +519,11 @@ its `NOTICE` into the data directory's `packs/`. The tests of
 | concepts | 120 564 (7 736 entities; 78 215 with Spanish words) |
 | lexemes | 161 814 en, 93 694 es |
 | senses | 212 659 en, 145 223 es |
-| glosses | every English sense (120 564 concepts, source `oewn`); 42 144 Spanish senses on 18 853 concepts (source `mcr-spa`) |
+| glosses | every English sense (120 564 concepts, source `oewn`); 42 144 Spanish senses on 18 853 concepts (source `mcr-spa`); 33 128 more Spanish senses on 18 516 concepts (source `wikidata`): 37 369 of 78 215 concepts with Spanish words have a Spanish gloss |
+| wikidata | 28 703 rows; 22 with no CILI id in the 3.1 map; 28 113 concepts described, 28 097 in the pack; 512 with several descriptions (lowest Q); 3 972 already glossed by the MCR; 5 519 with no Spanish word; 90 skipped (a description equal to one of the concept's words) |
 | forms | 259 959: one per lexeme plus 4 451 exceptions (1 381 `pl`, 1 233 `past`, 625 `ger`, 601 `cmp`, 593 `sup`, 16 `pres,3sg`, 2 `pres`) |
 | claims | 155 315: 93 395 `is_a`, 8 599 `instance_of`, 9 194 `part_of`, 12 292 `member_of`, 826 `substance_of`, 221 `causes`, 23 176 `similar_to`, 7 612 `antonym_of` |
-| pack | 76 013 568 B; `talos packs check`: ok (2.0 s) |
+| pack | 78 798 848 B (77 275 136 B built with `--no-wikidata`; the 76 013 568 B first measured predates later changes to the pack); `talos packs check`: ok |
 | builder | 9.4 s, max RSS 555 MB (release, Apple-silicon Mac) |
 
 **Dropped**, with the reason (the report lists examples): 202 Spanish synsets
@@ -580,9 +597,10 @@ choice does with no context. Read on 2026-11-25:
   a typo ("ninzzo"), Catalan spellings ("avançat", "tràmite", "retraïdo"):
   36 lemmas have letters outside Spanish spelling, most of them proper names
   ("Curaçao", "François Rabelais"). No mojibake (a test checks).
-- 76 % of the concepts with Spanish words have no Spanish gloss (18 853 of
-  78 215), as the research measured: `define` in Spanish falls back for most
-  words.
+- 52 % of the concepts with Spanish words have no Spanish gloss (37 369 of
+  78 215 have one; 18 853 from the MCR, as the research measured, and 18 516
+  more from Wikidata's descriptions): `define` in Spanish still falls back
+  for about half of them, and for nearly every verb, adjective and adverb.
 
 **Gaps.** No Spanish irregular forms: the Spanish source has no exception
 lists and none were written by hand; the rules cover the regular ones, so

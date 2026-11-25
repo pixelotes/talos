@@ -55,7 +55,7 @@ fn the_pack_passes_the_full_check_and_names_its_sources() {
     assert_eq!(info.id, "vocabulary");
     assert_eq!(info.languages, [Lang::Es, Lang::En]);
     let names: Vec<&str> = info.sources.iter().map(|s| s.name.as_str()).collect();
-    assert_eq!(names, ["oewn", "mcr-spa"]);
+    assert_eq!(names, ["oewn", "mcr-spa", "wikidata"]);
     for needed in [
         "Open English WordNet",
         "CC BY 4.0",
@@ -63,10 +63,18 @@ fn the_pack_passes_the_full_check_and_names_its_sources() {
         "Multilingual Central Repository",
         "CC BY 3.0",
         "no endorsement",
+        "Wikidata",
+        "CC0 1.0",
+        "WordNet 3.1 synset id",
     ] {
         assert!(info.notice.contains(needed), "the notice lacks {needed}");
     }
-    assert_eq!(info.license, "CC-BY-4.0 AND CC-BY-3.0 AND WordNet");
+    assert_eq!(
+        info.license,
+        "CC-BY-4.0 AND CC-BY-3.0 AND WordNet AND CC0-1.0"
+    );
+    let wikidata = info.sources.iter().find(|s| s.name == "wikidata").unwrap();
+    assert_eq!(wikidata.license.as_deref(), Some("CC0-1.0"));
     let notice = path.with_extension("NOTICE");
     assert!(notice.is_file(), "no notice beside the pack");
 }
@@ -96,10 +104,27 @@ fn the_counts_are_in_the_expected_ranges() {
         "SELECT count(DISTINCT s.concept_id) FROM sense s JOIN lexeme l ON l.id = s.lexeme_id \
          WHERE l.lang = 'es' AND s.gloss IS NOT NULL",
     );
+    // 18,853 from the MCR, about 18,500 more from Wikidata's descriptions.
     assert!(
-        (18_000..=19_500).contains(&spanish_glosses),
+        (36_000..=39_000).contains(&spanish_glosses),
         "{spanish_glosses}"
     );
+    let from_mcr = count(
+        &conn,
+        "SELECT count(DISTINCT s.concept_id) FROM sense s JOIN source x ON x.id = s.source_id \
+         WHERE x.name = 'mcr-spa' AND s.gloss IS NOT NULL",
+    );
+    assert!((18_000..=19_500).contains(&from_mcr), "{from_mcr}");
+    let from_wikidata = count(
+        &conn,
+        "SELECT count(DISTINCT s.concept_id) FROM sense s JOIN source x ON x.id = s.source_id \
+         WHERE x.name = 'wikidata' AND s.gloss IS NOT NULL",
+    );
+    assert!(
+        (17_500..=19_500).contains(&from_wikidata),
+        "{from_wikidata}"
+    );
+    assert_eq!(from_mcr + from_wikidata, spanish_glosses);
 }
 
 #[test]
@@ -146,9 +171,36 @@ fn every_row_holds_together() {
              JOIN source x ON x.id = s.source_id WHERE l.lang = 'en' AND x.name <> 'oewn'",
         ),
         (
-            "Spanish senses not from mcr-spa",
+            "Spanish senses from neither mcr-spa nor wikidata",
             "SELECT count(*) FROM sense s JOIN lexeme l ON l.id = s.lexeme_id \
-             JOIN source x ON x.id = s.source_id WHERE l.lang = 'es' AND x.name <> 'mcr-spa'",
+             JOIN source x ON x.id = s.source_id \
+             WHERE l.lang = 'es' AND x.name NOT IN ('mcr-spa', 'wikidata')",
+        ),
+        (
+            "wikidata senses with no gloss, or not Spanish",
+            "SELECT count(*) FROM sense s JOIN lexeme l ON l.id = s.lexeme_id \
+             JOIN source x ON x.id = s.source_id \
+             WHERE x.name = 'wikidata' AND (s.gloss IS NULL OR l.lang <> 'es')",
+        ),
+        (
+            "wikidata glosses on a concept that has an MCR gloss",
+            "SELECT count(*) FROM sense w JOIN source xw ON xw.id = w.source_id \
+             WHERE xw.name = 'wikidata' AND EXISTS (SELECT 1 FROM sense m \
+             JOIN source xm ON xm.id = m.source_id \
+             WHERE m.concept_id = w.concept_id AND xm.name = 'mcr-spa' AND m.gloss IS NOT NULL)",
+        ),
+        (
+            "wikidata glosses empty or equal to a Spanish word of their concept",
+            "SELECT count(*) FROM sense w JOIN source xw ON xw.id = w.source_id \
+             WHERE xw.name = 'wikidata' AND (trim(w.gloss) = '' OR lower(w.gloss) IN \
+             (SELECT lower(l.lemma) FROM sense o JOIN lexeme l ON l.id = o.lexeme_id \
+              WHERE o.concept_id = w.concept_id AND l.lang = 'es'))",
+        ),
+        (
+            "Spanish senses of one concept with different glosses",
+            "SELECT count(*) FROM (SELECT s.concept_id FROM sense s \
+             JOIN lexeme l ON l.id = s.lexeme_id WHERE l.lang = 'es' AND s.gloss IS NOT NULL \
+             GROUP BY s.concept_id HAVING count(DISTINCT s.gloss) > 1)",
         ),
         (
             "English senses without a gloss",
@@ -214,8 +266,19 @@ fn everyday_words_resolve_through_the_query_layer() {
         k.gloss(&cat, Lang::En).unwrap().unwrap().source.name,
         "oewn"
     );
+    // The dog has no MCR gloss: Wikidata's description, as such.
+    let dog = k
+        .gloss(&ConceptId::new("i46360"), Lang::Es)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        dog.text,
+        "mamífero carnívoro doméstico de la familia Canidae"
+    );
+    assert_eq!(dog.source.name, "wikidata");
+    // A concept with neither source's gloss still has none.
     assert!(
-        k.gloss(&ConceptId::new("i46360"), Lang::Es)
+        k.gloss(&ConceptId::new("i92641"), Lang::Es)
             .unwrap()
             .is_none()
     );

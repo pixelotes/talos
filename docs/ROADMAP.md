@@ -131,7 +131,8 @@ among them yet. They are milestone v0.6, on the same store.
   aligned), relations loaded even though nothing queries them yet.
 - The word-pair lexicon as a pack: cleaning pass, translation fallback.
 - Spanish glosses: those the Spanish wordnet has (about a quarter of its
-  concepts). For the rest, the cheap fallbacks, each marked as such: the
+  concepts) and Wikidata's Spanish descriptions for 18 516 more (48 % in
+  all). For the rest, the cheap fallbacks, each marked as such: the
   English gloss, and from v0.5 the opening of the Wikipedia article.
   Hand-written and build-time-translated glosses wait for v0.6.
 - An evaluation battery for definitions and translations.

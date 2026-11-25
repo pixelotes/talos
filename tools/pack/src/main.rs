@@ -5,9 +5,11 @@
 //! talos-pack                          build knowledge/seed.toml into target/packs/core.talospack
 //! talos-pack build SOURCE OUT         build a pack source into OUT
 //! talos-pack synthetic N OUT          a synthetic pack of N concepts, for measuring (DEVELOPMENT.md)
-//! talos-pack wordnet DIR [OUT] [--unverified]
-//!                                     the vocabulary pack from the wordnets in DIR (wordnet.rs),
-//!                                     by default into target/packs/vocabulary.talospack
+//! talos-pack wordnet DIR [OUT] [--unverified] [--wikidata FILE | --no-wikidata]
+//!                                     the vocabulary pack from the wordnets in DIR (wordnet.rs)
+//!                                     and the Wikidata snapshot (default
+//!                                     knowledge/sources/wikidata-p8814-es.tsv), by default into
+//!                                     target/packs/vocabulary.talospack
 //! ```
 //!
 //! The same source always gives the same bytes (`build_file`, `wordnet::build`).
@@ -25,17 +27,23 @@ use rusqlite::{Connection, params};
 use talos_core::knowledge::build::build_file;
 use talos_core::knowledge::schema::{self, DbKind};
 
+mod wikidata;
 mod wordnet;
 
-const USAGE: &str =
-    "usage: talos-pack [build SOURCE OUT | synthetic N OUT | wordnet DIR [OUT] [--unverified]]";
+const USAGE: &str = "usage: talos-pack [build SOURCE OUT | synthetic N OUT | \
+                     wordnet DIR [OUT] [--unverified] [--wikidata FILE | --no-wikidata]]";
 
 /// `talos-pack wordnet`: builds the vocabulary pack, prints what it counted
 /// and dropped, and writes that report beside the pack (`*.report.txt`),
 /// with the notice (`*.NOTICE`).
-fn vocabulary(dir: &Path, out: &Path, unverified: bool) -> Result<(), String> {
+fn vocabulary(
+    dir: &Path,
+    out: &Path,
+    unverified: bool,
+    wikidata: &wordnet::WikidataSource,
+) -> Result<(), String> {
     let started = std::time::Instant::now();
-    let report = wordnet::build(dir, out, unverified)?;
+    let report = wordnet::build(dir, out, unverified, wikidata)?;
     let text = report.text();
     print!("{text}");
     let path = out.with_extension("report.txt");
@@ -214,6 +222,47 @@ fn synthetic(n: usize, out: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// `wordnet DIR [OUT] [--unverified] [--wikidata FILE | --no-wikidata]`.
+fn wordnet_command(dir: &str, rest: &[&str]) -> Result<(), String> {
+    let (mut unverified, mut off, mut snapshot) = (false, false, None);
+    let mut outs = Vec::new();
+    let mut args = rest.iter();
+    while let Some(&arg) = args.next() {
+        match arg {
+            "--unverified" => unverified = true,
+            "--no-wikidata" => off = true,
+            "--wikidata" => {
+                let file = args
+                    .next()
+                    .ok_or_else(|| format!("--wikidata needs a file\n{USAGE}"))?;
+                snapshot = Some(PathBuf::from(file));
+            }
+            flag if flag.starts_with("--") => {
+                return Err(format!("unknown option {flag}\n{USAGE}"));
+            }
+            out => outs.push(out),
+        }
+    }
+    if off && snapshot.is_some() {
+        return Err(format!(
+            "--wikidata and --no-wikidata exclude each other\n{USAGE}"
+        ));
+    }
+    let wikidata = if off {
+        wordnet::WikidataSource::Off
+    } else {
+        wordnet::WikidataSource::Snapshot(
+            snapshot.unwrap_or_else(|| root().join("knowledge/sources/wikidata-p8814-es.tsv")),
+        )
+    };
+    let default = root().join("target/packs/vocabulary.talospack");
+    match outs.as_slice() {
+        [] => vocabulary(Path::new(dir), &default, unverified, &wikidata),
+        [out] => vocabulary(Path::new(dir), Path::new(out), unverified, &wikidata),
+        _ => Err(USAGE.to_owned()),
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
@@ -227,19 +276,7 @@ fn main() -> ExitCode {
             Ok(n) => synthetic(n, Path::new(out)),
             Err(_) => Err(format!("`{n}` is not a number\n{USAGE}")),
         },
-        ["wordnet", dir, rest @ ..] => {
-            let unverified = rest.contains(&"--unverified");
-            let outs: Vec<&&str> = rest.iter().filter(|a| **a != "--unverified").collect();
-            match outs.as_slice() {
-                [] => vocabulary(
-                    Path::new(dir),
-                    &root().join("target/packs/vocabulary.talospack"),
-                    unverified,
-                ),
-                [out] => vocabulary(Path::new(dir), Path::new(out), unverified),
-                _ => Err(USAGE.to_owned()),
-            }
-        }
+        ["wordnet", dir, rest @ ..] => wordnet_command(dir, rest),
         _ => Err(USAGE.to_owned()),
     };
     match result {

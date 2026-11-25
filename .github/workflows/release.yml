@@ -79,10 +79,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2.7.8
         with:
           key: release-pack
-      # The three sources (docs/research/wordnet-sources.md §2.3.1). They are
-      # not redistributed from this repository; the builder checks each
-      # file's SHA-256 and refuses anything else, so a source that changed
-      # upstream fails this job instead of producing a different pack.
+      # The four downloaded sources (docs/research/wordnet-sources.md §2.3.1).
+      # They are not redistributed from this repository; the builder checks
+      # each file's SHA-256 and refuses anything else, so a source that changed
+      # upstream fails this job instead of producing a different pack. The
+      # fifth input, the Wikidata snapshot, is in the repository
+      # (knowledge/sources/) and is read from there.
       - name: Fetch the sources
         run: |
           mkdir sources
@@ -92,6 +94,8 @@ jobs:
             https://raw.githubusercontent.com/globalwordnet/cili/master/ili-map-pwn30.tab
           curl -fsSL --retry 3 -o sources/wn-data-spa.tab \
             https://raw.githubusercontent.com/bond-lab/omw-data/main/wns/mcr/wn-data-spa.tab
+          curl -fsSL --retry 3 -o sources/ili-map-pwn31.tab \
+            https://raw.githubusercontent.com/globalwordnet/cili/master/ili-map-pwn31.tab
       - name: Build the pack
         run: cargo run --release --locked -p talos-pack -- wordnet sources
       - name: Check the pack with the binary

@@ -3,17 +3,22 @@
 //! 2025+ for concepts, English words, glosses, relations and the English
 //! exception forms; the Spanish wordnet of the Multilingual Central
 //! Repository, as packaged by the Open Multilingual Wordnet, for Spanish
-//! words and glosses, joined through the Collaborative Interlingual Index.
+//! words and glosses, joined through the Collaborative Interlingual Index;
+//! Wikidata's Spanish descriptions as a third source of Spanish glosses.
 //!
 //! ```text
-//! talos-pack wordnet DIR [OUT] [--unverified]
+//! talos-pack wordnet DIR [OUT] [--unverified] [--wikidata FILE | --no-wikidata]
 //! ```
 //!
-//! `DIR` holds the three source files (at its top level or one directory
-//! down); each must have the SHA-256 sum below unless `--unverified` is
-//! given, and the pack then says so in its manifest. The XML is streamed;
-//! everything is ordered by the sources' own order, so the same files give
-//! the same bytes.
+//! `DIR` holds the four downloaded source files (at its top level or one
+//! directory down); each must have the SHA-256 sum below unless
+//! `--unverified` is given, and the pack then says so in its manifest. The
+//! fifth input, the Wikidata snapshot, is in the repository
+//! (`knowledge/sources/`, [`crate::wikidata`]); `--wikidata FILE` names
+//! another. Without the snapshot or the WordNet 3.1 map the builder stops,
+//! unless `--no-wikidata` says to build without Wikidata. The XML is
+//! streamed; everything is ordered by the sources' own order, so the same
+//! files give the same bytes.
 //!
 //! What goes where:
 //!
@@ -34,7 +39,13 @@
 //!   its feminine, then the most polysemous first.
 //! - **Gloss**: the synset's definition on every English sense, under the
 //!   source `oewn`; the Spanish definition on every Spanish sense of the
-//!   concept, under `mcr-spa`. A sense's source is its gloss's source.
+//!   concept, under `mcr-spa`. A Spanish sense with no such gloss gets
+//!   Wikidata's Spanish description of the concept, under `wikidata`: the
+//!   description of the items whose P8814 names the concept's WordNet 3.1
+//!   synset (`ili-map-pwn31.tab` gives its CILI id); the lowest Q number
+//!   when several differ; none when it is only one of the concept's own
+//!   Spanish words, which defines nothing ([`wikidata_gloss`]). A sense's
+//!   source is its gloss's source.
 //! - **Forms**: the lemma, and the `Form` elements of the entry (the
 //!   WordNet exception lists: "geese", "went", "better"), with features read
 //!   from the part of speech and the ending ([`form_features`]).
@@ -51,6 +62,8 @@
 //! rows, `talos-pack build` already writes them from a `[lexicon]`), and the
 //! senses it induces for Spanish words are added to this pack under a third
 //! source with ranks after the wordnet's own.
+
+use crate::wikidata;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Write as _;
@@ -72,9 +85,12 @@ pub(crate) const LMF: &str = "english-wordnet-2025-plus.xml.gz";
 pub(crate) const ILI_MAP: &str = "ili-map-pwn30.tab";
 /// The Spanish wordnet (MCR) in the OMW tab format.
 pub(crate) const SPANISH: &str = "wn-data-spa.tab";
+/// The CILI map from WordNet 3.1 offsets to ILI ids, which joins Wikidata's
+/// P8814 to the concepts; read only when Wikidata is.
+pub(crate) const ILI_MAP_31: &str = "ili-map-pwn31.tab";
 
 /// The source files and their SHA-256 sums (wordnet-sources.md §2.3.1).
-pub(crate) const EXPECTED: [(&str, &str); 3] = [
+pub(crate) const EXPECTED: [(&str, &str); 4] = [
     (
         LMF,
         "31f4af16c54b532fd5484d4cc33aee588a31bb5b70683ae8197842fde5b586bc",
@@ -87,7 +103,20 @@ pub(crate) const EXPECTED: [(&str, &str); 3] = [
         SPANISH,
         "0ec37ce94ee2acc63ad6b120e1051f9841d172778cc24adc0023fb8dccf0a7cd",
     ),
+    (
+        ILI_MAP_31,
+        "f6068d5506323b244a12d082206633630ad0176987caab3d044cbadb09223eb7",
+    ),
 ];
+
+/// Where the Wikidata snapshot is read from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum WikidataSource {
+    /// The snapshot at this path (and the WordNet 3.1 map in `DIR`).
+    Snapshot(PathBuf),
+    /// No Wikidata: the pack has two sources, as before.
+    Off,
+}
 
 /// `source.added_at` and `claim.created_at`: the day the sources were
 /// fetched and measured (wordnet-sources.md §2.3), fixed so that the build
@@ -98,13 +127,50 @@ const DATE: i64 = 1_795_564_800; // 2026-11-25T00:00:00Z
 const ID: &str = "vocabulary";
 const VERSION: &str = "1.0";
 const TITLE: &str = "Core vocabulary: Open English WordNet 2025+ and the MCR Spanish wordnet";
+const TITLE_WIKIDATA: &str = "Core vocabulary: Open English WordNet 2025+, the MCR Spanish wordnet \
+                              and Wikidata descriptions";
 /// Every source's licence applies to its part; no single outbound licence
-/// is claimed (wordnet-sources.md §3).
+/// is claimed (wordnet-sources.md §3). CC0 adds no obligation; it is named
+/// for the part it covers.
 const LICENSE: &str = "CC-BY-4.0 AND CC-BY-3.0 AND WordNet";
+const LICENSE_WIKIDATA: &str = "CC-BY-4.0 AND CC-BY-3.0 AND WordNet AND CC0-1.0";
 
 /// The notice of wordnet-sources.md §4, for this edition, with what was
-/// changed.
-pub(crate) const NOTICE: &str = "\
+/// changed; with Wikidata's part when the pack uses it.
+pub(crate) fn notice(wikidata: bool) -> String {
+    let wikidata_source = if wikidata {
+        "\
+- Wikidata (https://www.wikidata.org/): the Spanish descriptions of items that name a
+  WordNet 3.1 synset (property P8814), written by Wikidata contributors and dedicated to
+  the public domain under CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/).
+  They are short labels, not dictionary definitions, and are attached to concepts
+  through the WordNet 3.1 synset id.
+"
+    } else {
+        ""
+    };
+    let wikidata_terms = if wikidata {
+        ", the parts derived from Wikidata under CC0, which adds no obligation"
+    } else {
+        ""
+    };
+    let sources = if wikidata {
+        "`oewn`, `mcr-spa` or `wikidata`"
+    } else {
+        "`oewn` or `mcr-spa`"
+    };
+    let join = if wikidata {
+        "whose WordNet 3.0 map joins the Spanish wordnet to Open English WordNet and whose\nWordNet 3.1 map joins the Wikidata descriptions to it"
+    } else {
+        "whose WordNet 3.0 map\njoins the Spanish wordnet to Open English WordNet"
+    };
+    let wikidata_change = if wikidata {
+        "; Spanish senses with no MCR\ndefinition given the Wikidata description of the same synset (the lowest item\nnumber when several differ)"
+    } else {
+        ""
+    };
+    format!(
+        "\
 This knowledge pack contains data derived from:
 
 - Open English WordNet (2025+ edition), Copyright 2025 the Open English WordNet
@@ -118,22 +184,23 @@ This knowledge pack contains data derived from:
 - Multilingual Central Repository 3.0 (Spanish wordnet), Gonzalez-Agirre, Laparra and
   Rigau, GWC 2012, licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).
   https://adimen.ehu.eus/web/MCR
-
+{wikidata_source}
 The data was converted to a SQLite schema, merged by concept, and reduced to the
 fields Talos uses; no endorsement by the original authors is implied.
 
 Each part keeps its source's licence: the parts derived from Open English WordNet
 are under CC BY 4.0 with the WordNet notice retained, the parts derived from the
-Multilingual Central Repository under CC BY 3.0. Every sense and gloss names its
-source (`oewn` or `mcr-spa`). Concept identifiers are those of the Collaborative
-Interlingual Index (https://github.com/globalwordnet/cili), whose WordNet 3.0 map
-joins the Spanish wordnet to Open English WordNet.
+Multilingual Central Repository under CC BY 3.0{wikidata_terms}. Every sense and gloss names its
+source ({sources}). Concept identifiers are those of the Collaborative
+Interlingual Index (https://github.com/globalwordnet/cili), {join}.
 
 Changes: Spanish synsets joined to Open English WordNet synsets through CILI;
 examples, pronunciations, syntactic frames and the derivational, domain and
 pertainym relations left out; antonyms moved from word senses to concepts;
 Spanish lemmas with collapsed whitespace; sense ranks for Spanish words
-computed from the English sense order.";
+computed from the English sense order{wikidata_change}."
+    )
+}
 
 /// Where each file of `EXPECTED` is: `dir/NAME` or `dir/*/NAME`.
 fn find(dir: &Path, name: &str) -> Option<PathBuf> {
@@ -174,27 +241,37 @@ fn sha256(path: &Path) -> Result<String, String> {
     }))
 }
 
-/// The three files, found and checked.
+/// The files, found and checked.
 struct Files {
     lmf: PathBuf,
     ili: PathBuf,
     spanish: PathBuf,
+    /// The WordNet 3.1 map, when Wikidata is read.
+    ili31: Option<PathBuf>,
     /// `name sha256` per file, for the manifest.
     sums: Vec<String>,
     /// Whether every sum was the expected one.
     verified: bool,
 }
 
-fn locate(dir: &Path, unverified: bool) -> Result<Files, String> {
+fn locate(dir: &Path, unverified: bool, wikidata: bool) -> Result<Files, String> {
     let mut paths = Vec::new();
     let mut sums = Vec::new();
     let mut verified = true;
     for (name, expected) in EXPECTED {
+        if name == ILI_MAP_31 && !wikidata {
+            continue;
+        }
         let path = find(dir, name).ok_or_else(|| {
             format!(
                 "{name} is not in {} (nor one directory down); see docs/DEVELOPMENT.md, \
-                 \"The vocabulary pack\"",
-                dir.display()
+                 \"The vocabulary pack\"{}",
+                dir.display(),
+                if name == ILI_MAP_31 {
+                    "; pass --no-wikidata to build without Wikidata descriptions"
+                } else {
+                    ""
+                }
             )
         })?;
         let sum = sha256(&path)?;
@@ -221,6 +298,7 @@ fn locate(dir: &Path, unverified: bool) -> Result<Files, String> {
         lmf: next()?,
         ili: next()?,
         spanish: next()?,
+        ili31: if wikidata { Some(next()?) } else { None },
         sums,
         verified,
     })
@@ -767,6 +845,106 @@ fn plural_beside(lemma: &str, others: &[&str]) -> bool {
     })
 }
 
+/// The ids of the sources in the pack's `source` table.
+const SOURCE_OEWN: i64 = 1;
+const SOURCE_MCR: i64 = 2;
+const SOURCE_WIKIDATA: i64 = 3;
+
+/// The CILI id of a synset of a WordNet map; an adjective is also tried as
+/// the satellite `-s` the map may write for it.
+fn lookup_ili<'a>(map: &'a HashMap<String, String>, synset: &str) -> Option<&'a String> {
+    map.get(synset).or_else(|| {
+        let stem = synset.strip_suffix("-a")?;
+        map.get(&format!("{stem}-s"))
+    })
+}
+
+/// Wikidata's descriptions by concept: each row's WordNet 3.1 synset id to a
+/// CILI id through `ili31`, then to the OEWN synset (index) that carries it.
+/// Every description of a synset, the lowest Q number first, equal ones once;
+/// empty ones are dropped. The report counts what was read, lost and
+/// resolved.
+fn describe(
+    rows: &[wikidata::Row],
+    ili31: &HashMap<String, String>,
+    by_ili: &HashMap<&str, usize>,
+    r: &mut Report,
+) -> BTreeMap<usize, Vec<String>> {
+    let (mut empty, mut no_ili, mut elsewhere) = (0, Vec::new(), Vec::new());
+    // CILI id → (Q number, description).
+    let mut by_concept: BTreeMap<&str, Vec<(u64, &str)>> = BTreeMap::new();
+    for row in rows {
+        if row.description.is_empty() {
+            empty += 1;
+        } else if let Some(id) = lookup_ili(ili31, &row.synset) {
+            by_concept
+                .entry(id)
+                .or_default()
+                .push((row.item, &row.description));
+        } else {
+            no_ili.push(format!("Q{} {}", row.item, row.synset));
+        }
+    }
+    let mut out = BTreeMap::new();
+    let mut conflicts = 0;
+    for (id, mut candidates) in by_concept {
+        candidates.sort_unstable();
+        let mut texts: Vec<String> = Vec::new();
+        for (_, text) in candidates {
+            if !texts.iter().any(|t| t == text) {
+                texts.push(text.to_owned());
+            }
+        }
+        conflicts += usize::from(texts.len() > 1);
+        match by_ili.get(id) {
+            Some(&synset) => {
+                out.insert(synset, texts);
+            }
+            None => elsewhere.push(id.to_owned()),
+        }
+    }
+    r.count("wikidata: rows read", rows.len());
+    r.line(format!(
+        "DROPPED wikidata rows with an empty description: {empty}"
+    ));
+    r.line(format!(
+        "DROPPED wikidata rows with no CILI id in the WordNet 3.1 map: {}{}",
+        no_ili.len(),
+        examples(&no_ili, 5)
+    ));
+    r.count(
+        "wikidata: concepts described (by CILI id)",
+        out.len() + elsewhere.len(),
+    );
+    r.line(format!(
+        "DROPPED wikidata concepts whose CILI id no OEWN synset carries: {}{}",
+        elsewhere.len(),
+        examples(&elsewhere, 5)
+    ));
+    r.count(
+        "wikidata: concepts with several different descriptions (lowest Q number chosen)",
+        conflicts,
+    );
+    r.count(
+        "wikidata: concepts described that are in the pack",
+        out.len(),
+    );
+    out
+}
+
+/// The description a concept's Spanish senses get: the first of its
+/// descriptions (lowest Q number first) that is not, in the match form, one
+/// of the concept's own Spanish words. A description that only repeats a word
+/// ("lengua" for *lengua*) defines nothing; no other judgement of what makes
+/// a definition is made.
+fn wikidata_gloss<'a>(descriptions: &'a [String], words: &[String]) -> Option<&'a str> {
+    let own: Vec<String> = words.iter().map(|w| key(w)).collect();
+    descriptions
+        .iter()
+        .find(|d| !own.contains(&key(d)))
+        .map(String::as_str)
+}
+
 /// The predicates of the pack: (name, inverse, transitive, symmetric).
 const PREDICATES: &[(&str, Option<&str>, bool, bool)] = &[
     ("is_a", Some("has_kind"), true, false),
@@ -816,27 +994,65 @@ fn examples<'a>(items: impl IntoIterator<Item = &'a String>, n: usize) -> String
     }
 }
 
+/// The Wikidata side of a build: its rows and the WordNet 3.1 map.
+struct Wikidata {
+    rows: Vec<wikidata::Row>,
+    /// WordNet 3.1 `offset-pos` → ILI id.
+    ili31: HashMap<String, String>,
+}
+
 /// Builds the vocabulary pack from the sources in `dir` into `out`, and
 /// writes its notice beside it (`OUT` with the extension `NOTICE`). Refuses
-/// files whose checksum is not the expected one unless `unverified`.
+/// files whose checksum is not the expected one unless `unverified`. Reads
+/// the Wikidata snapshot, and the WordNet 3.1 map from `dir`, unless
+/// `wikidata` is [`WikidataSource::Off`]; a snapshot or map that is missing
+/// is an error then, never a silent omission.
 ///
 /// # Errors
 ///
 /// A message for a person when a file is missing, unknown or unreadable, or
 /// a statement fails.
-pub(crate) fn build(dir: &Path, out: &Path, unverified: bool) -> Result<Report, String> {
-    let files = locate(dir, unverified)?;
+pub(crate) fn build(
+    dir: &Path,
+    out: &Path,
+    unverified: bool,
+    wikidata: &WikidataSource,
+) -> Result<Report, String> {
+    let mut files = locate(dir, unverified, *wikidata != WikidataSource::Off)?;
+    let wikidata = match (wikidata, &files.ili31) {
+        (WikidataSource::Snapshot(path), Some(ili31)) => {
+            if !path.is_file() {
+                return Err(format!(
+                    "the Wikidata snapshot {} is not a file; see knowledge/sources/README.md \
+                     (pass --no-wikidata to build without Wikidata descriptions)",
+                    path.display()
+                ));
+            }
+            let name = path.file_name().map_or_else(
+                || "wikidata".to_owned(),
+                |n| n.to_string_lossy().into_owned(),
+            );
+            files.sums.push(format!("{name} {}", sha256(path)?));
+            let rows =
+                wikidata::read(open_text(path)?).map_err(|e| format!("{}: {e}", path.display()))?;
+            Some(Wikidata {
+                rows,
+                ili31: read_ili(open_text(ili31)?)?,
+            })
+        }
+        _ => None,
+    };
     let lmf = read_lmf(BufReader::with_capacity(
         1 << 16,
         GzDecoder::new(open_text(&files.lmf)?),
     ))?;
     let ili = read_ili(open_text(&files.ili)?)?;
     let spanish = read_spanish(open_text(&files.spanish)?)?;
-    let (conn, report) = assemble(&lmf, &ili, &spanish, &files)?;
+    let (conn, report) = assemble(&lmf, &ili, &spanish, wikidata.as_ref(), &files)?;
     write_pack(&conn, out)?;
-    let notice = out.with_extension("NOTICE");
-    std::fs::write(&notice, format!("{NOTICE}\n"))
-        .map_err(|e| format!("{}: {e}", notice.display()))?;
+    let notice_path = out.with_extension("NOTICE");
+    std::fs::write(&notice_path, format!("{}\n", notice(wikidata.is_some())))
+        .map_err(|e| format!("{}: {e}", notice_path.display()))?;
     Ok(report)
 }
 
@@ -867,6 +1083,7 @@ fn assemble(
     lmf: &Lmf,
     ili: &HashMap<String, String>,
     spanish: &Spanish,
+    wikidata: Option<&Wikidata>,
     files: &Files,
 ) -> Result<(Connection, Report), String> {
     let mut r = Report::default();
@@ -1174,6 +1391,42 @@ fn assemble(
         "DROPPED es examples (no place in the schema): {examples_es}"
     ));
 
+    // Wikidata's descriptions for the Spanish senses with no MCR gloss.
+    let mut gloss_source: Vec<i64> = vec![SOURCE_MCR; lmf.synsets.len()];
+    if let Some(w) = wikidata {
+        let described = describe(&w.rows, &w.ili31, &by_ili, &mut r);
+        let (mut kept, mut no_words, mut as_lemma, mut given) = (0, 0, 0, 0);
+        for (synset, candidates) in described {
+            if gloss_spanish[synset].is_some() {
+                kept += 1;
+            } else if spanish_of[synset].is_empty() {
+                no_words += 1;
+            } else if let Some(text) = wikidata_gloss(&candidates, &spanish_of[synset]) {
+                gloss_spanish[synset] = Some(text.to_owned());
+                gloss_source[synset] = SOURCE_WIKIDATA;
+                given += 1;
+            } else {
+                as_lemma += 1;
+            }
+        }
+        r.count(
+            "wikidata: described concepts that already have an MCR gloss (kept)",
+            kept,
+        );
+        r.count(
+            "wikidata: described concepts with no Spanish word (unused)",
+            no_words,
+        );
+        r.count(
+            "wikidata: concepts whose descriptions all equal one of their own Spanish words (skipped)",
+            as_lemma,
+        );
+        r.count(
+            "wikidata: concepts newly glossed (a Spanish word, no MCR gloss)",
+            given,
+        );
+    }
+
     // Spanish lexemes, by (lemma, part of speech), sorted.
     let mut es_keys: BTreeMap<(String, &'static str), Vec<usize>> = BTreeMap::new();
     let mut es_empty_pos = 0;
@@ -1240,13 +1493,28 @@ fn assemble(
     schema::migrate(&tx, "main", DbKind::Pack).map_err(|e| e.to_string())?;
     let sums = files.sums.join("\n");
     let verified = if files.verified { "yes" } else { "no" };
+    let notice = notice(wikidata.is_some());
     for (k, v) in [
         ("id", ID),
         ("version", VERSION),
-        ("title", TITLE),
+        (
+            "title",
+            if wikidata.is_some() {
+                TITLE_WIKIDATA
+            } else {
+                TITLE
+            },
+        ),
         ("languages", "es en"),
-        ("license", LICENSE),
-        ("notice", NOTICE),
+        (
+            "license",
+            if wikidata.is_some() {
+                LICENSE_WIKIDATA
+            } else {
+                LICENSE
+            },
+        ),
+        ("notice", notice.as_str()),
         ("source_files", sums.as_str()),
         ("source_files_verified", verified),
     ] {
@@ -1260,6 +1528,14 @@ fn assemble(
         [DATE],
     )
     .map_err(|e| sql(&e))?;
+    if wikidata.is_some() {
+        tx.execute(
+            "INSERT INTO source (id, kind, name, license, url, added_at) VALUES \
+             (3, 'import', 'wikidata', 'CC0-1.0', 'https://www.wikidata.org/', ?1)",
+            [DATE],
+        )
+        .map_err(|e| sql(&e))?;
+    }
     let mut predicate_id: HashMap<&str, i64> = HashMap::new();
     for (i, (name, inverse, transitive, symmetric)) in PREDICATES.iter().enumerate() {
         let id = i64::try_from(i + 1).map_err(|e| e.to_string())?;
@@ -1314,15 +1590,21 @@ fn assemble(
                  VALUES (?1, ?2, ?3, ?4, ?5)",
             )
             .map_err(|e| sql(&e))?;
-        let (mut english_senses, mut spanish_senses, mut english_glossed, mut spanish_glossed) =
-            (0, 0, 0, 0);
+        let (mut english_senses, mut spanish_senses, mut english_glossed) = (0, 0, 0);
+        let (mut spanish_glossed, mut wikidata_glossed) = (0, 0);
         let mut plurals = 0;
         for s in 0..lmf.synsets.len() {
             for &l in &english_of[s] {
                 let rank = lexemes[l].senses.iter().position(|x| *x == s).unwrap_or(0);
                 let rank = i64::try_from(rank).map_err(|e| e.to_string())? + offsets[l];
                 sense
-                    .execute(params![ids[l], concept_ids[s], gloss_english[s], rank, 1])
+                    .execute(params![
+                        ids[l],
+                        concept_ids[s],
+                        gloss_english[s],
+                        rank,
+                        SOURCE_OEWN
+                    ])
                     .map_err(|e| sql(&e))?;
                 english_senses += 1;
                 english_glossed += usize::from(gloss_english[s].is_some());
@@ -1356,10 +1638,22 @@ fn assemble(
             ranked.sort_unstable();
             for (rank, _, l) in ranked {
                 sense
-                    .execute(params![ids[l], concept_ids[s], gloss_spanish[s], rank, 2])
+                    .execute(params![
+                        ids[l],
+                        concept_ids[s],
+                        gloss_spanish[s],
+                        rank,
+                        gloss_source[s]
+                    ])
                     .map_err(|e| sql(&e))?;
                 spanish_senses += 1;
-                spanish_glossed += usize::from(gloss_spanish[s].is_some());
+                if gloss_spanish[s].is_some() {
+                    if gloss_source[s] == SOURCE_WIKIDATA {
+                        wikidata_glossed += 1;
+                    } else {
+                        spanish_glossed += 1;
+                    }
+                }
             }
         }
         r.count("concepts", lmf.synsets.len());
@@ -1373,6 +1667,12 @@ fn assemble(
         r.line(format!("es senses of a word that is the plural of another word of its concept (written last): {plurals}"));
         r.count("en senses with a gloss (source oewn)", english_glossed);
         r.count("es senses with a gloss (source mcr-spa)", spanish_glossed);
+        if wikidata.is_some() {
+            r.count(
+                "wikidata: es senses given a gloss (source wikidata)",
+                wikidata_glossed,
+            );
+        }
         r.count(
             "concepts with a Spanish gloss",
             gloss_spanish.iter().filter(|g| g.is_some()).count(),
@@ -1575,7 +1875,25 @@ mod tests {
         00000009-n\tspa:lemma\tnada\n\
         00000010-n\tspa:def\t0\tsin palabra\n";
 
-    fn sample() -> (Connection, Report) {
+    /// The WordNet 3.1 offsets of the sample (arbitrary, as the others).
+    const ILI31_SAMPLE: &str = "i1\t10000001-n\ni2\t10000002-n\ni3\t10000003-n\n\
+        i5\t10000005-a\ni7\t10000007-s\ni99\t10000099-n\n";
+
+    /// Q10 and Q20 describe the same synset (Q10 wins); Q5 describes a concept
+    /// the MCR glosses (kept); Q6 describes "bueno" with the word itself
+    /// (skipped); Q7 has no Spanish word to give a gloss to; Q8's synset is
+    /// not in the map, Q9's CILI id not in the pack, Q11's description empty.
+    const WIKIDATA_SAMPLE: &str = "?i\t?s\t?d\n\
+        <http://www.wikidata.org/entity/Q20>\t\"10000003-n\"\t\"persona despreciable\"@es\n\
+        <http://www.wikidata.org/entity/Q10>\t\"10000003-n\"\t\"sinvergüenza\"@es\n\
+        <http://www.wikidata.org/entity/Q5>\t\"10000002-n\"\t\"perro doméstico\"@es\n\
+        <http://www.wikidata.org/entity/Q6>\t\"10000007-a\"\t\"Bueno\"@es\n\
+        <http://www.wikidata.org/entity/Q7>\t\"10000001-n\"\t\"animal\"@es\n\
+        <http://www.wikidata.org/entity/Q8>\t\"99999999-n\"\t\"nada\"@es\n\
+        <http://www.wikidata.org/entity/Q9>\t\"10000099-n\"\t\"fuera\"@es\n\
+        <http://www.wikidata.org/entity/Q11>\t\"10000005-a\"\t\"\"@es\n";
+
+    fn sample_with(wikidata: bool) -> (Connection, Report) {
         let lmf = read_lmf(LMF_SAMPLE.as_bytes()).unwrap();
         let ili = read_ili(ILI_SAMPLE.as_bytes()).unwrap();
         let spanish = read_spanish(SPANISH_SAMPLE.as_bytes()).unwrap();
@@ -1583,10 +1901,19 @@ mod tests {
             lmf: PathBuf::new(),
             ili: PathBuf::new(),
             spanish: PathBuf::new(),
+            ili31: None,
             sums: Vec::new(),
             verified: true,
         };
-        assemble(&lmf, &ili, &spanish, &files).unwrap()
+        let wikidata = wikidata.then(|| Wikidata {
+            rows: wikidata::read(WIKIDATA_SAMPLE.as_bytes()).unwrap(),
+            ili31: read_ili(ILI31_SAMPLE.as_bytes()).unwrap(),
+        });
+        assemble(&lmf, &ili, &spanish, wikidata.as_ref(), &files).unwrap()
+    }
+
+    fn sample() -> (Connection, Report) {
+        sample_with(true)
     }
 
     fn rows(conn: &Connection, query: &str) -> Vec<String> {
@@ -1649,7 +1976,7 @@ mod tests {
                  JOIN lexeme l ON l.id = s.lexeme_id WHERE l.lang = 'es' AND l.lemma = 'perro' \
                  ORDER BY s.rank, s.id"
             ),
-            ["i2 0 animal doméstico", "i3 1 -"]
+            ["i2 0 animal doméstico", "i3 1 sinvergüenza"]
         );
         assert_eq!(
             rows(
@@ -1706,6 +2033,125 @@ mod tests {
     }
 
     #[test]
+    fn wikidata_fills_only_the_spanish_senses_without_a_gloss() {
+        let (conn, report) = sample();
+        // The lowest Q number wins; the MCR gloss of i2 stays; "bueno" has
+        // only a description equal to itself: none.
+        assert_eq!(
+            rows(
+                &conn,
+                "SELECT s.concept_id || ' ' || l.lemma || ' ' || x.name || ' ' || ifnull(s.gloss, '-') \
+                 FROM sense s JOIN lexeme l ON l.id = s.lexeme_id \
+                 JOIN source x ON x.id = s.source_id WHERE l.lang = 'es' \
+                 ORDER BY s.concept_id, l.lemma"
+            ),
+            [
+                "i2 can mcr-spa animal doméstico",
+                "i2 perro mcr-spa animal doméstico",
+                "i3 perro wikidata sinvergüenza",
+                "i7 bueno mcr-spa -"
+            ]
+        );
+        // English senses are untouched.
+        assert_eq!(
+            count(
+                &conn,
+                "SELECT count(*) FROM sense s JOIN lexeme l ON l.id = s.lexeme_id \
+                 WHERE l.lang = 'en' AND s.source_id <> 1"
+            ),
+            0
+        );
+        assert_eq!(
+            rows(
+                &conn,
+                "SELECT name || ' ' || license FROM source ORDER BY id"
+            ),
+            [
+                "oewn CC-BY-4.0 AND WordNet",
+                "mcr-spa CC-BY-3.0",
+                "wikidata CC0-1.0"
+            ]
+        );
+        assert_eq!(report.get("wikidata: rows read"), Some(8));
+        assert_eq!(
+            report.get("wikidata: concepts described (by CILI id)"),
+            Some(5)
+        );
+        assert_eq!(
+            report.get("wikidata: concepts described that are in the pack"),
+            Some(4)
+        );
+        assert_eq!(
+            report.get(
+                "wikidata: concepts with several different descriptions (lowest Q number chosen)"
+            ),
+            Some(1)
+        );
+        assert_eq!(
+            report.get("wikidata: described concepts that already have an MCR gloss (kept)"),
+            Some(1)
+        );
+        assert_eq!(
+            report.get("wikidata: described concepts with no Spanish word (unused)"),
+            Some(1)
+        );
+        assert_eq!(
+            report.get("wikidata: es senses given a gloss (source wikidata)"),
+            Some(1)
+        );
+        assert_eq!(
+            report.get("wikidata: concepts newly glossed (a Spanish word, no MCR gloss)"),
+            Some(1)
+        );
+        let text = report.text();
+        assert!(
+            text.contains("no CILI id in the WordNet 3.1 map: 1 (e.g. Q8 99999999-n)"),
+            "{text}"
+        );
+        assert!(text.contains("empty description: 1"), "{text}");
+        assert!(
+            text.contains("no OEWN synset carries: 1 (e.g. i99)"),
+            "{text}"
+        );
+        assert_eq!(
+            wikidata_gloss(&["Perro".to_owned()], &["perro".to_owned()]),
+            None
+        );
+    }
+
+    #[test]
+    fn without_wikidata_the_pack_has_two_sources_and_the_old_licence() {
+        let (conn, report) = sample_with(false);
+        assert_eq!(
+            rows(&conn, "SELECT name FROM source ORDER BY id"),
+            ["oewn", "mcr-spa"]
+        );
+        assert_eq!(
+            rows(&conn, "SELECT value FROM meta WHERE key = 'license'"),
+            [LICENSE]
+        );
+        assert_eq!(
+            rows(&conn, "SELECT value FROM meta WHERE key = 'notice'"),
+            [notice(false)]
+        );
+        assert!(!notice(false).contains("Wikidata"));
+        assert!(notice(true).contains("CC0 1.0"));
+        assert_eq!(report.get("wikidata: rows read"), None);
+        assert_eq!(
+            rows(
+                &conn,
+                "SELECT ifnull(s.gloss, '-') FROM sense s JOIN lexeme l ON l.id = s.lexeme_id \
+                 WHERE l.lemma = 'perro' AND s.concept_id = 'i3'"
+            ),
+            ["-"]
+        );
+    }
+
+    fn count(conn: &Connection, query: &str) -> i64 {
+        conn.query_row(query, [], |r| r.get(0)).unwrap()
+    }
+
+    #[test]
     fn exception_forms_get_features_from_their_ending() {
         for (pos, form, features) in [
             ("n", "geese", "pl"),
@@ -1740,13 +2186,28 @@ mod tests {
     fn missing_or_unknown_sources_are_refused() {
         let dir = std::env::temp_dir().join(format!("talos-wordnet-src-{}", std::process::id()));
         std::fs::create_dir_all(dir.join("en")).unwrap();
-        let error = build(&dir, &dir.join("x.talospack"), false).unwrap_err();
+        let off = WikidataSource::Off;
+        let error = build(&dir, &dir.join("x.talospack"), false, &off).unwrap_err();
         assert!(error.contains(LMF), "{error}");
         std::fs::write(dir.join("en").join(LMF), b"not the file").unwrap();
         std::fs::write(dir.join(ILI_MAP), b"").unwrap();
         std::fs::write(dir.join(SPANISH), b"").unwrap();
-        let error = build(&dir, &dir.join("x.talospack"), false).unwrap_err();
+        let error = build(&dir, &dir.join("x.talospack"), false, &off).unwrap_err();
         assert!(error.contains("refusing an unknown file"), "{error}");
+        // With Wikidata the 3.1 map is needed too, and the error says how to
+        // do without; the snapshot is as well.
+        let on = WikidataSource::Snapshot(dir.join("absent.tsv"));
+        let error = build(&dir, &dir.join("x.talospack"), true, &on).unwrap_err();
+        assert!(
+            error.contains(ILI_MAP_31) && error.contains("--no-wikidata"),
+            "{error}"
+        );
+        std::fs::write(dir.join(ILI_MAP_31), b"").unwrap();
+        let error = build(&dir, &dir.join("x.talospack"), true, &on).unwrap_err();
+        assert!(
+            error.contains("Wikidata snapshot") && error.contains("--no-wikidata"),
+            "{error}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

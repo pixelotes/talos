@@ -85,20 +85,24 @@ Knowledge packs are `*.talospack` files in `packs/` inside it.
 ### The dictionary
 
 `define` and `translate` need a vocabulary pack, which is not in this
-repository. It is built from Open English WordNet and the Spanish wordnet of
-the Multilingual Central Repository; where to get the three source files and
-their checksums is in
+repository. It is built from four downloaded inputs (Open English WordNet,
+the Spanish wordnet of the Multilingual Central Repository and the two CILI
+maps that join them to each other and to Wikidata) and a fifth that is in the
+repository: a CC0 snapshot of Wikidata's Spanish descriptions
+(`knowledge/sources/`), which give a Spanish gloss to words the Spanish
+wordnet has none for. Where to get the four files and their checksums is in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and
 [docs/research/wordnet-sources.md](docs/research/wordnet-sources.md).
 
 ```sh
-cargo run --release -p talos-pack -- wordnet DIR    # DIR holds the source files
+cargo run --release -p talos-pack -- wordnet DIR    # DIR holds the four downloaded files
 mkdir -p ~/.local/share/talos/packs
 cp target/packs/vocabulary.talospack ~/.local/share/talos/packs/
 ./target/release/talos packs list
 ```
 
 The pack holds about 120,000 concepts, 162,000 English and 94,000 Spanish
-words, in 76 MB. It carries its sources' licences, which are not this
+words, in 78 MB. It carries its sources' licences, which are not this
 project's: see the `vocabulary.NOTICE` written beside it.
 
 ## Where it stands

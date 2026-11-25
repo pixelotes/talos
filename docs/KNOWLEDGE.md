@@ -393,7 +393,9 @@ slots into the same schema when it is wanted.
 
 `talos-pack wordnet DIR` builds `vocabulary.talospack` from Open English
 WordNet 2025+ and the MCR Spanish wordnet (as packaged by the Open
-Multilingual Wordnet), joined through the CILI map of WordNet 3.0 offsets.
+Multilingual Wordnet), joined through the CILI map of WordNet 3.0 offsets,
+and, for Spanish glosses, Wikidata's Spanish descriptions (a CC0 snapshot in
+`knowledge/sources/`) joined through the CILI map of WordNet 3.1.
 How to get the files, their checksums, every count, what is dropped and
 why, and the measurements are in [DEVELOPMENT.md](DEVELOPMENT.md), "The
 vocabulary pack". In short:
@@ -406,9 +408,14 @@ vocabulary pack". In short:
 - **The join** keeps 78 215 of the 78 417 Spanish synsets (99.7 %): 202
   name a CILI id that Open English WordNet no longer carries.
 - **Glosses by source.** Every English sense has its synset's definition
-  (source `oewn`); 18 853 concepts have a Spanish one (source `mcr-spa`),
-  24 % of the 78 215 with Spanish words. A sense's source is its gloss's
-  source, so `Gloss::source` says which wordnet a definition came from.
+  (source `oewn`); 18 853 concepts have a Spanish one from the MCR (source
+  `mcr-spa`), 24 % of the 78 215 with Spanish words, and 18 516 more have
+  Wikidata's Spanish description (source `wikidata`, never over an MCR
+  gloss): 37 369 in all, 48 %. The Wikidata ones are short labels by
+  contributors, nouns almost only, and a description may
+  sit on another sense than the one ranked first (wordnet-sources.md
+  §2.3.2). A sense's source is its gloss's source, so `Gloss::source` says
+  which one a definition came from.
 - **Sense order.** English: WordNet's order within an entry, commonest
   first. Spanish: none in the source; borrowed from the English word that
   most often translates the Spanish one, a guess documented with the
@@ -423,9 +430,10 @@ vocabulary pack". In short:
 
 The notice it carries, in its manifest and in `vocabulary.NOTICE` beside it,
 is the one of [wordnet-sources.md](research/wordnet-sources.md) §4 for the
-2025+ edition, with what was changed and which licence covers which part:
-no single outbound licence is claimed (the manifest's `license` is
-`CC-BY-4.0 AND CC-BY-3.0 AND WordNet`). Its copyright lines still have to
+2025+ edition, with what was changed and which licence covers which part,
+and Wikidata (CC0, which adds no obligation): no single outbound licence is
+claimed (the manifest's `license` is
+`CC-BY-4.0 AND CC-BY-3.0 AND WordNet AND CC0-1.0`). Its copyright lines still have to
 be checked against each project's own licence file before the pack is
 published (§6 there).
 
@@ -482,7 +490,8 @@ Spanish definition — second-hand figures suggest 10–18 %, unverified. Relati
 and word translation are unaffected; Spanish *definitions* are. Measured on
 the files used (wordnet-sources.md §2.3) and in the built vocabulary pack:
 78 215 concepts have Spanish words, 18 853 of them (24 %) a Spanish
-definition.
+definition from the MCR; with Wikidata's Spanish descriptions (below) 37 369
+(48 %).
 
 The gap is closed in two ways (decided 2026-11-24):
 
@@ -497,8 +506,11 @@ The gap is closed in two ways (decided 2026-11-24):
    derivatives with attribution, which the pack carries.
 
 Translated glosses are reviewed by sampling before a pack is released, and the
-sample's error rate is recorded with the pack. Wikidata descriptions remain a
-possible supplement and are not part of the plan.
+sample's error rate is recorded with the pack. Wikidata's Spanish
+descriptions are in the pack since v0.3 as a third source (`wikidata`), for
+concepts with no MCR gloss only: short labels, nouns almost only, not
+reviewed against the synset (wordnet-sources.md §2.3.2). They do not replace
+the two ways above.
 
 Where no Spanish gloss exists, Talos still answers relations and translation
 for the concept, and says it has no definition in Spanish rather than showing

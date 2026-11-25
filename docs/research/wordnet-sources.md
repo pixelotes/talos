@@ -134,6 +134,52 @@ Working estimate for planning: **roughly 10-18% of Spanish synsets have a Spanis
 
 Concretely this means the plan in KNOWLEDGE.md §7 is right: most Spanish concepts will have no Spanish gloss, and Talos must say so.
 
+### 2.3.2 Wikidata's Spanish descriptions as a third gloss source, measured (2026-11-25)
+
+Wikidata property P8814, "WordNet 3.1 Synset ID", links items to WordNet 3.1
+synsets, and Wikidata's data is CC0. A SPARQL export of every item with
+P8814 and a Spanish description (query in `knowledge/sources/README.md`) is
+committed as `knowledge/sources/wikidata-p8814-es.tsv`: 28,703 rows
+(2,917,494 bytes), taken in slices by synset prefix because the whole query
+times out. A first export, cut short by that timeout at 17,657 rows, gave
+the lower figures first reported for this source. Synset id → CILI id through `ili-map-pwn31.tab`
+(https://raw.githubusercontent.com/globalwordnet/cili/master/ili-map-pwn31.tab,
+SHA-256 `f6068d55…9223eb7`, downloaded like the 3.0 map).
+
+| | Count |
+|---|---|
+| Rows | 28,703 (28,650 noun synsets, 28 adjective, 17 verb, 3 adverb; 5 ids that are not synset ids) |
+| Rows with no CILI id in the 3.1 map | 22 |
+| Concepts described | 28,113, of which 28,097 in the pack |
+| Concepts with more than one distinct description | 512 (the lowest Q number is taken) |
+| Described concepts that already have an MCR gloss | 3,972 (kept) |
+| Described concepts with no Spanish word | 5,519 |
+| Concepts with Spanish words and no MCR gloss that would gain one | 18,606 |
+| Of those, whose only descriptions repeat one of the concept's own Spanish words | 90 (skipped) |
+| Spanish senses given a gloss | 33,128 |
+| Concepts with a Spanish gloss | 18,853 → 37,369 of 78,215 (24 % → 48 %) |
+| Of 40 everyday Spanish words, first sense with a Spanish gloss | 17 → 35 |
+
+Caveats:
+
+- **Nouns almost only.** Wikidata items are things and classes; adjectives,
+  verbs and adverbs gain next to nothing.
+- **Common nouns more than names.** Of the 18,516 concepts newly glossed,
+  14,450 are of kind `class` and 4,066 of kind `entity` (named things).
+- **Short labels.** A description is a one-line label by contributors
+  ("país de África del Sur", "mueble para sentarse"), not a dictionary
+  definition, and is not reviewed against the synset.
+- **A description may belong to another sense than the one ranked first.** An
+  item's P8814 can name a synset that is close to, but not, the sense its
+  description fits ("trabajo" ranks `occupation, job` first and gets "entidad
+  dedicada a la actividad comercial, industrial o profesional", a description
+  of a business, where the concept names a job; for "ciudad" the sense
+  `city, metropolis, urban center` gets "ciudad o área urbana muy grande y
+  significativa…" and the plain `city` sense none). Both are suspected
+  mismatches, not checked. The pack does not judge this.
+- A concept described twice with different texts takes the one of the item
+  with the lowest Q number: arbitrary but deterministic.
+
 ### 2.4 Morphology
 
 | Source | Language | Licence | Size | Notes |
@@ -153,7 +199,7 @@ Recommendation for morphology: English from morphy-style rules plus the WordNet 
 |---|---|---|---|
 | Leave empty; say "no definition in Spanish" (current design, KNOWLEDGE.md §7) | n/a | honest | works today |
 | Hand-write for a core subset | Talos' own (MIT/CC0 as chosen) | hundreds to a few thousand | highest quality; costs authoring time; best for the "everyday concepts" seed |
-| Wikidata descriptions (es) | CC0 [P] | only for concepts that map to a Wikidata item; short descriptions, not dictionary glosses; the WordNet-to-Wikidata mapping property was not verified [U] | good for entities later, weak for common-word synsets |
+| Wikidata descriptions (es) | CC0 [P] | only for concepts that map to a Wikidata item; short descriptions, not dictionary glosses; the mapping is property P8814, measured in §2.3.2 | good for entities later, weak for common-word synsets |
 | Wiktionary (es) definitions | CC BY-SA 4.0 + GFDL [P] | broad, but word-centric: the sense -> synset alignment has to be guessed | possible as a separate optional share-alike pack; contaminates any pack it is merged into |
 | Machine translation of the OEWN gloss | derivative of CC BY 4.0 text: attribution to OEWN/Princeton is enough; MT engine terms may add constraints [U] | full | cheap, but quality unvetted; must be stored as machine-generated, lower confidence, never shown as the "official" gloss without a mark |
 | MCR's own machine-translated glosses | CC BY 3.0 for non-English data per the package LICENSE [P], but whether MT output from an external API (MyMemory) is covered by that statement was not checked [U] | partial (see §2.3) | include with provenance flag |
@@ -218,7 +264,7 @@ fields Talos uses; no endorsement by the original authors is implied.
 - The Princeton-hosted WordNet licence text and any WordNet release after 3.1 (site returned 403).
 - How many MCR synsets map onto OEWN 2025 synsets via CILI (merges/splits since 3.0).
 - Whether `wn-data-spa.tab` carries definition lines, and what share are original vs machine-translated.
-- Licence of FreeLing's Spanish morphological dictionary; UniMorph `eng` source statement; Spanish Wiktionary-derived wordnet in OMW's extended set; Wikidata property for WordNet synsets; Wikidata Spanish lexeme count.
+- Licence of FreeLing's Spanish morphological dictionary; UniMorph `eng` source statement; Spanish Wiktionary-derived wordnet in OMW's extended set; Wikidata Spanish lexeme count.
 - MCR relations: whether the Spanish synsets inherit all PWN 3.0 relations (hypernym, meronym, antonym) through the ILI, or have their own; MCR antonyms are lexical (sense-level) in WordNet, so the importer must carry sense-level antonym links.
 - The right outbound licence wording for a pack mixing CC BY 4.0, CC BY 3.0 and the WordNet licence (a reading, not a ruling).
 
@@ -230,5 +276,5 @@ fields Talos uses; no endorsement by the original authors is implied.
 4. Read the 2024 LRE paper (Springer) for the Spanish gloss table, and the GWC'12 paper's "number of glosses of each WN" table.
 5. Read Princeton's own licence page from a normal browser and copy the exact notice; read OEWN's `LICENSE.md` full text and copyright line; check for a WordNet release after 3.1.
 6. Read FreeLing's `COPYING` for the Spanish dictionary; read the UniMorph and kaikki.org licence statements for the exact data release used; decide whether to ship Spanish forms at all in the first pack.
-7. If a Wikidata-based gloss fill is wanted, check whether a property linking items to WordNet synsets exists, and the coverage of Spanish descriptions for those items.
+7. ~~Wikidata gloss fill~~: done, P8814 and its Spanish descriptions are measured in §2.3.2 and used by the builder; a complete export of the query (the first one timed out) is still to get.
 8. Have someone qualified review the combined NOTICE text before the pack is published.
