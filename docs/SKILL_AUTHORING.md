@@ -243,8 +243,12 @@ pub trait Skill: Send + Sync {
 | `guessed() -> bool` | the classifier, not a rule, recognised the request; it has only the slots its manifest's `guess` cues found |
 | `remember(PreferenceChange)` | asks the engine to store (`Some`) or forget (`None`) a preference; applied only if you answer (`Answer`), and dropped, with the turn failed, if made on a guess without a `confirm` slot answered yes |
 | `skills() -> &[Manifest]` | the installed manifests in catalogue order (for `help`) |
-| `knowledge() -> Option<&Knowledge>` | with the `knowledge` feature: the knowledge store, read-only (`user.db` and the attached packs; docs/KNOWLEDGE.md). `lookup(word, lang)` gives a word's senses through its inflected forms (the conversation's language first, then the other); `gloss`, `words`, `name` and `form_of` per concept and language; `choose_sense` applies docs/spec/knowledge.md 2.2 and names each sense for the question; `stock_phrases`, `word_pairs`; `objects`/`subjects` of a predicate. Typed results, no SQL. `None` when the engine has no store: say the word is unknown. Unit tests pass one with `Context::with_knowledge(&Knowledge::from_source(SEED))` |
+| `knowledge() -> Option<&Knowledge>` | with the `knowledge` feature: the knowledge store, read-only (`user.db` and the attached packs; docs/KNOWLEDGE.md). `lookup(word, lang)` gives a word's senses through its inflected forms (the conversation's language first, then the other); `gloss`, `words`, `name` and `form_of` per concept and language; `choose_sense` applies docs/spec/knowledge.md 2.2 and names each sense for the question; `stock_phrases`, `word_pairs`; `objects`/`subjects` of a predicate. Typed results, no SQL. `None` when the engine has no store: say there is no dictionary (`define` and `translate` do, `unhandled`). Unit tests pass one with `Context::with_knowledge(&Knowledge::from_source(SEED))` |
 | `report(name, Value)` | puts a slot on the outcome: a default you applied or a value you resolved. It must be a declared, non-internal slot of the intent, or the turn fails |
+| `mark_fallback(Fallback)` | the reply rests on a cheaper source than the best one (DESIGN.md principle 8): the outcome carries it as `fallback` (`Fallback::WORD_PAIRS`, `WORD_BY_WORD`, `RELATIONS`, `OTHER_LANGUAGE`, or `Fallback::new("…")`). The reply must say so in words too. Kept only if you answer or cannot (`Answer`, `Unable`) |
+| `conversation().sense(word)`, `.recent_concepts()`, `.topic()`; `remember_sense(word, concept)`, `mention(concept)`, `set_topic(word)` | what the dictionary skills remember in a conversation (docs/spec/knowledge.md 2.2, 2.8): the sense chosen for a word (by its key), the concepts of the previous three turns, the word of the last answer. Applied only if you answer or cannot, never on a question, so a cancelled question leaves nothing; never written to disk |
+| `corrections()`, `teach_phrase(Correction)`, `forget_phrase(key)` | the user-correction table (ADR 0008): read it, and ask the engine to add or remove an entry; applied and saved like `remember` |
+| `understand(text, lang) -> Option<Understood>` | reads a text as a message would be read: a taught phrase, the rules (a rule whose skill would decline it does not count), or a confident classifier; the intent, the slots as written, and how it was recognised. Nothing is answered or changed (`teach.phrase` reads the meaning it is taught with it) |
 
 ### 3.2 What a handler returns
 
@@ -254,7 +258,7 @@ pub trait Skill: Send + Sync {
 | `Unable(Message)` | `unhandled`, intent kept | recognised but beyond what Talos supports (an unknown unit, too many dice) |
 | `Decline` | — | not yours after all; the next candidate rule is tried |
 | `Fail(SkillError)` | `unhandled` | a bug or an impossible internal state; the user gets an honest error |
-| `Ask(Expectation, Message)` | `answered`, `pending`; `asks · intent · slot` in transcripts | a required slot is missing, or a value is ambiguous: one short question naming what is missing (`Expectation::slot("target")`, `::choice`, `::confirm`, `::completing`). The answer comes back as a new call with that slot filled; never ask for an optional slot |
+| `Ask(Expectation, Message)` | `answered`, `pending`; `asks · intent · slot` in transcripts | a required slot is missing, or a value is ambiguous: one short question naming what is missing (`Expectation::slot("target")`, `::choice`, `::confirm`, `::completing`, `::text` for free text taken as written even when it reads as a request). The answer comes back as a new call with that slot filled; `.keeping(slot, value)` carries what you worked out before asking (the word a yes/no suggests) into that call. Never ask for an optional slot |
 
 The test between `Answer` and `Unable` is the spec's: would a more capable
 engine plausibly give the user something better? If yes, `Unable`.
@@ -309,8 +313,11 @@ with these adjustments:
   lists `a|b|c`), internal slots omitted; `→ unhandled · catch-all` when no
   intent was recognised;
 - `Given:` lines are only `now`, `seed`, `default language`, `hint`, `place`,
-  `draw`, `slots`; express anything else ("a conversation that has been in
-  Spanish") with turns;
+  `draw`, `slots`, `stored`, `phrase` and `pack` (a knowledge pack source,
+  `Given: pack = knowledge/seed.toml`); express anything else ("a
+  conversation that has been in Spanish") with turns;
+- a reply that rests on a fallback source ends its outcome line with
+  `· fallback <name>`;
 - replies are our wording; what must match the spec is content, language and
   outcome;
 - a turn that asks back is `→ asks · intent · slot`; the answering turn

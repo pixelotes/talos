@@ -1,0 +1,208 @@
+# define.word (docs/spec/knowledge.md, define; 2.1, 2.2, 2.7, 2.8),
+# answered from the seed pack, which is the specification's fixture.
+#
+# Wording is Talos's: a definition reads "Word: gloss." (Spanish has no
+# article Talos could choose without knowing the noun's gender). The
+# outcome always reports the lemma and the sense chosen.
+#
+# Left out, because they need skills of a later milestone: the turns that
+# ask relations (`relations.parts`, `relations.is_a`, `relations.causes`)
+# and the states U1–U3 built by `teach.assert` (v0.6): «zanfona»,
+# «theremin».
+
+Given: pack = knowledge/seed.toml
+
+[es] U: ¿qué es una guitarra?
+     T: Guitarra: instrumento de cuerda con mástil y caja de resonancia, que se toca punteando o rasgueando las cuerdas.
+                                                  → answered · define.word · sense=core:guitar word=guitarra
+
+# A form resolves to its lemma.
+[es] U: qué son los violines
+     T: Violín: instrumento de cuerda que se toca con arco, apoyado entre el hombro y la barbilla.
+                                                  → answered · define.word · sense=core:violin word=violín
+
+# The longest known word wins.
+[es] U: define «caja de resonancia»
+     T: Caja de resonancia: cuerpo hueco del instrumento que amplifica el sonido.
+                                                  → answered · define.word · sense=core:sound_box word=caja de resonancia
+
+[es] U: ¿qué significa sintetizador?
+     T: Sintetizador: instrumento electrónico que genera y modifica sonidos.
+                                                  → answered · define.word · sense=core:synthesizer word=sintetizador
+
+# Rank decides, and the other sense is named.
+[es] U: ¿qué es una cuerda?
+     T: Cuerda: conjunto de hilos retorcidos que sirve para atar o colgar cosas. También puede ser: hilo tenso de un….
+                                                  → answered · define.word · sense=core:rope word=cuerda
+
+[es] U: ¿qué es una pastilla?
+     T: Pastilla: porción pequeña y sólida de medicamento que se traga. También puede ser: pieza de la guitarra….
+                                                  → answered · define.word · sense=core:pill word=pastilla
+
+# Recent context: the guitar of the previous turn is one link from
+# core:string. (The spec's previous turn asks for the guitar's parts, a
+# relation; a definition of the guitar puts it in context just the same.)
+[es] U: ¿qué es una guitarra?
+     T: Guitarra: instrumento de cuerda con mástil y caja de resonancia, que se toca punteando o rasgueando las cuerdas.
+                                                  → answered · define.word · sense=core:guitar word=guitarra
+[es] U: ¿y qué es una cuerda?
+     T: Cuerda: hilo tenso de un instrumento que suena al vibrar.
+                                                  → answered · define.word · sense=core:string word=cuerda
+
+# No Spanish gloss: what the claims say (C22), and the English word; the
+# English gloss is not shown unasked. No definition was given.
+[es] U: ¿qué es un traste?
+     T: No tengo una definición de «traste» en español. Sé que forma parte de: mástil. En inglés se dice «fret».
+                                                  → unhandled · define.word · sense=core:fret word=traste · fallback relations
+
+# A tie at the top: asked, then remembered.
+[es] U: ¿qué es un banco?
+     T: ¿Qué «banco»: entidad financiera, asiento o grupo?
+                                                  → asks · define.word · sense
+[es] U: el asiento
+     T: Banco: asiento largo en el que caben varias personas.
+                                                  → answered · define.word · sense=core:bench word=banco
+[es] U: ¿cómo se dice en inglés?
+     T: «Bench».                                  → answered · translate.word · sense=core:bench target=en term=banco
+# (The spec answers with "el de sentarse": no word of the fixture says
+# "sentarse", so the class word is used here.)
+
+# By position; then new explicit context replaces the remembered choice.
+[es] U: ¿qué es un banco?
+     T: ¿Qué «banco»: entidad financiera, asiento o grupo?
+                                                  → asks · define.word · sense
+[es] U: el segundo
+     T: Banco: asiento largo en el que caben varias personas.
+                                                  → answered · define.word · sense=core:bench word=banco
+[es] U: ¿y el banco que da préstamos, qué es?
+     T: Banco (entidad financiera): empresa que guarda dinero, da préstamos y ofrece otros servicios financieros.
+                                                  → answered · define.word · sense=core:bank word=banco
+[es] U: ¿qué es un banco?
+     T: Banco: empresa que guarda dinero, da préstamos y ofrece otros servicios financieros.
+                                                  → answered · define.word · sense=core:bank word=banco
+
+# Context in the turn decides; no question asked.
+[es] U: ¿qué es un banco donde guardo el dinero?
+     T: Banco (entidad financiera): empresa que guarda dinero, da préstamos y ofrece otros servicios financieros.
+                                                  → answered · define.word · sense=core:bank word=banco
+
+# Cancelled: nothing is remembered about "banco".
+[es] U: ¿qué es un banco?
+     T: ¿Qué «banco»: entidad financiera, asiento o grupo?
+                                                  → asks · define.word · sense
+[es] U: déjalo
+     T: Vale, lo dejo.                            → answered · cancelled
+[es] U: ¿qué es un banco?
+     T: ¿Qué «banco»: entidad financiera, asiento o grupo?
+                                                  → asks · define.word · sense
+
+Given: hint = en
+
+[en] U: what's a guitar?
+     T: Guitar: a string instrument with a fretted neck and a hollow body, played by plucking or strumming.
+                                                  → answered · define.word · sense=core:guitar word=guitar
+
+[en] U: what are fiddles?
+     T: Fiddle: a string instrument played with a bow and held under the chin.
+                                                  → answered · define.word · sense=core:violin word=fiddle
+
+[en] U: what does "sound box" mean?
+     T: Sound box: the hollow body of an instrument that makes its sound louder.
+                                                  → answered · define.word · sense=core:sound_box word=sound box
+
+[en] U: define synthesiser
+     T: Synthesiser: an electronic instrument that generates and shapes sounds.
+                                                  → answered · define.word · sense=core:synthesizer word=synthesiser
+
+[en] U: what is a school?
+     T: School: a place where children are taught. It can also mean: group.
+                                                  → answered · define.word · sense=core:school word=school
+
+[en] U: what's a bank, as in the side of a river?
+     T: Bank: the land along the side of a river.
+                                                  → answered · define.word · sense=core:riverbank word=bank
+
+[en] U: what's a neck?
+     T: Neck: the part of the body that joins the head to the shoulders. It can also mean: the long narrow part….
+                                                  → answered · define.word · sense=core:neck_body word=neck
+
+# English has the gloss that Spanish lacks.
+[en] U: what's a fret?
+     T: Fret: one of the raised metal strips across the neck of a guitar.
+                                                  → answered · define.word · sense=core:fret word=fret
+
+[en] U: what does cold mean?
+     T: Which "cold": a low temperature or a mild infection of…?
+                                                  → asks · define.word · sense
+[en] U: the infection
+     T: Cold: a mild infection of the nose and throat.
+                                                  → answered · define.word · sense=core:common_cold word=cold
+# (The spec answers "the illness": no word of the fixture says "illness".)
+
+# Edge cases.
+
+Given: hint = none
+
+# Unknown in both languages, no near miss.
+[es] U: ¿qué es un zorongo?
+     T: No conozco la palabra «zorongo».          → unhandled · define.word · word=zorongo
+
+# One known lemma at one letter's distance: asked, never assumed.
+[es] U: ¿qué es una guitara?
+     T: ¿Te refieres a «guitarra»?                → asks · define.word · word
+[es] U: sí
+     T: Guitarra: instrumento de cuerda con mástil y caja de resonancia, que se toca punteando o rasgueando las cuerdas.
+                                                  → answered · define.word · sense=core:guitar word=guitarra
+
+[es] U: ¿qué es una guitara?
+     T: ¿Te refieres a «guitarra»?                → asks · define.word · word
+[es] U: no
+     T: Entonces no conozco la palabra «guitara». → unhandled · define.word · word=guitara
+
+# No word and no topic.
+[es] U: ¿qué significa?
+     T: ¿Qué palabra?                             → asks · define.word · word
+[es] U: sintetizador
+     T: Sintetizador: instrumento electrónico que genera y modifica sonidos.
+                                                  → answered · define.word · sense=core:synthesizer word=sintetizador
+
+# A word with only an English lexeme: the Spanish gloss and word.
+[es] U: ¿qué es bench?
+     T: «Bench» es una palabra inglesa: banco, asiento largo en el que caben varias personas.
+                                                  → answered · define.word · sense=core:bench word=bench
+
+# Not philosophy: an unknown word.
+[es] U: ¿qué es la vida?
+     T: No conozco la palabra «vida».             → unhandled · define.word · word=vida
+
+[es] U: ¿qué es la física cuántica?
+     T: No conozco la palabra «física cuántica».  → unhandled · define.word · word=física cuántica
+
+Given: hint = en
+
+[en] U: what's a glarb?
+     T: I don't know the word "glarb".            → unhandled · define.word · word=glarb
+
+[en] U: what is love?
+     T: I don't know the word "love".             → unhandled · define.word · word=love
+
+# No English gloss and no claim to fall back on; the Spanish gloss only
+# when asked for, quoted and labelled.
+[en] U: what's a capo?
+     T: I don't have an English definition of "capo". In Spanish it's «cejilla». I only have a Spanish definition.
+                                                  → unhandled · define.word · sense=core:capo word=capo
+[en] U: give me the Spanish one then
+     T: In Spanish: «pieza que se sujeta al mástil para subir a la vez el tono de todas las cuerdas».
+                                                  → answered · define.word · gloss_lang=es sense=core:capo word=capo · fallback other-language
+
+# A Spanish word with a tie at rank 0; options named in English.
+[en] U: what's a banco?
+     T: «Banco» is Spanish. Do you mean bank, bench or shoal?
+                                                  → asks · define.word · sense
+[en] U: bench
+     T: «Banco» is a Spanish word: bench, a long seat for several people.
+                                                  → answered · define.word · sense=core:bench word=banco
+
+# Nothing to refer to: the word is asked for.
+[en] U: what's that?
+     T: Which word?                               → asks · define.word · word

@@ -5,11 +5,14 @@
 //! reply id from its own manifest with variables, never a sentence. The
 //! contract for skill authors is `docs/SKILL_AUTHORING.md`.
 
+use std::collections::BTreeMap;
+
 use crate::random::Random;
 use crate::render::Vars;
 use crate::state::ConversationState;
+use crate::user::Correction;
 use crate::value::{Slots, Value};
-use crate::{IntentId, Lang, Manifest, Place, Timestamp};
+use crate::{Fallback, IntentId, Lang, Manifest, Place, Timestamp};
 
 /// A skill as handed to the engine: its manifest and its handler.
 pub type Registration = (Manifest, Box<dyn Skill>);
@@ -53,6 +56,11 @@ pub struct Expectation {
     pub slot: String,
     /// What is accepted as an answer.
     pub expects: Expects,
+    /// Slots the question carries to the answering call besides the
+    /// request's own: what the handler worked out before asking (the word
+    /// it suggests in "¿te refieres a «guitarra»?"). Declared slots of the
+    /// intent, usually internal ones.
+    pub keep: Slots,
 }
 
 /// The kinds of answer an [`Expectation`] accepts.
@@ -70,6 +78,10 @@ pub enum Expects {
     Choice(Vec<Choice>),
     /// Yes or no; the slot receives [`Value::Confirm`].
     Confirm,
+    /// The answer as written, taken whole even when it reads as a request
+    /// of its own ("¿qué quieres decir?" — "tira un dado"): the slot, a
+    /// `term`, receives the text. A cancellation still cancels.
+    Text,
 }
 
 /// One option offered by an [`Expects::Choice`] question.
@@ -104,9 +116,14 @@ impl Expectation {
     /// Asks for a value of the slot's type.
     #[must_use]
     pub fn slot(slot: impl Into<String>) -> Self {
+        Self::new(slot, Expects::Value)
+    }
+
+    fn new(slot: impl Into<String>, expects: Expects) -> Self {
         Self {
             slot: slot.into(),
-            expects: Expects::Value,
+            expects,
+            keep: Slots::new(),
         }
     }
 
@@ -114,28 +131,33 @@ impl Expectation {
     /// to `prefix`.
     #[must_use]
     pub fn completing(slot: impl Into<String>, prefix: impl Into<String>) -> Self {
-        Self {
-            slot: slot.into(),
-            expects: Expects::Completion(prefix.into()),
-        }
+        Self::new(slot, Expects::Completion(prefix.into()))
     }
 
     /// Asks which of `options` (at most one question, conversation.md 3.4).
     #[must_use]
     pub fn choice(slot: impl Into<String>, options: Vec<Choice>) -> Self {
-        Self {
-            slot: slot.into(),
-            expects: Expects::Choice(options),
-        }
+        Self::new(slot, Expects::Choice(options))
     }
 
     /// Asks yes or no.
     #[must_use]
     pub fn confirm(slot: impl Into<String>) -> Self {
-        Self {
-            slot: slot.into(),
-            expects: Expects::Confirm,
-        }
+        Self::new(slot, Expects::Confirm)
+    }
+
+    /// Asks for free text, taken as written ([`Expects::Text`]).
+    #[must_use]
+    pub fn text(slot: impl Into<String>) -> Self {
+        Self::new(slot, Expects::Text)
+    }
+
+    /// The same question, carrying a slot to the answering call
+    /// ([`Expectation::keep`]).
+    #[must_use]
+    pub fn keeping(mut self, slot: impl Into<String>, value: Value) -> Self {
+        self.keep.insert(slot.into(), value);
+        self
     }
 }
 
@@ -300,6 +322,54 @@ pub enum PreferenceChange {
     Units(Option<Units>),
 }
 
+/// A change to what is kept about the user, applied by the engine after
+/// the handler answered.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Change {
+    /// A preference.
+    Preference(PreferenceChange),
+    /// A taught phrase, replacing any for the same phrase.
+    Teach(Correction),
+    /// The taught phrase with this key, removed.
+    Untaught(String),
+}
+
+/// Something to remember about this conversation, applied by the engine
+/// after a turn the handler answered (or could not): never on a question,
+/// so a cancelled question leaves nothing behind.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Memo {
+    /// The sense chosen for a word (its key), by context or by the user.
+    Sense(String, String),
+    /// A concept the turn talked about.
+    Mention(String),
+    /// The word the answer was about: the topic of short follow-ups.
+    Topic(String),
+}
+
+/// How [`Context::understand`] recognised a text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Recognition {
+    /// A rule of a skill.
+    Rule,
+    /// A phrase the user taught (the user-correction table).
+    Taught,
+    /// The classifier, with confidence enough to answer.
+    Classifier,
+}
+
+/// A text read as a message would be: the intent and the slots, as text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Understood {
+    /// What it asks for.
+    pub intent: IntentId,
+    /// Its slots as written (a rule's captures, fixed values), internal
+    /// ones included: what a taught phrase stores.
+    pub slots: BTreeMap<String, String>,
+    /// How it was recognised.
+    pub source: Recognition,
+}
+
 /// Everything a handler may use besides the request itself, and nothing
 /// else (docs/SKILLS.md section 2): the injected clock, the caller's place,
 /// the turn's random source, this conversation's state, the user's
@@ -316,12 +386,20 @@ pub struct Context<'a> {
     skills: &'a [Manifest],
     #[cfg(feature = "knowledge")]
     knowledge: Option<&'a crate::knowledge::Knowledge>,
+    /// The user-correction table as of the turn's start.
+    corrections: &'a [Correction],
+    /// The engine, to read a text as a message ([`Context::understand`]).
+    engine: Option<&'a crate::Engine>,
     /// Slots the handler reported for the outcome.
     reported: Slots,
     /// Whether the request was recognised by the classifier, not a rule.
     guessed: bool,
-    /// Preference changes the handler asked for.
-    changes: Vec<PreferenceChange>,
+    /// Changes to the user's data the handler asked for.
+    changes: Vec<Change>,
+    /// What the handler asked to remember about the conversation.
+    memos: Vec<Memo>,
+    /// The fallback source the handler's reply rests on.
+    fallback: Option<Fallback>,
 }
 
 impl<'a> Context<'a> {
@@ -342,10 +420,33 @@ impl<'a> Context<'a> {
             skills,
             #[cfg(feature = "knowledge")]
             knowledge: None,
+            corrections: &[],
+            engine: None,
             reported: Slots::new(),
             guessed: false,
             changes: Vec::new(),
+            memos: Vec::new(),
+            fallback: None,
         }
+    }
+
+    /// The same context with the engine and the user-correction table.
+    pub(crate) fn with_engine(
+        mut self,
+        engine: &'a crate::Engine,
+        corrections: &'a [Correction],
+    ) -> Self {
+        self.engine = Some(engine);
+        self.corrections = corrections;
+        self
+    }
+
+    /// The same context with this user-correction table, for a handler's
+    /// unit tests.
+    #[must_use]
+    pub fn with_corrections(mut self, corrections: &'a [Correction]) -> Self {
+        self.corrections = corrections;
+        self
     }
 
     /// A context outside any engine, for a handler's unit tests: a fresh
@@ -376,7 +477,7 @@ impl<'a> Context<'a> {
 
     /// The knowledge store: `user.db` and the attached packs, read-only
     /// (docs/KNOWLEDGE.md). `None` when the engine has none; a handler then
-    /// says it does not know, as for an unknown word.
+    /// says there is no dictionary.
     #[cfg(feature = "knowledge")]
     #[must_use]
     pub const fn knowledge(&self) -> Option<&'a crate::knowledge::Knowledge> {
@@ -439,7 +540,69 @@ impl<'a> Context<'a> {
     /// only if the handler answers ([`SkillResult::Answer`]); a turn that
     /// changes nothing writes nothing.
     pub fn remember(&mut self, change: PreferenceChange) {
-        self.changes.push(change);
+        self.changes.push(Change::Preference(change));
+    }
+
+    /// The user-correction table ("when I say X, I mean Y"; ADR 0008) as
+    /// of the turn's start, oldest first.
+    #[must_use]
+    pub const fn corrections(&self) -> &'a [Correction] {
+        self.corrections
+    }
+
+    /// Asks the engine to store a taught phrase, replacing any for the
+    /// same phrase. Applied, and saved, under the same conditions as
+    /// [`Context::remember`]. An entry for an intent in
+    /// [`crate::NOT_TEACHABLE`] is never used.
+    pub fn teach_phrase(&mut self, correction: Correction) {
+        self.changes.push(Change::Teach(correction));
+    }
+
+    /// Asks the engine to remove the taught phrase with this key
+    /// ([`Correction::key`]); as [`Context::teach_phrase`].
+    pub fn forget_phrase(&mut self, key: impl Into<String>) {
+        self.changes.push(Change::Untaught(key.into()));
+    }
+
+    /// Reads `text` as a message of this conversation would be read, in
+    /// `lang` first: the user-correction table, the rules (either
+    /// language), and the classifier when it is confident enough to answer
+    /// (never a side-effecting intent it could only offer for
+    /// confirmation). Nothing is answered or changed. `None` when nothing
+    /// recognises it, and outside an engine.
+    #[must_use]
+    pub fn understand(&self, text: &str, lang: Lang) -> Option<Understood> {
+        self.engine?.understand(text, lang, self.now)
+    }
+
+    /// Remembers, for the rest of this conversation, the sense chosen for a
+    /// word: by the user, or by words of the turn (docs/spec/knowledge.md
+    /// 2.2). `word` is the word's key; `concept` an id of the knowledge
+    /// store. Never written to disk. Applied only if the handler answers
+    /// or cannot ([`SkillResult::Answer`], [`SkillResult::Unable`]).
+    pub fn remember_sense(&mut self, word: impl Into<String>, concept: impl Into<String>) {
+        self.memos.push(Memo::Sense(word.into(), concept.into()));
+    }
+
+    /// Notes a concept this turn talked about, for the recent context of
+    /// the next turns ([`ConversationState::recent_concepts`]). As
+    /// [`Context::remember_sense`].
+    pub fn mention(&mut self, concept: impl Into<String>) {
+        self.memos.push(Memo::Mention(concept.into()));
+    }
+
+    /// Sets the conversation's topic: the word this answer was about, which
+    /// short follow-ups ("¿y en inglés?") refer to. As
+    /// [`Context::remember_sense`].
+    pub fn set_topic(&mut self, word: impl Into<String>) {
+        self.memos.push(Memo::Topic(word.into()));
+    }
+
+    /// Marks the reply as resting on a cheaper source than the best one
+    /// (DESIGN.md principle 8): the outcome carries it as
+    /// [`crate::Outcome::fallback`]. The reply must also say so in words.
+    pub fn mark_fallback(&mut self, fallback: Fallback) {
+        self.fallback = Some(fallback);
     }
 
     /// The installed skills' manifests, in catalogue order, for answers
@@ -468,9 +631,19 @@ impl<'a> Context<'a> {
         std::mem::take(&mut self.reported)
     }
 
-    /// Takes the preference changes asked for, leaving none.
-    pub(crate) fn take_changes(&mut self) -> Vec<PreferenceChange> {
+    /// Takes the changes asked for, leaving none.
+    pub(crate) fn take_changes(&mut self) -> Vec<Change> {
         std::mem::take(&mut self.changes)
+    }
+
+    /// Takes the conversation memos asked for, leaving none.
+    pub(crate) fn take_memos(&mut self) -> Vec<Memo> {
+        std::mem::take(&mut self.memos)
+    }
+
+    /// Takes the fallback marked, leaving none.
+    pub(crate) fn take_fallback(&mut self) -> Option<Fallback> {
+        self.fallback.take()
     }
 
     /// Marks the next call as a guess, or not.

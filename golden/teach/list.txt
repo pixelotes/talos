@@ -1,0 +1,86 @@
+# teach.list and teach.forget, for taught phrases (docs/spec/knowledge.md;
+# taught facts are v0.6). An empty list and "nothing to forget" are
+# answers about the user's own store (`answered`).
+
+[es] U: ¿qué has aprendido de mí?
+     T: Todavía no me has enseñado nada.          → answered · teach.list · count=0
+
+Given: hint = en
+[en] U: list what I've taught you
+     T: You haven't taught me anything yet.       → answered · teach.list · count=0
+
+Given: hint = none
+Given: phrase = tira -> random.dice
+Given: phrase = flip it -> random.coin
+[es] U: ¿qué frases te he enseñado?
+     T: Me has enseñado 2 frases: «tira» para tirar un dado y «flip it» para echar una moneda al aire.
+                                                  → answered · teach.list · count=2 kind=phrases
+
+[es] U: ¿qué te he enseñado?
+     T: Me has enseñado 2 frases: «tira» para tirar un dado y «flip it» para echar una moneda al aire.
+                                                  → answered · teach.list · count=2
+
+Given: hint = en
+[en] U: what phrases have I taught you?
+     T: You've taught me 2 phrases: "tira" for rolling a die and "flip it" for tossing a coin.
+                                                  → answered · teach.list · count=2 kind=phrases
+
+# Forgetting a phrase removes the mapping at once (the request is the
+# confirmation).
+Given: hint = none
+[es] U: olvida lo de «tira»
+     T: Olvidado: «tira» ya no significa tirar un dado.
+                                                  → answered · teach.forget · target=tira
+[es] U: ¿qué te he enseñado?
+     T: Me has enseñado una frase: «flip it» para echar una moneda al aire.
+                                                  → answered · teach.list · count=1
+
+Given: hint = en
+[en] U: forget "flip it"
+     T: Forgotten: "flip it" no longer means tossing a coin.
+                                                  → answered · teach.forget · target=flip it
+
+# Nothing matching: there is nothing to undo.
+[en] U: forget the phrase "abracadabra"
+     T: You hadn't taught me anything with "abracadabra".
+                                                  → answered · teach.forget · target=abracadabra
+
+# Forgetting everything asks first, with the count.
+Given: hint = none
+[es] U: olvida todo lo que te he enseñado
+     T: ¿Olvido las 2 frases que me has enseñado? → asks · teach.forget · confirm
+[es] U: no
+     T: Vale, no olvido nada.                     → answered · teach.forget · confirm=no target=all
+[es] U: olvida todas las frases
+     T: ¿Olvido las 2 frases que me has enseñado? → asks · teach.forget · confirm
+[es] U: sí
+     T: Hecho: he olvidado las 2 frases que me enseñaste.
+                                                  → answered · teach.forget · confirm=yes count=2 target=all
+[es] U: ¿qué te he enseñado?
+     T: Todavía no me has enseñado nada.          → answered · teach.list · count=0
+
+Given: phrase = none
+[es] U: borra todas las frases que te enseñé
+     T: No me has enseñado nada que olvidar.      → answered · teach.forget · target=all
+
+# Only taught facts have a topic, and teaching facts is v0.6.
+Given: phrase = tira -> random.dice
+[es] U: ¿qué te he enseñado sobre instrumentos?
+     T: Nada sobre «instrumentos».                → answered · teach.list · count=0 topic=instrumentos
+
+Given: hint = en
+[en] U: what did I teach you about whales?
+     T: Nothing about "whales".                   → answered · teach.list · count=0 topic=whales
+
+# Forgetting a fact (v0.6) changes nothing, and says so; the last phrase
+# taught can be forgotten by name.
+Given: hint = none
+[es] U: olvida que la ballena es un mamífero
+     T: Todavía no olvido datos: solo las frases que me has enseñado. No he cambiado nada.
+                                                  → unhandled · teach.forget · target=la ballena es un mamífero
+[es] U: eso no es verdad, olvídalo
+     T: Todavía no olvido datos: solo las frases que me has enseñado. No he cambiado nada.
+                                                  → unhandled · teach.forget · target=that
+[es] U: olvida lo último que te enseñé
+     T: Olvidado: «tira» ya no significa tirar un dado.
+                                                  → answered · teach.forget · target=last

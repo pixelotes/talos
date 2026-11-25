@@ -11,8 +11,9 @@ publish.workspace = true
 [features]
 default = ["server", "knowledge"]
 # user.db, knowledge packs and `talos packs` (docs/KNOWLEDGE.md). Off, the
-# user's data stays in user.toml and no pack is read.
-knowledge = ["talos-core/knowledge"]
+# user's data stays in user.toml, no pack is read, and `define` and
+# `translate` say there is no dictionary.
+knowledge = ["talos-core/knowledge", "talos-skills/knowledge"]
 # `talos serve` (docs/API.md section 2). Adds no dependency: the HTTP/1.1
 # server is written on `std` (ADR 0017). Off, the binary has no listener.
 server = []

@@ -30,6 +30,37 @@ pub struct ConversationState {
     open: Option<Open>,
     /// What was said lately, for the reflector's variants.
     recent: Recent,
+    /// What the dictionary skills remember (docs/spec/knowledge.md 2.2 and
+    /// 2.8); never written to disk.
+    memory: Memory,
+}
+
+/// The senses chosen, the concepts talked about and the topic of a
+/// conversation.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct Memory {
+    /// Word key → the concept chosen for it.
+    senses: BTreeMap<String, String>,
+    /// (turn, concept), oldest first; only the last few turns are kept.
+    mentions: Vec<(u32, String)>,
+    /// The word of the last dictionary answer.
+    topic: Option<String>,
+}
+
+/// How many turns back the recent context reaches (docs/spec/knowledge.md
+/// 2.2, step 3).
+const RECENT_TURNS: u32 = 3;
+
+/// How many chosen senses a conversation keeps; past it, the first in key
+/// order makes room (a bound on memory, not a policy anyone relies on).
+const MAX_SENSES: usize = 64;
+
+impl Memory {
+    const NEW: Memory = Memory {
+        senses: BTreeMap::new(),
+        mentions: Vec::new(),
+        topic: None,
+    };
 }
 
 /// An open question: what was asked, by whom, and what the request had so
@@ -96,7 +127,59 @@ impl ConversationState {
         last_intent: None,
         open: None,
         recent: Recent::NEW,
+        memory: Memory::NEW,
     };
+
+    /// The concept chosen for a word (its key) earlier in this
+    /// conversation, by the user or by context.
+    #[must_use]
+    pub fn sense(&self, word: &str) -> Option<&str> {
+        self.memory.senses.get(word).map(String::as_str)
+    }
+
+    /// The concepts talked about in the previous three turns, most recent
+    /// first, without repeats.
+    #[must_use]
+    pub fn recent_concepts(&self) -> Vec<&str> {
+        let from = self.turns.saturating_sub(RECENT_TURNS);
+        let mut out: Vec<&str> = Vec::new();
+        for (turn, concept) in self.memory.mentions.iter().rev() {
+            if *turn >= from && *turn < self.turns && !out.contains(&concept.as_str()) {
+                out.push(concept);
+            }
+        }
+        out
+    }
+
+    /// The word the last dictionary answer was about: what a short
+    /// follow-up refers to.
+    #[must_use]
+    pub fn topic(&self) -> Option<&str> {
+        self.memory.topic.as_deref()
+    }
+
+    /// Applies what a handler asked to remember about this turn.
+    pub(crate) fn apply_memos(&mut self, memos: Vec<crate::skill::Memo>) {
+        use crate::skill::Memo;
+        let turn = self.turns;
+        for memo in memos {
+            match memo {
+                Memo::Sense(word, concept) => {
+                    if self.memory.senses.len() >= MAX_SENSES
+                        && !self.memory.senses.contains_key(&word)
+                        && let Some(first) = self.memory.senses.keys().next().cloned()
+                    {
+                        self.memory.senses.remove(&first);
+                    }
+                    self.memory.senses.insert(word, concept);
+                }
+                Memo::Mention(concept) => self.memory.mentions.push((turn, concept)),
+                Memo::Topic(word) => self.memory.topic = Some(word),
+            }
+        }
+        let from = turn.saturating_sub(RECENT_TURNS);
+        self.memory.mentions.retain(|(t, _)| *t >= from);
+    }
 
     /// The number of the turn being answered, from 1; 0 before the first.
     #[must_use]

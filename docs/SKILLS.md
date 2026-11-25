@@ -238,8 +238,14 @@ acknowledgement ("vale", "ok", "olvídalo") is `answered · acknowledgement`.
 ## 4. Built-in skills
 
 Planned for the first major version; built so far: `smalltalk`, `identity`,
-`help`, `clock`, `timezones`, `calc`, `random`, `fortune` and `preferences`.
-Network skills are disabled until enabled in configuration.
+`help`, `clock`, `timezones`, `calc`, `random`, `fortune`, `define`,
+`translate`, `teach` (the user's phrases only: `teach.phrase`, and
+`teach.list` / `teach.forget` for them; facts are v0.6) and `preferences`.
+`define` and `translate` read the knowledge store: in a build without the
+`knowledge` feature, or with no store, they are installed all the same (the
+same manifests, so the same classifier) and answer that there is no
+dictionary (`unhandled`). Network skills are disabled until enabled in
+configuration.
 
 | Skill | Does | Network |
 |---|---|---|
@@ -253,7 +259,7 @@ Network skills are disabled until enabled in configuration.
 | `fortune` | a saying from a bundled list | no |
 | `define` | what a word means; sense disambiguation | no |
 | `relations` | is-a, part-of, kinds-of, cause queries | no |
-| `teach` | teach, correct, forget, list what was taught | no |
+| `teach` | teach, correct, forget, list what was taught (v0.3: the user's phrases) | no |
 | `translate` | words and stock phrases between es and en | no |
 | `preferences` | remember the user's name, place, units | no |
 | `games` | chess; small games (hangman, guess the number) | no |

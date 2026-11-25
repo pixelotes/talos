@@ -1,0 +1,137 @@
+# teach.phrase (docs/spec/knowledge.md, teach.phrase): a phrase of the
+# user's for a request Talos understands, stored in the user-correction
+# table (ADR 0008) and used as that request from then on. The outcome
+# reports the meaning as the request it was read as.
+#
+# The phrase is stored in its key form (lower case, no accents or end
+# punctuation), which is how lists show it.
+
+[es] U: cuando diga «tira», quiero decir «tira un dado»
+     T: Vale: cuando digas «tira», tiraré un dado. → answered · teach.phrase · meaning=random.dice phrase=tira
+Given: draw = 4
+[es] U: tira
+     T: Ha salido un 4.                           → answered · random.dice · count=1 sides=6
+
+[es] U: cuando te diga «la de Tokio» me refiero a «qué hora es en Tokio»
+     T: Vale: cuando digas «la de Tokio», te diré la hora en Tokio.
+                                                  → answered · teach.phrase · meaning=timezones.time_in place=Tokio phrase=la de Tokio
+
+[es] U: si te digo «¿y hoy?», quiero decir «qué día es hoy»
+     T: Vale: cuando digas «¿y hoy?», te diré la fecha de hoy.
+                                                  → answered · teach.phrase · meaning=clock.date day=hoy phrase=¿y hoy?
+
+[es] U: con «sorpréndeme» me refiero a «dime un refrán»
+     T: Vale: cuando digas «sorpréndeme», te diré un refrán.
+                                                  → answered · teach.phrase · meaning=fortune.tell phrase=sorpréndeme
+
+[es] U: cuando diga «la de seis cuerdas», quiero decir «qué es una guitarra»
+     T: Vale: cuando digas «la de seis cuerdas», te diré qué significa «guitarra».
+                                                  → answered · teach.phrase · meaning=define.word word=guitarra phrase=la de seis cuerdas
+
+# Case and end punctuation are ignored.
+Given: phrase = tira -> random.dice
+Given: draw = 2
+[es] U: Tira.
+     T: Ha salido un 2.                           → answered · random.dice · count=1 sides=6
+
+Given: phrase = none
+Given: hint = en
+
+[en] U: when I say 'flip it' I mean 'toss a coin'
+     T: Okay: when you say "flip it", I'll toss a coin.
+                                                  → answered · teach.phrase · meaning=random.coin phrase=flip it
+Given: draw = heads
+[en] U: flip it
+     T: Heads.                                    → answered · random.coin · count=1
+
+[en] U: if I say "tokyo?", I mean "what time is it in Tokyo"
+     T: Okay: when you say "tokyo", I'll tell you the time in Tokyo.
+                                                  → answered · teach.phrase · meaning=timezones.time_in place=Tokyo phrase=tokyo
+
+[en] U: by "today?" I mean "what's the date today"
+     T: Okay: when you say "today", I'll tell you the date for today.
+                                                  → answered · teach.phrase · meaning=clock.date day=today phrase=today
+
+[en] U: when I say "hit me" I mean "roll a die"
+     T: Okay: when you say "hit me", I'll roll a die.
+                                                  → answered · teach.phrase · meaning=random.dice phrase=hit me
+
+[en] U: when I say "wisdom" I mean "tell me a fortune"
+     T: Okay: when you say "wisdom", I'll tell you a saying.
+                                                  → answered · teach.phrase · meaning=fortune.tell phrase=wisdom
+
+[en] U: when I say "six-string" I mean "what is a guitar"
+     T: Okay: when you say "six-string", I'll tell you what "guitar" means.
+                                                  → answered · teach.phrase · meaning=define.word word=guitar phrase=six-string
+
+# Edge cases.
+
+Given: hint = none
+
+# The meaning must be a request Talos understands.
+[es] U: cuando diga «abracadabra», quiero decir «haz magia»
+     T: No sé qué hacer con «haz magia», así que no puedo asociarle nada.
+                                                  → unhandled · teach.phrase · meaning=haz magia phrase=abracadabra
+
+# Deleting must always be asked for in full.
+[es] U: cuando diga «limpia», quiero decir «olvida todo lo que te he enseñado»
+     T: Eso no: no asocio frases a peticiones que borran cosas.
+                                                  → unhandled · teach.phrase · meaning=olvida todo lo que te he enseñado phrase=limpia
+
+[es] U: cuando diga «borra», quiero decir «olvida mi nombre»
+     T: Eso no: no asocio frases a peticiones que borran cosas.
+                                                  → unhandled · teach.phrase · meaning=olvida mi nombre phrase=borra
+
+Given: hint = en
+
+# A phrase that already means something asks before it is replaced.
+[en] U: when I say "what time is it" I mean "roll a die"
+     T: "What time is it" already means telling you the time. Do you want it to mean rolling a die instead?
+                                                  → asks · teach.phrase · confirm
+[en] U: no
+     T: Okay, I'll leave it as it was.            → answered · teach.phrase · confirm=no meaning=roll a die phrase=what time is it
+[en] U: what time is it
+     T: It's 18:42.                               → answered · clock.now
+
+Given: hint = none
+Given: phrase = tira -> random.dice
+[es] U: cuando diga «tira», quiero decir «echa una moneda»
+     T: «Tira» ya significa tirar un dado. ¿Lo cambio por echar una moneda al aire?
+                                                  → asks · teach.phrase · confirm
+[es] U: sí
+     T: Hecho: cuando digas «tira», echaré una moneda al aire.
+                                                  → answered · teach.phrase · confirm=yes meaning=random.coin phrase=tira
+Given: draw = tails
+[es] U: tira
+     T: Ha salido cruz.                           → answered · random.coin · count=1
+
+Given: phrase = none
+
+# A word or a thing is not a request.
+[es] U: cuando digo «la de seis» me refiero a la guitarra
+     T: Solo puedo asociar frases a peticiones, y «la guitarra» no es una petición.
+                                                  → unhandled · teach.phrase · meaning=la guitarra phrase=la de seis
+
+# The meaning is asked for, and taken as written even though it reads as a
+# request of its own.
+Given: hint = en
+[en] U: when I say "flip it"
+     T: What do you mean by it?                   → asks · teach.phrase · meaning
+[en] U: toss a coin
+     T: Okay: when you say "flip it", I'll toss a coin.
+                                                  → answered · teach.phrase · meaning=random.coin phrase=flip it
+
+# The phrase is not part-matched.
+Given: hint = none
+Given: phrase = tira -> random.dice
+Given: draw = 3, 5
+[es] U: tira dos dados
+     T: 3 y 5: total 8.                           → answered · random.dice · count=2 sides=6
+
+# A taught phrase works in either language; the reply stays in the
+# conversation's.
+Given: phrase = flip it -> random.coin
+Given: hint = es
+Given: draw = heads
+[es] U: flip it
+     T: Ha salido cara.                           → answered · random.coin · count=1

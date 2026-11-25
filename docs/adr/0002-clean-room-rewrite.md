@@ -58,7 +58,8 @@ Talos is written from scratch against a behavioural specification.
 
 Before reusing any corpus file, check its history for phrases inherited from
 the original project and drop them. The owner's audit of his corpus is kept
-outside this repository.
+outside this repository. In the event no corpus file was reused: every
+training example here was written anew.
 
 The same test applies to text the owner wrote inside the old code base, such
 as his Spanish and English reply wording or fallback patterns: it may be

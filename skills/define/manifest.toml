@@ -1,0 +1,288 @@
+# define: what a word means, from the knowledge store
+# (docs/spec/knowledge.md, `define.word`).
+#
+# Patterns match the match form (lower case, no accents; «» become "). The
+# word is captured with whatever follows it ("banco donde guardo el
+# dinero"): the handler takes the longest known start as the word and the
+# rest as context for choosing a sense. Articles are left to the handler.
+# The priority is the lowest of the catalogue: "what is …" and "qué es …"
+# are the most general shapes there are, and every more specific intent
+# (the time, a sum, a name, a translation) must win over them.
+#
+# Slots:
+# - `word`: the word, as typed; asked for when missing and there is no
+#   topic. Also the slot of "¿te refieres a «guitarra»?" (yes/no).
+# - `sense`: the concept chosen in answer to "which one?".
+# - `gloss_lang`: the language of the definition asked for explicitly
+#   ("give me the Spanish one").
+# - `suggested`, `typed` (internal): the near miss suggested and the word
+#   typed, carried by the yes/no question.
+#
+# The `p_*` replies and `word_or` are pieces the handler composes a reply
+# from; they are never answered on their own.
+
+[skill]
+id = "define"
+summary.es = "decirte qué significa una palabra"
+summary.en = "tell you what a word means"
+names.es = ["definiciones", "diccionario", "definir"]
+names.en = ["definitions", "dictionary", "define"]
+help.es = ["¿qué es una guitarra?", "¿qué significa sintetizador?", "define «caja de resonancia»"]
+help.en = ["what's a guitar?", "what does fret mean?", "define synthesiser"]
+capabilities = []
+
+[[intent]]
+id = "define.word"
+priority = 35
+courtesy = false
+command = { es = "/definir", en = "/define", slot = "word" }
+
+  [intent.examples]
+  es = ["qué es una guitarra", "qué es un violín", "qué son los sintetizadores", "qué significa traste",
+    "qué quiere decir cejilla", "define caja de resonancia", "defíneme bandurria", "significado de mástil",
+    "me dices qué es una flauta", "qué es un tambor", "qué es una pastilla", "qué es un banco",
+    "qué es una cuerda", "y qué es una cuerda", "qué significa la palabra organismo", "qué es un mamífero",
+    "sabes qué es un dispositivo", "qué es un artefacto", "definición de instrumento", "qué es una nube",
+    "qué es un terremoto", "qué significa sequía", "qué quiere decir inundación", "qué es la evaporación",
+    "qué es un resfriado", "qué es un catarro", "qué es una ballena", "qué es un planeta enano",
+    "qué es un cuerpo celeste", "qué es el sistema solar", "dime qué es un virus", "explícame qué es una tormenta",
+    "qué es eso de la caja de resonancia", "una bandurria, qué es", "el mástil, ¿qué es?", "qué narices es una cejilla",
+    "qué demonios significa catarro", "q es un traste", "k significa sintetizador", "que es una guitara",
+    "qué es una guitarra eléctrica", "qué es una guitarra española", "qué es un instrumento de viento",
+    "qué es un instrumento de percusión", "busca la definición de pez", "consulta el diccionario: ribera",
+    "qué significa orilla", "qué es la ribera de un río", "defíneme la palabra entidad", "significado de soga",
+    "qué son las píldoras", "qué son los trastes", "qué son los mamíferos", "qué es un animal",
+    "qué es un ser vivo", "qué es el calor", "qué es el frío", "qué significa frío",
+    "qué es un mueble", "qué es un asiento", "qué es un grupo", "qué es una empresa",
+    "qué es una entidad financiera", "qué es un colegio", "qué es una escuela", "qué es un objeto",
+    "qué es Marte", "qué es Plutón", "qué es la Tierra", "qué es un zorongo",
+    "qué es un banco donde guardo el dinero", "qué es una cuerda de guitarra", "qué es bench",
+    "qué es fiddle", "qué significa string", "qué significa en realidad la palabra bandurria",
+    "quiero saber qué es un sintetizador", "no sé qué es una cejilla", "ni idea de qué es un traste",
+    "tú sabes lo que es una bandurria", "me explicas qué significa capo", "dame la definición de guitarra",
+    "y el banco que da préstamos, qué es", "dame la definición en inglés", "la definición en español, porfa"]
+  en = ["what's a guitar", "what is a violin", "what are synthesizers", "what does fret mean",
+    "what does capo mean", "define sound box", "define synthesiser", "meaning of neck",
+    "what's a flute", "what is a drum", "what's a pickup", "what is a bank",
+    "what's a string", "and what's a string", "what does the word organism mean", "what is a mammal",
+    "do you know what a device is", "what's an artifact", "definition of instrument", "what is a cloud",
+    "what's an earthquake", "what does drought mean", "what does flood mean", "what is evaporation",
+    "what's a cold", "what is the common cold", "what's a whale", "what's a dwarf planet",
+    "what is a celestial body", "what is the solar system", "tell me what a virus is", "explain what a storm is",
+    "a dulcimer, what's that", "fret - what's that", "what on earth is a capo", "wat is a fret",
+    "whats a soundbox", "what's an electric guitar", "what's a classical guitar", "what's a wind instrument",
+    "what's a percussion instrument", "look up the definition of fish", "dictionary: riverbank",
+    "what does shoal mean", "what is a riverbank", "define the word entity", "meaning of rope",
+    "what are pills", "what are frets", "what are mammals", "what is an animal",
+    "what is a living thing", "what is heat", "what does cold mean", "what's a seat",
+    "what is furniture", "what's a group", "what is a company", "what's a school",
+    "what is a financial institution", "what's an object", "what is Mars", "what is Pluto",
+    "what's a glarb", "what is love", "what's a bank, as in the side of a river", "what's a banco",
+    "what's a guitarra", "what does cuerda mean", "what are fiddles", "what's the meaning of the word dulcimer",
+    "i want to know what a synthesizer is", "no idea what a capo is", "can you tell me what a fret is",
+    "could you define bandurria", "give me the definition of guitar", "what is a guitar exactly",
+    "give me the Spanish one then", "the English definition, please", "what's a neck",
+    "what is the meaning of tablet", "what do you call a shoal", "explain the word stringed instrument"]
+
+  [[intent.slot]]
+  name = "word"
+  type = "term"
+  required = true
+  guess = { after = ["que es un", "que es una", "que es el", "que es la", "que son los", "que son las", "que es", "que significa", "que quiere decir", "definicion de", "significado de", "define", "defineme", "what is a", "what is an", "what's a", "what's an", "what are", "what is", "what's", "define", "definition of", "meaning of"] }
+
+  [[intent.slot]]
+  name = "sense"
+  type = "term"
+
+  [[intent.slot]]
+  name = "gloss_lang"
+  type = "language"
+
+  [[intent.slot]]
+  name = "suggested"
+  type = "term"
+  internal = true
+
+  [[intent.slot]]
+  name = "typed"
+  type = "term"
+  internal = true
+
+  # The definition in a language asked for explicitly, of the topic.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:pues\s+|vale,?\s+|y\s+)?(?:dame\s+|dime\s+|quiero\s+)?la\s+(?:definicion\s+)?(?:de|en)\s+(?<gloss_lang>ingles|espanol|castellano)(?:,?\s+(?:entonces|porfa|por\s+favor))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:define|defineme)\s+(?<word>.+?)\s+(?<gloss_lang>en\s+(?:ingles|espanol|castellano))[\s?.!]*$'
+
+  # «qué es un X», «qué son los X», «me dices qué es X». "Qué es …" is
+  # also how many other questions start («qué es lo que sabes hacer»), so
+  # the rules take only the shapes of a word: after an indefinite article,
+  # one or two words after a definite one, or one word alone (or quoted).
+  # Longer ones are left to the classifier.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:y|oye|a\s+ver|vale|bueno|pues),?\s+)?(?:(?:me\s+)?(?:dices|puedes\s+decir|podrias\s+decir|explicas|aclaras)\s+|(?:me\s+)?(?:puedes|podrias)\s+(?:decirme|explicarme)\s+|(?:tu\s+)?sabes\s+|dime\s+|explicame\s+|quiero\s+saber\s+|necesito\s+saber\s+|no\s+se\s+|me\s+pregunto\s+|ni\s+idea\s+de\s+)?(?:que|q|k|lo\s+que)\s+(?:narices\s+|demonios\s+|diablos\s+)?(?:es|son|seria)(?:\s+exactamente)?(?:\s+eso\s+de)?\s+(?:un|una|unos|unas)\s+(?<word>[^?¿!,\d()]+?)(?:\s+exactamente)?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:y|oye|a\s+ver|vale|bueno|pues),?\s+)?(?:(?:me\s+)?(?:dices|puedes\s+decir|podrias\s+decir|explicas|aclaras)\s+|(?:me\s+)?(?:puedes|podrias)\s+(?:decirme|explicarme)\s+|(?:tu\s+)?sabes\s+|dime\s+|explicame\s+|quiero\s+saber\s+|no\s+se\s+)?(?:que|q|k|lo\s+que)\s+(?:es|son)(?:\s+exactamente)?\s+(?:el|la|los|las)\s+(?<word>[^\s?¿!,\d()]+(?:\s+[^\s?¿!,\d()]+)?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:y|oye|a\s+ver|vale|bueno|pues),?\s+)?(?:(?:me\s+)?(?:dices|puedes\s+decir|podrias\s+decir|explicas|aclaras)\s+|(?:me\s+)?(?:puedes|podrias)\s+(?:decirme|explicarme)\s+|(?:tu\s+)?sabes\s+|dime\s+|explicame\s+|quiero\s+saber\s+|no\s+se\s+)?(?:que|q|k|lo\s+que)\s+(?:es|son)(?:\s+exactamente)?\s+(?<word>"[^"]+"|[^\s?¿!,\d()"]+)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:y|oye|a\s+ver|vale|bueno|pues),?\s+)?(?:(?:me\s+)?(?:dices|puedes\s+decir|podrias\s+decir|explicas|aclaras)\s+|(?:me\s+)?(?:puedes|podrias)\s+(?:decirme|explicarme)\s+|(?:tu\s+)?sabes\s+|dime\s+|explicame\s+|quiero\s+saber\s+|necesito\s+saber\s+|no\s+se\s+|me\s+pregunto\s+|ni\s+idea\s+de\s+)?(?:que|q|k|lo\s+que)\s+(?:narices\s+|demonios\s+)?(?:significa|quiere\s+decir)(?:\s+exactamente)?\s+(?:en\s+realidad\s+)?(?:la\s+palabra\s+)?(?<word>[^?¿!\d()]+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y\s+)?(?:que|q|k)\s+(?:significa|quiere\s+decir)(?:\s+eso)?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:me\s+)?(?:puedes|podrias)\s+)?(?:define|defineme|definir|definirme|definicion\s+de|significado\s+de|(?:dame|dime|busca|buscame)\s+(?:la\s+definicion|el\s+significado)\s+de|cual\s+es\s+(?:la\s+definicion|el\s+significado)\s+de|que\s+significado\s+tiene)\s+(?:la\s+palabra\s+)?(?<word>[^?¿!]+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:busca|buscame|mira)\s+(?<word>[^?¿!]+?)\s+en\s+el\s+diccionario[\s?.!]*$'
+
+  # «X, ¿qué es?».
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y\s+)?(?<word>[^,:?¿!]+?)\s*[,:]\s*[¿\s]*(?:y\s+)?(?:que|q)\s+(?:es|son|significa|quiere\s+decir)[\s?.!]*$'
+
+  # English.
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:so\s+|ok\s+|then\s+)?(?:give\s+me\s+|what\x27s\s+|what\s+is\s+|i\s+want\s+)?the\s+(?<gloss_lang>spanish|english)\s+(?:one|definition|meaning)(?:,?\s+(?:then|please))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*define\s+(?<word>.+?)\s+(?<gloss_lang>in\s+(?:spanish|english))[\s?.!]*$'
+
+  # "What is …" starts many other questions ("what is the capital of…"):
+  # the rules take a word after "a"/"an", or one word alone (or quoted).
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:and\s+|so\s+)?(?:(?:can|could)\s+you\s+tell\s+me\s+|tell\s+me\s+|explain\s+|i\s+want\s+to\s+know\s+|do\s+you\s+know\s+)?(?:what\x27s|whats|what\s+is|what\s+are|wat\s+is|wats|what\s+on\s+earth\s+is)\s+(?:a|an)\s+(?<word>[^?!,\d()]+?(?:,\s*as\s+in\s+[^?!]+?)?)(?:\s+exactly)?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:and\s+|so\s+)?(?:(?:can|could)\s+you\s+tell\s+me\s+|tell\s+me\s+|do\s+you\s+know\s+)?(?:what\x27s|whats|what\s+is|what\s+are)\s+(?<word>"[^"]+"|[^\s?!,\d()"]+)(?:\s+exactly)?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:and\s+)?(?:(?:can|could)\s+you\s+tell\s+me\s+|tell\s+me\s+|explain\s+|do\s+you\s+know\s+)?what\s+(?:a|an|the)\s+(?<word>[^?!]+?)\s+(?:is|are)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:and\s+)?what\s+(?:does|do)\s+(?:the\s+word\s+)?(?<word>.+?)\s+mean[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:(?:can|could)\s+you\s+)?(?:define|definition\s+of|meaning\s+of|the\s+meaning\s+of|what\x27s\s+the\s+meaning\s+of|what\s+is\s+the\s+meaning\s+of|give\s+me\s+the\s+definition\s+of|look\s+up\s+the\s+definition\s+of|explain\s+the\s+word)\s+(?:the\s+word\s+)?(?<word>[^?!]+?)[\s?.!]*$'
+
+  # "X — what's that?".
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?<word>[^,?!-]+?)\s*[,-]\s*what(?:\x27s|s|\s+is)\s+(?:that|it)[\s?.!]*$'
+
+[reply.defined]
+es = ["{text}"]
+en = ["{text}"]
+
+[reply.undefined]
+es = ["{text}"]
+en = ["{text}"]
+
+[reply.unknown]
+es = ["No conozco la palabra «{word}»."]
+en = ["I don't know the word \"{word}\"."]
+
+[reply.near_refused]
+es = ["Entonces no conozco la palabra «{word}»."]
+en = ["Then I don't know the word \"{word}\"."]
+
+[reply.no_dictionary]
+es = ["No tengo ningún diccionario instalado, así que no puedo decirte qué significa."]
+en = ["I don't have a dictionary installed, so I can't tell you what it means."]
+
+[reply.ask_word]
+es = ["¿Qué palabra?"]
+en = ["Which word?"]
+
+[reply.ask_near]
+es = ["¿Te refieres a «{word}»?"]
+en = ["Do you mean \"{word}\"?"]
+
+[reply.ask_sense]
+es = ["¿Qué «{word}»: {options}?"]
+en = ["Which \"{word}\": {options}?"]
+
+[reply.ask_sense_foreign]
+es = ["«{word}» es una palabra inglesa. ¿Cuál: {options}?"]
+en = ["«{word}» is Spanish. Do you mean {options}?"]
+
+[reply.other_gloss]
+es = ["En inglés: «{gloss}»."]
+en = ["In Spanish: «{gloss}»."]
+
+[reply.other_gloss_none]
+es = ["Tampoco tengo esa definición en el otro idioma."]
+en = ["I don't have that definition in the other language either."]
+
+[reply.p_gloss]
+es = ["{word}: {gloss}."]
+en = ["{word}: {gloss}."]
+
+[reply.p_gloss_named]
+es = ["{word} ({label}): {gloss}."]
+en = ["{word} ({label}): {gloss}."]
+
+[reply.p_foreign]
+es = ["«{word}» es una palabra inglesa: {name}, {gloss}."]
+en = ["«{word}» is a Spanish word: {name}, {gloss}."]
+
+[reply.p_foreign_unnamed]
+es = ["«{word}» es una palabra inglesa: {gloss}."]
+en = ["«{word}» is a Spanish word: {gloss}."]
+
+[reply.p_others]
+es = ["También puede ser: {others}."]
+en = ["It can also mean: {others}."]
+
+[reply.p_nodef]
+es = ["No tengo una definición de «{word}» en español."]
+en = ["I don't have an English definition of \"{word}\"."]
+
+[reply.p_nodef_any]
+es = ["No tengo una definición de «{word}»."]
+en = ["I don't have a definition of \"{word}\"."]
+
+[reply.p_knows_class]
+es = ["Sé que es un tipo de {class}."]
+en = ["I know it's a kind of {class}."]
+
+[reply.p_knows_part]
+es = ["Sé que forma parte de: {class}."]
+en = ["I know it's part of the {class}."]
+
+[reply.p_said_other]
+es = ["En inglés se dice «{other}»."]
+en = ["In Spanish it's «{other}»."]
+
+[reply.p_said_here]
+es = ["En español se dice «{other}»."]
+en = ["In English it's \"{other}\"."]
+
+[reply.p_other_def]
+es = ["Solo tengo la definición en inglés."]
+en = ["I only have a Spanish definition."]
+
+[reply.word_or]
+es = ["o"]
+en = ["or"]

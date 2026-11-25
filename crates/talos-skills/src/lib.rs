@@ -15,6 +15,8 @@ include!(concat!(env!("OUT_DIR"), "/manifests.rs"));
 
 // Shared by `timezones` and `preferences`: the place table and its zones.
 mod places;
+// Shared by `define`, `translate` and `teach`: wording pieces, lists, words.
+mod dict;
 
 /// Declares the built-in skills: each entry is `module::Handler`, where
 /// `src/module.rs` defines the handler and `skills/module/manifest.toml` its
@@ -41,8 +43,16 @@ skills! {
     calc::Calc,
     random::Random,
     fortune::Fortune,
+    define::Define,
+    teach::Teach,
+    translate::Translate,
     preferences::Memory,
 }
+
+/// Whether the dictionary skills (`define`, `translate`) can read a
+/// knowledge store in this build (the `knowledge` feature). Without it they
+/// are installed all the same and answer that there is no dictionary.
+pub const DICTIONARY: bool = cfg!(feature = "knowledge");
 
 /// The embedded manifests as (directory name, TOML text), by directory name.
 #[must_use]

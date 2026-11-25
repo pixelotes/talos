@@ -15,15 +15,32 @@ workspace = true
 default = ["knowledge"]
 # The builder is the store's own code; a workspace build without the store
 # (`--no-default-features`) skips it.
-knowledge = ["talos-core/knowledge", "dep:rusqlite"]
+knowledge = ["talos-core/knowledge", "dep:rusqlite", "dep:quick-xml", "dep:flate2", "dep:sha2"]
 
 # The crate the binary reads packs with, so a pack is built by the code that
-# queries it; rusqlite directly only for the synthetic pack.
+# queries it; rusqlite directly for the synthetic and vocabulary packs; the
+# XML, gzip and SHA-256 readers for the vocabulary pack's sources.
 [dependencies]
 talos-core.workspace = true
 rusqlite = { workspace = true, optional = true }
+quick-xml = { workspace = true, optional = true }
+flate2 = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
 
 [[bin]]
 name = "talos-pack"
 path = "src/main.rs"
+required-features = ["knowledge"]
+
+# Properties of the built vocabulary pack; skipped, saying so, when it has
+# not been built (its sources are not committed).
+[[test]]
+name = "vocabulary"
+path = "tests/vocabulary.rs"
+required-features = ["knowledge"]
+
+# Everyday words looked up in the built vocabulary pack, for reading.
+[[example]]
+name = "vocabulary_sample"
+path = "examples/vocabulary_sample.rs"
 required-features = ["knowledge"]

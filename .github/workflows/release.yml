@@ -1,0 +1,125 @@
+name: release
+
+# Builds what a Linux x86_64 machine needs to run Talos: a static binary and
+# the vocabulary pack. Runs on a version tag (and then publishes a GitHub
+# release) or by hand (and then only keeps the files as workflow artifacts).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  TARGET: x86_64-unknown-linux-musl
+
+permissions:
+  contents: read
+
+jobs:
+  binary:
+    name: talos, x86_64 Linux, static
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: Swatinem/rust-cache@v2.7.8
+        with:
+          key: release-musl
+      # musl-gcc compiles the bundled SQLite for the static target.
+      - name: Toolchain for a static build
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y musl-tools
+          rustup target add "$TARGET"
+      - name: Build (the release profile strips; see Cargo.toml)
+        run: cargo build --release --locked -p talos --target "$TARGET"
+      - name: Check that it is static and that it answers
+        run: |
+          bin="target/$TARGET/release/talos"
+          file "$bin"
+          file "$bin" | grep -q "statically linked"
+          test "$("$bin" ask --lang en "hello")" != ""
+          TALOS_DATA_DIR= "$bin" skills check
+      - name: Package
+        run: |
+          version="${GITHUB_REF_NAME}"
+          case "$version" in v*) ;; *) version="${GITHUB_SHA::12}" ;; esac
+          name="talos-${version}-x86_64-linux"
+          mkdir "$name"
+          cp "target/$TARGET/release/talos" LICENSE README.md "$name/"
+          tar -czf "$name.tar.gz" "$name"
+          sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
+          size=$(stat -c %s "$name/talos")
+          echo "### talos x86_64 static: ${size} bytes" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: talos-x86_64-linux
+          path: |
+            talos-*.tar.gz
+            talos-*.tar.gz.sha256
+          if-no-files-found: error
+
+  vocabulary:
+    name: vocabulary pack
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: Swatinem/rust-cache@v2.7.8
+        with:
+          key: release-pack
+      # The three sources (docs/research/wordnet-sources.md §2.3.1). They are
+      # not redistributed from this repository; the builder checks each
+      # file's SHA-256 and refuses anything else, so a source that changed
+      # upstream fails this job instead of producing a different pack.
+      - name: Fetch the sources
+        run: |
+          mkdir sources
+          curl -fsSL --retry 3 -o sources/english-wordnet-2025-plus.xml.gz \
+            https://en-word.net/static/english-wordnet-2025-plus.xml.gz
+          curl -fsSL --retry 3 -o sources/ili-map-pwn30.tab \
+            https://raw.githubusercontent.com/globalwordnet/cili/master/ili-map-pwn30.tab
+          curl -fsSL --retry 3 -o sources/wn-data-spa.tab \
+            https://raw.githubusercontent.com/bond-lab/omw-data/main/wns/mcr/wn-data-spa.tab
+      - name: Build the pack
+        run: cargo run --release --locked -p talos-pack -- wordnet sources
+      - name: Check the pack with the binary
+        run: |
+          cargo build --release --locked -p talos
+          ./target/release/talos packs check target/packs/vocabulary.talospack
+      - name: Package
+        run: |
+          cd target/packs
+          zstd -19 -T0 vocabulary.talospack -o vocabulary.talospack.zst
+          sha256sum vocabulary.talospack.zst vocabulary.NOTICE > vocabulary.sha256
+          ls -l
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: vocabulary-pack
+          path: |
+            target/packs/vocabulary.talospack.zst
+            target/packs/vocabulary.NOTICE
+            target/packs/vocabulary.report.txt
+            target/packs/vocabulary.sha256
+          if-no-files-found: error
+
+  publish:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [binary, vocabulary]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4.3.0
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Static binary for Linux x86_64 and the vocabulary pack. The pack is built from Open English WordNet and the Multilingual Central Repository and carries their licences: see vocabulary.NOTICE."

@@ -18,13 +18,15 @@ use crate::render;
 use crate::rules::{Candidate, Rules, Source};
 use crate::safety::{self, DEFAULT_EMERGENCY, Emergency};
 use crate::skill::{
-    Call, Context, Expects, Message, PreferenceChange, Registration, Skill, SkillResult,
+    Call, Change, Context, Expects, Memo, Message, Recognition, Registration, Skill, SkillResult,
+    Understood,
 };
 use crate::state::{ConversationState, Conversations, Open, lock_state};
-use crate::user::{MemoryStore, UserData, UserStore};
+use crate::user::{MemoryStore, NOT_TEACHABLE, UserData, UserStore};
 use crate::value::{SlotType, Slots, Value};
 use crate::{
-    ConvId, Error, IntentId, Lang, Outcome, Reason, Status, Trace, TraceStep, Turn, fallback,
+    ConvId, Error, Fallback, IntentId, Lang, Outcome, Reason, Status, Timestamp, Trace, TraceStep,
+    Turn, fallback,
 };
 
 /// Settings fixed when the engine is built (DESIGN.md section 10).
@@ -90,10 +92,6 @@ pub struct Engine {
     #[cfg(feature = "knowledge")]
     knowledge: Option<crate::knowledge::Knowledge>,
 }
-
-/// Intents a taught phrase may never stand for: a short phrase must not be
-/// able to delete anything (docs/spec/knowledge.md, teach.phrase).
-const NEVER_CORRECTED: &[&str] = &["preferences.forget", "teach.forget", "teach.phrase"];
 
 /// How many turns after the one that asked an open question stays open,
 /// and for how long by the turns' clock (docs/spec/conversation.md 3.7).
@@ -168,8 +166,13 @@ struct Handled {
     open: Option<Open>,
     /// The slot asked for, when the turn asked back.
     asks: Option<String>,
-    /// Preference changes the handler asked for, applied after the turn.
-    changes: Vec<PreferenceChange>,
+    /// Changes to the user's data the handler asked for, applied after the
+    /// turn.
+    changes: Vec<Change>,
+    /// What the handler asked to remember about the conversation.
+    memos: Vec<Memo>,
+    /// The fallback source the reply rests on.
+    fallback: Option<Fallback>,
 }
 
 impl Handled {
@@ -217,6 +220,8 @@ impl Handled {
             open: None,
             asks: None,
             changes: Vec::new(),
+            memos: Vec::new(),
+            fallback: None,
         }
     }
 }
@@ -506,7 +511,10 @@ impl Engine {
         };
 
         // What the user asked to be remembered, as of this turn's start.
-        let preferences = self.user().preferences.clone();
+        let UserData {
+            preferences,
+            corrections,
+        } = self.user().clone();
         let cx = Context::new(
             turn.now,
             turn.place.as_ref(),
@@ -514,7 +522,8 @@ impl Engine {
             &state,
             &preferences,
             &self.manifests,
-        );
+        )
+        .with_engine(self, &corrections);
         #[cfg(feature = "knowledge")]
         let cx = match &self.knowledge {
             Some(knowledge) => cx.with_knowledge(knowledge),
@@ -605,6 +614,11 @@ impl Engine {
         if !handled.changes.is_empty() {
             self.remember(&std::mem::take(&mut handled.changes), &mut trace);
         }
+        if !handled.memos.is_empty() {
+            let memos = std::mem::take(&mut handled.memos);
+            trace.note("memory", || format!("{memos:?}"));
+            state.apply_memos(memos);
+        }
 
         state.set_last_intent(handled.intent.clone());
         state.remember_reply(&handled.reply, handled.status);
@@ -626,18 +640,28 @@ impl Engine {
             pending,
             asks: handled.asks,
             generated: false,
+            fallback: handled.fallback,
             trace: trace.finish(handled.internal),
         };
         (outcome, random.into_report())
     }
 
-    /// Applies the preference changes of a turn and saves them, unless
-    /// they change nothing: then nothing is written (DESIGN.md section 7).
-    fn remember(&self, changes: &[PreferenceChange], trace: &mut Tracer) {
+    /// Applies the changes to the user's data a turn asked for (preferences,
+    /// taught phrases) and saves them, unless they change nothing: then
+    /// nothing is written (DESIGN.md section 7).
+    fn remember(&self, changes: &[Change], trace: &mut Tracer) {
         let mut user = self.user();
         let mut data = user.clone();
         for change in changes {
-            data.preferences.apply(change);
+            match change {
+                Change::Preference(change) => {
+                    data.preferences.apply(change);
+                }
+                Change::Teach(correction) => data.correct(correction.clone()),
+                Change::Untaught(key) => {
+                    data.uncorrect(key);
+                }
+            }
         }
         if *user == data {
             trace.note("preferences", || "no change; nothing written".to_owned());
@@ -656,7 +680,7 @@ impl Engine {
     fn corrected(&self, lang: Lang, message: &Normalised) -> Option<Candidate> {
         let user = self.user();
         let correction = user.correction(&message.original)?;
-        if NEVER_CORRECTED.contains(&correction.intent.as_str()) {
+        if NOT_TEACHABLE.contains(&correction.intent.as_str()) {
             return None;
         }
         let (_, intent) = self.intent(&correction.intent)?;
@@ -850,6 +874,10 @@ impl Engine {
     /// (and complete the original request), fail to answer it, or be
     /// unrelated and release it. With none open, a bare acknowledgement or
     /// yes/no is answered here.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "each kind of answer to an open question, in the order it is tried"
+    )]
     fn pending(
         &self,
         cx: &mut Context<'_>,
@@ -911,6 +939,14 @@ impl Engine {
                 )
             });
         }
+        // Free text is the answer as written, whatever it reads as.
+        if open.expectation.expects == Expects::Text {
+            let text = at.message.original.trim();
+            if !text.is_empty() {
+                let value = Value::Text(text.to_owned());
+                return self.fill(cx, at, open, value, trace);
+            }
+        }
         // An option, by position or by name.
         if let Expects::Choice(options) = &open.expectation.expects {
             let names: Vec<Vec<String>> = options.iter().map(|o| o.names.clone()).collect();
@@ -958,7 +994,7 @@ impl Engine {
                     cx.now(),
                 ))
             }
-            Expects::Choice(_) | Expects::Confirm => None,
+            Expects::Choice(_) | Expects::Confirm | Expects::Text => None,
         }
         .filter(|v| !matches!(v, Value::Invalid { .. }));
         match value {
@@ -1071,6 +1107,8 @@ impl Engine {
             asks: Some(open.expectation.slot.clone()),
             open: Some(Open { asked: 2, ..open }),
             changes: Vec::new(),
+            memos: Vec::new(),
+            fallback: None,
         }
     }
 
@@ -1237,6 +1275,8 @@ impl Engine {
         let result = handler.handle(cx, &call);
         let reported = cx.take_reported();
         let changes = cx.take_changes();
+        let memos = cx.take_memos();
+        let fallback = cx.take_fallback();
         let guessed = cx.guessed();
         trace.note("dispatch", || {
             format!("{intent_id} → {}", describe_result(&result))
@@ -1262,6 +1302,14 @@ impl Engine {
             changes
         } else {
             Vec::new()
+        };
+        // What the turn talked about, and the source it fell back to, count
+        // only for an answer (or an honest "cannot"), never for a question.
+        let settled = matches!(result, SkillResult::Answer(_) | SkillResult::Unable(_));
+        let (memos, fell_back) = if settled {
+            (memos, fallback)
+        } else {
+            (Vec::new(), None)
         };
         let mut question = None;
         let (message, status, reason) = match result {
@@ -1323,8 +1371,15 @@ impl Engine {
         };
         let (reply, open, asks) = match question {
             None => (reply, None, None),
-            Some(expectation) => {
+            Some(mut expectation) => {
                 stored.remove(&expectation.slot);
+                if let Some(name) = expectation.keep.keys().find(|n| intent.slot(n).is_none()) {
+                    return failed(
+                        trace,
+                        format!("the question keeps `{name}`, which {intent_id} does not declare"),
+                    );
+                }
+                stored.extend(std::mem::take(&mut expectation.keep));
                 let reply = if asked == 2 {
                     format!("{} {reply}", fallback::dialog(lang, Move::NotUnderstood))
                 } else {
@@ -1357,7 +1412,105 @@ impl Engine {
             open,
             asks,
             changes,
+            memos,
+            fallback: fell_back,
         })
+    }
+
+    /// Reads a text as a message would be read ([`Context::understand`]):
+    /// the user-correction table and the rules, then the classifier when it
+    /// accepts a candidate outright. Slots come as text: a rule's fixed
+    /// values and captures in the user's spelling, a guess's values in
+    /// their canonical form.
+    pub(crate) fn understand(&self, text: &str, lang: Lang, now: Timestamp) -> Option<Understood> {
+        let message = normalise(text);
+        if message.is_empty() || dialog::command_line(&message).is_some() {
+            return None;
+        }
+        let mut quiet = Tracer(None);
+        let candidates = self.recognise(lang, &message, &mut quiet);
+        // As dispatch does, a rule's candidate whose skill declines it is
+        // not what the text means ("six-string" is no sum): each is offered
+        // to its handler in a context of its own, whose draws and changes
+        // go nowhere.
+        let taken = candidates
+            .into_iter()
+            .find(|c| self.would_take(c, &message, lang, now));
+        let (candidate, source) = match taken {
+            Some(c) if c.source == Source::Correction => (c, Recognition::Taught),
+            Some(c) => (c, Recognition::Rule),
+            None => {
+                let verdict = self.classifiers.recognise(lang, &message.folded);
+                (
+                    verdict.candidates().into_iter().next()?,
+                    Recognition::Classifier,
+                )
+            }
+        };
+        let (_, intent) = self.intent(&candidate.intent)?;
+        let mut slots: BTreeMap<String, String> = candidate.fixed.clone();
+        for (name, range) in &candidate.captures {
+            let original = message.original_of(range.clone()).trim();
+            if intent.slot(name).is_some() && !original.is_empty() {
+                slots.insert(name.clone(), original.to_owned());
+            }
+        }
+        if source == Recognition::Classifier {
+            for decl in &intent.slots {
+                if decl.internal || decl.guess.is_empty() || slots.contains_key(&decl.name) {
+                    continue;
+                }
+                if let Some(value) = extract::guess(decl, &message, lang, now) {
+                    slots.insert(decl.name.clone(), value.to_string());
+                }
+            }
+        }
+        Some(Understood {
+            intent: candidate.intent,
+            slots,
+            source,
+        })
+    }
+
+    /// Whether a candidate's skill would take it rather than decline, asked
+    /// in a context of its own: a fresh conversation, no store, no engine
+    /// (so a handler cannot recurse through [`Context::understand`]), a
+    /// random source whose draws are thrown away, and no change applied.
+    fn would_take(
+        &self,
+        candidate: &Candidate,
+        message: &Normalised,
+        lang: Lang,
+        now: Timestamp,
+    ) -> bool {
+        static FRESH: ConversationState = ConversationState::NEW;
+        let Some((index, intent)) = self.intent(&candidate.intent) else {
+            return false;
+        };
+        let preferences = self.user().preferences.clone();
+        let mut cx = Context::new(
+            now,
+            None,
+            Random::seeded(0),
+            &FRESH,
+            &preferences,
+            &self.manifests,
+        );
+        #[cfg(feature = "knowledge")]
+        if let Some(knowledge) = &self.knowledge {
+            cx = cx.with_knowledge(knowledge);
+        }
+        let slots = Self::extract(intent, candidate, message, lang, &cx);
+        let call = Call {
+            intent: &intent.id,
+            lang,
+            slots: &slots,
+            text: &message.original,
+        };
+        !matches!(
+            self.handlers[index].handle(&mut cx, &call),
+            SkillResult::Decline
+        )
     }
 
     /// Stage 6: looks the message up in its skill's manifest, picks the
@@ -1474,7 +1627,7 @@ fn describe_state(conversation: &ConvId, state: &ConversationState) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skill::{Choice, Expectation, SkillError};
+    use crate::skill::{Choice, Expectation, PreferenceChange, SkillError};
     use crate::user::{UserData, UserStore};
     use crate::{Number, Timestamp};
 

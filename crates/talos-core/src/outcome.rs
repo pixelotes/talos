@@ -91,6 +91,50 @@ impl fmt::Display for Reason {
     }
 }
 
+/// Which cheaper source answered when the better one had nothing
+/// (DESIGN.md principle 8, "Degrade cheaply"). An outcome carries one only
+/// when the reply rests on such a source, and the reply says so in words
+/// too; a host that has something better (a translator, an encyclopedia)
+/// can read it and step in.
+///
+/// An open set of lower-case, hyphenated names, like [`Reason`]; the
+/// constants are the ones the built-in skills use.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Fallback(Cow<'static, str>);
+
+impl Fallback {
+    /// A translation from the word-pair lexicon, because the concept store
+    /// has no word for it (docs/spec/knowledge.md, translate).
+    pub const WORD_PAIRS: Fallback = Fallback(Cow::Borrowed("word-pairs"));
+    /// A phrase translated word by word, because it is neither a word nor a
+    /// stock phrase; labelled approximate, and the turn is `Unhandled`.
+    pub const WORD_BY_WORD: Fallback = Fallback(Cow::Borrowed("word-by-word"));
+    /// What a word's claims say about it (its class, what it is part of),
+    /// because there is no definition in the conversation's language.
+    pub const RELATIONS: Fallback = Fallback(Cow::Borrowed("relations"));
+    /// The definition in the other language, given when asked for because
+    /// there is none in the conversation's language.
+    pub const OTHER_LANGUAGE: Fallback = Fallback(Cow::Borrowed("other-language"));
+
+    /// A fallback by name.
+    #[must_use]
+    pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
+        Self(name.into())
+    }
+
+    /// The name used in outcome lines and on the wire.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for Fallback {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
 /// A fixed intent identifier such as `smalltalk.greet` (docs/spec/README.md).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct IntentId(pub String);
@@ -167,6 +211,10 @@ pub struct Outcome {
     pub asks: Option<String>,
     /// True only when an external skill used a model.
     pub generated: bool,
+    /// The cheaper source the reply rests on, when the best one had
+    /// nothing (DESIGN.md principle 8); `None` when the best source
+    /// answered, or nothing did.
+    pub fallback: Option<Fallback>,
     /// The trace, when the turn asked for one.
     pub trace: Option<Trace>,
 }
@@ -177,7 +225,8 @@ impl Outcome {
     /// recognised, `status · reason` when none was, and the bare status when
     /// there is neither. Slots are in name order; `extra` adds slots (the
     /// internal ones, when a golden file asks for them). A turn that asked
-    /// back is `asks · intent · slot` (docs/spec/README.md).
+    /// back is `asks · intent · slot` (docs/spec/README.md). A reply that
+    /// rests on a fallback source ends with `· fallback <name>`.
     #[must_use]
     pub fn line(&self, extra: Option<&Slots>) -> String {
         if let (Some(slot), Some(intent)) = (&self.asks, &self.intent) {
@@ -204,6 +253,10 @@ impl Outcome {
                 line.push_str(reason.as_str());
             }
             (None, None) => {}
+        }
+        if let Some(fallback) = &self.fallback {
+            line.push_str(" · fallback ");
+            line.push_str(fallback.as_str());
         }
         line
     }

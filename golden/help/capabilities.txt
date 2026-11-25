@@ -18,6 +18,9 @@
         · cuentas, porcentajes y conversiones de unidades (/calc)
         · tirar dados y monedas, elegir entre opciones y dar números al azar (/dado, /moneda, /elige, /numero)
         · decir un refrán o una frase de la suerte (/refran)
+        · decirte qué significa una palabra (/definir)
+        · aprender tus propias frases para lo que ya sé hacer
+        · traducir palabras y frases hechas entre español e inglés (/traduce)
         · recordar tu nombre, dónde vives y tus unidades
                                                   → answered · help.capabilities
 
@@ -31,6 +34,9 @@
         · arithmetic, percentages and unit conversion (/calc)
         · roll dice, flip coins, pick among options and give random numbers (/roll, /coin, /pick, /number)
         · give a saying or a fortune (/fortune)
+        · tell you what a word means (/define)
+        · learn your own phrases for what I can already do
+        · translate words and set phrases between Spanish and English (/translate)
         · remember your name, where you live and your units
                                                   → answered · help.capabilities
 

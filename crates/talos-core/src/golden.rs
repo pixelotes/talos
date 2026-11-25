@@ -57,6 +57,11 @@ pub struct Settings {
     /// default): the user-correction table at the start of each
     /// conversation, one entry per line.
     pub phrases: Vec<Correction>,
+    /// `pack = knowledge/seed.toml`, or `pack = none` (the default): a pack
+    /// source, relative to the directory that holds the golden directory,
+    /// built in memory and given to the engine as its knowledge store. A
+    /// build without the `knowledge` feature skips the turns that need one.
+    pub pack: Option<String>,
 }
 
 impl Default for Settings {
@@ -70,6 +75,7 @@ impl Default for Settings {
             all_slots: false,
             stored: Preferences::NONE,
             phrases: Vec::new(),
+            pack: None,
         }
     }
 }
@@ -379,6 +385,7 @@ fn apply_given(
         }
         "hint" => settings.hint = lang(value)?,
         "place" => settings.place = (value != "none").then(|| Place(value.to_owned())),
+        "pack" => settings.pack = (value != "none").then(|| value.to_owned()),
         "phrase" if value == "none" => settings.phrases.clear(),
         "phrase" => settings.phrases.push(parse_phrase(value)?),
         "draw" => *draws = Some(Draw::parse_list(value)?),
@@ -391,7 +398,7 @@ fn apply_given(
         }
         _ => {
             return Err(format!(
-                "unknown `Given: {key}` (known: now, seed, default language, hint, place, draw, slots, stored, phrase)"
+                "unknown `Given: {key}` (known: now, seed, default language, hint, place, draw, slots, stored, phrase, pack)"
             ));
         }
     }
@@ -462,6 +469,9 @@ pub struct Summary {
     pub failures: Vec<Failure>,
     /// Files rewritten by a regeneration.
     pub rewritten: Vec<PathBuf>,
+    /// Turns not run: they need a knowledge pack and this build has no
+    /// knowledge store.
+    pub skipped: usize,
 }
 
 impl Summary {
@@ -530,11 +540,46 @@ impl Settings {
 
 /// Runs one parsed golden file. With `bless`, returns the file's text with
 /// every T block regenerated instead of failures.
+/// The engines a run has built, by configuration and pack.
+type Engines = Vec<((Config, Option<String>), Engine)>;
+
+/// An engine for a configuration and a pack source (relative to `root`).
+fn engine_for(
+    build: Build<'_>,
+    config: Config,
+    pack: Option<&str>,
+    root: &Path,
+) -> Result<Engine, String> {
+    let engine = build(config).map_err(|e| e.to_string())?;
+    let Some(pack) = pack else {
+        return Ok(engine);
+    };
+    #[cfg(feature = "knowledge")]
+    {
+        let path = root.join(pack);
+        let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let knowledge = crate::knowledge::Knowledge::from_source(&text)
+            .map_err(|e| format!("{}: {e}", path.display()))?;
+        let mut engine = engine;
+        engine.use_knowledge(knowledge);
+        Ok(engine)
+    }
+    #[cfg(not(feature = "knowledge"))]
+    {
+        let _ = (engine, root);
+        Err(format!("`pack = {pack}` needs the `knowledge` feature"))
+    }
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "one case run and compared in the order it is read"
+)]
 fn run_golden(
     file: &Path,
     golden: &Golden,
-    build: Build<'_>,
-    engines: &mut Vec<(Config, Engine)>,
+    (build, root): (Build<'_>, &Path),
+    engines: &mut Engines,
     summary: &mut Summary,
     bless: bool,
 ) -> Result<Option<String>, String> {
@@ -542,16 +587,21 @@ fn run_golden(
     let mut replacements: Vec<(Range<usize>, Vec<String>)> = Vec::new();
     for case in &golden.cases {
         let s = &case.settings;
+        if s.pack.is_some() && !cfg!(feature = "knowledge") {
+            summary.skipped += 1;
+            continue;
+        }
         let config = Config {
             default_lang: s.default_lang,
             seed: s.seed,
             ..Config::default()
         };
-        let index = if let Some(index) = engines.iter().position(|(c, _)| *c == config) {
+        let key = (config, s.pack.clone());
+        let index = if let Some(index) = engines.iter().position(|(k, _)| *k == key) {
             index
         } else {
-            let engine = build(config).map_err(|e| e.to_string())?;
-            engines.push((config, engine));
+            let engine = engine_for(build, config, s.pack.as_deref(), root)?;
+            engines.push((key, engine));
             engines.len() - 1
         };
         let engine = &engines[index].1;
@@ -662,11 +712,13 @@ fn files(dir: &Path) -> Result<Vec<PathBuf>, String> {
 pub fn run_dir(dir: &Path, build: Build<'_>, bless: bool) -> Result<Summary, String> {
     let mut summary = Summary::default();
     let mut engines = Vec::new();
+    let root = dir.parent().unwrap_or(dir);
     for file in files(dir)? {
         let text = fs::read_to_string(&file).map_err(|e| format!("{}: {e}", file.display()))?;
         let golden = Golden::parse(&text).map_err(|e| format!("{}: {e}", file.display()))?;
         summary.files += 1;
-        if let Some(new) = run_golden(&file, &golden, build, &mut engines, &mut summary, bless)?
+        let run = (build, root);
+        if let Some(new) = run_golden(&file, &golden, run, &mut engines, &mut summary, bless)?
             && new != text
         {
             fs::write(&file, new).map_err(|e| format!("{}: {e}", file.display()))?;

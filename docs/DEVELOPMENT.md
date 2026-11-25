@@ -26,6 +26,7 @@ cargo run --release -p talos-train -- --cv 5             # cross-validate on the
 cargo run --release -- eval                              # score the batteries, rules only and with the classifier
 cargo run -p talos-pack                                  # build the seed pack (knowledge/seed.toml) into target/packs/core.talospack
 cargo run -p talos -- packs check target/packs/core.talospack   # verify a pack whole
+cargo run --release -p talos-pack -- wordnet DIR         # the vocabulary pack from the wordnets in DIR ("The vocabulary pack")
 ```
 
 Lints are shared through `[workspace.lints]` in `Cargo.toml`
@@ -367,7 +368,7 @@ packs, the seed pack and the dictionary queries. The design is
 | `user.db` journal | rollback journal (`journal_mode=DELETE`), `synchronous=FULL`, not WAL | reading a WAL database creates `-wal`/`-shm` files, a write on a turn that changes nothing; one process, rare writes |
 | Connections | the user store opens `user.db` per save (and read-only per load); the knowledge store holds one read-only connection (`user.db` as `main`, packs attached) behind a mutex | saves are rare; a pool of readers waits for a measured need (each would multiply the page caches) |
 | Packs at start | structural check only (Talos's `application_id`, schema version, `meta.kind = pack`, every table, a complete manifest); a page-by-page `integrity_check` is `talos packs check` | `integrity_check` reads the whole file, ~100 MB for a vocabulary pack, against a 100 ms cold start; a damaged page found later fails that query, honestly |
-| Seed pack | **beside the binary, not embedded**: `knowledge/seed.toml` is built by `cargo run -p talos-pack` into `target/packs/core.talospack` (122 880 B) and installed by copying it into the data directory's `packs/`; tests build it in memory from the source (`Knowledge::from_source`) | it is the specification's fixture standing in for the core-vocabulary pack: always present it would answer next to, and collide with, the vocabulary pack of Slice C (same words, other concept ids). Packs travel apart from the binary (ADR 0006); embedding would also put 120 KB in every binary |
+| Seed pack | **beside the binary, not embedded**: `knowledge/seed.toml` is built by `cargo run -p talos-pack` into `target/packs/core.talospack` (126 976 B; 122 880 B before the `form_by_lexeme` index of Slice C) and installed by copying it into the data directory's `packs/`; tests build it in memory from the source (`Knowledge::from_source`) | it is the specification's fixture standing in for the core-vocabulary pack: always present it would answer next to, and collide with, the vocabulary pack of Slice C (same words, other concept ids). Packs travel apart from the binary (ADR 0006); embedding would also put 120 KB in every binary |
 | Pack source format | TOML, read with the `toml` the engine already has; the format is in [KNOWLEDGE.md](KNOWLEDGE.md) §7, "Pack sources" | built in memory and written with `VACUUM INTO`: the same source gives the same bytes (a test builds twice and compares; debug and release builds agree). The bytes depend on SQLite's version and compile options, which `Cargo.lock` and `.cargo/config.toml` fix |
 | Inflected forms | rules in `talos-core/src/knowledge/inflect.rs` (tables of endings, both ways), exceptions as `form` rows of a pack | a vocabulary pack extends the exceptions by writing rows (the wordnets' exception lists), not code; regular forms are not stored |
 
@@ -441,6 +442,168 @@ The guarantees are those of v0.2: an ordinary turn writes nothing (tests:
 and the engine's own count of saves), an unreadable store is never
 overwritten, and tests never touch the user's home (in-memory stores, the
 seed built in memory, temporary directories).
+
+## Decisions taken in v0.3 Slice C (the vocabulary pack)
+
+The vocabulary pack is built from the WordNet family
+([wordnet-sources.md](research/wordnet-sources.md) §2.3.1, §4) by
+`talos-pack wordnet` (`tools/pack/src/wordnet.rs`). Its sources and the
+built pack are not committed.
+
+### The vocabulary pack
+
+**Getting the sources** (once; about 21 MB). Put the three files in one
+directory, at its top level or one directory down (`DIR/wordnet-en/…` works):
+
+| File | From | SHA-256 |
+|---|---|---|
+| `english-wordnet-2025-plus.xml.gz` | Open English WordNet 2025+, https://en-word.net/static/ (downloads page: https://en-word.net/downloads) | `31f4af16c54b532fd5484d4cc33aee588a31bb5b70683ae8197842fde5b586bc` |
+| `ili-map-pwn30.tab` | the CILI repository, https://github.com/globalwordnet/cili (top level) | `13b6741395a8bdf20e5a19686ffa49167653696d4f523db17a79dce3211a6627` |
+| `wn-data-spa.tab` | the Open Multilingual Wordnet data, https://github.com/bond-lab/omw-data, `wns/mcr/` | `0ec37ce94ee2acc63ad6b120e1051f9841d172778cc24adc0023fb8dccf0a7cd` |
+
+**Building it:**
+
+```sh
+cargo run --release -p talos-pack -- wordnet DIR                 # → target/packs/vocabulary.talospack
+cargo run --release -p talos-pack -- wordnet DIR OUT.talospack   # elsewhere
+cargo run -p talos -- packs check target/packs/vocabulary.talospack
+cargo test -p talos-pack --test vocabulary                       # properties of the built pack
+cargo run --release -p talos-pack --example vocabulary_sample    # everyday words, for reading
+```
+
+The builder checks each file's SHA-256 and refuses any other file unless
+given `--unverified` (the manifest then says `source_files_verified = no`).
+Beside the pack it writes `vocabulary.NOTICE` (the notice, also in the
+manifest) and `vocabulary.report.txt` (every count, and every row dropped
+with the reason). The same files give the same bytes (checked: two builds,
+`cmp`); the XML is streamed. To install the pack, copy the `.talospack` and
+its `NOTICE` into the data directory's `packs/`. The tests of
+`tools/pack/tests/vocabulary.rs` read the built pack (or
+`$TALOS_VOCABULARY_PACK`) and pass, saying `SKIPPED`, when there is none.
+
+| Question | Taken | Note |
+|---|---|---|
+| Reading the XML | `quick-xml` 0.42 (MIT; one dependency, `memchr`), streaming; `flate2` with its pure-Rust backend for the gzip; `sha2` for the checksums | dev-time only, in `talos-pack`; nothing reaches the `talos` binary. All permissive (MIT, Apache-2.0, Zlib, 0BSD, Unlicense), within `deny.toml`. 16 crates in `Cargo.lock`, 9 of them `sha2`'s |
+| Concept ids | the CILI id (`i46360`) when the synset has one, else the synset id (`oewn-00002935-r`, 3 213 synsets with `ili="in"`) | as written in wordnet-sources.md §4; no prefix: both forms are self-identifying |
+| English sense order | the order of the `Sense` elements in a `LexicalEntry`, which is WordNet's sense order, commonest first (no tag counts are in the LMF file). Entries with the same lemma and part of speech (`a` and `s` are both `adj`) are one lexeme, senses in document order (61 merged) | |
+| One typed word, several lexemes | lexemes sharing a match form ("dog" n/v, "CAT"/"cat", "árbol"/"arbol"): the main one keeps its ranks, the others' start at 1 (15 352 lexemes). Main: most senses, a noun's counted twice, then lower case | without it, "cat" tied CAT scan with the animal and every noun–verb pair tied at rank 0, so sense choice always asked; now "tree" is the plant, "run" the verb |
+| Spanish sense order | the Spanish file has none. A Spanish sense borrows the rank of its concept in the word's *pivot*, the English word found on most of its concepts (same case, then best ranks, then most senses); a concept the pivot does not name ranks after all the pivot's senses | a guess from the only signal there is; "coche" → car, then railcar; "pan" → bread, not Pan. Wrong for some words (below) |
+| A concept's Spanish words | by that rank, then a plural of another of its words last (507 senses: "ríos" beside "río"), a feminine after its masculine, then the word most frequent in the Spanish file's own definitions and examples, then most concepts | this decides the Spanish name of a concept ("dog" → perro, not canino) |
+| Glosses | the synset's definition on every English sense (source `oewn`); the MCR definition on every Spanish sense of the concept (source `mcr-spa`); several definitions joined with "; " (4 synsets) | a gloss's source is its sense's source, as in the seed |
+| Forms | the `Form` elements of the entries (the WordNet exception lists: "geese", "went", "better"), features from the part of speech and the ending (noun `pl`; verb `ger` for -ing, `pres,3sg` for -s, `pres` for am/are, else `past`; adjective `sup` for -st, else `cmp`) | the lists do not say which form a form is; "past" stands for past and participle. Some are forms the rules also give ("abetted"); they are kept as the source lists them |
+| Relations | `is_a` (hypernym), `instance_of` (instance hypernym), `part_of`, `member_of`, `substance_of` (the meronyms, subject the part), `causes`, `similar_to` and `antonym_of` (symmetric, both directions as the source gives them); each pair once | `instance_of` is not `is_a` (the seed writes Pluto `is_a` planet; v0.6 decides whether its closure follows both). Antonyms are sense relations in the source and become concept claims here (7 990 links → 7 612 claims): which word of the concept was meant is lost |
+| Concept kind | `entity` for a synset with an instance hypernym (7 736), else `class` | |
+| `form_of` was a full scan | **an index, `form_by_lexeme ON form(lexeme_id)`, added to schema version 1** (`schema.rs`; v1 is unreleased). Nothing in `query.rs` or `senses.rs` changed | a word's stored form with given features is found through its lexeme; without the index each call scanned 260 000 forms: a whole lookup took p50 10.4 ms, p99 13 ms on this pack, now 0.36 / 1.3 ms. The index adds 3 MB to the pack |
+| The word-pair lexicon | not in this slice: its source and provenance are undecided | the hook is the schema's `word_pair` table, in a pack of its own; the senses it would induce for Spanish words (KNOWLEDGE.md §7, role 2) go into this pack under a third source |
+
+**Counts** (OEWN 2025+, MCR via OMW, 2026-11-25):
+
+| | |
+|---|---|
+| concepts | 120 564 (7 736 entities; 78 215 with Spanish words) |
+| lexemes | 161 814 en, 93 694 es |
+| senses | 212 659 en, 145 223 es |
+| glosses | every English sense (120 564 concepts, source `oewn`); 42 144 Spanish senses on 18 853 concepts (source `mcr-spa`) |
+| forms | 259 959: one per lexeme plus 4 451 exceptions (1 381 `pl`, 1 233 `past`, 625 `ger`, 601 `cmp`, 593 `sup`, 16 `pres,3sg`, 2 `pres`) |
+| claims | 155 315: 93 395 `is_a`, 8 599 `instance_of`, 9 194 `part_of`, 12 292 `member_of`, 826 `substance_of`, 221 `causes`, 23 176 `similar_to`, 7 612 `antonym_of` |
+| pack | 76 013 568 B; `talos packs check`: ok (2.0 s) |
+| builder | 9.4 s, max RSS 555 MB (release, Apple-silicon Mac) |
+
+**Dropped**, with the reason (the report lists examples): 202 Spanish synsets
+whose CILI id no OEWN synset carries (82 n, 52 a, 51 v, 17 r; none lacks a
+CILI id once `-s` is tried for adjectives, which 6 429 need); 531 Spanish
+definitions of synsets with no Spanish lemma and 60 of synsets lost in the
+join (18 853 of 19 444 kept); 2 empty Spanish lemmas (5 had their spaces
+collapsed); 16 English exception forms equal to their lemma and 7 repeated
+on a merged lexeme; and what schema version 1 has no place for: 49 724
+English and 1 196 Spanish examples, 44 638 pronunciations, 3 213 ILI
+definitions, 39 syntactic frames, the relations `also`, `attribute`,
+`domain_region`, `domain_topic`, `entails`, `exemplifies` and their
+inverses (synset level, 24 942 links) and `derivation`, `pertainym`,
+`exemplifies` and its inverse, `participle`, `other`, `also`, `similar`
+(sense level, 114 064 links). No English entry, sense, synset or relation
+was dropped for being malformed.
+
+**Footprint with the pack attached.** Measured 2026-11-25 on the
+Apple-silicon Mac, release build, as in "The SQLite binding":
+`examples/knowledge_footprint.rs` (the lookup `define` and `translate` will
+make: senses through the inflection rules, the first sense's gloss, its
+words in the other language and the plural of the first, the sense choice;
+for an unknown word, the near misses) over word lists drawn from the pack:
+"common" is the 1 000 lower-case lexemes with the most senses (the heaviest
+lookups), "rare" 1 000 with one sense, "typos" 500 common words with two
+letters swapped. Five runs each (three for the typos); p50/p99 of one whole
+lookup in one process; memory as max RSS / peak footprint.
+
+| | p50 | p99 | max | after the lookups |
+|---|---|---|---|---|
+| English, common | 360 µs | 1.29–1.34 ms | 2.8 ms | 8.7–9.5 / 6.2–7.0 MB |
+| English, rare | 70 µs | 0.21–0.24 ms | 0.7 ms | 8.6–8.9 / 6.2–6.5 MB |
+| Spanish, common | 365 µs | 1.14–1.19 ms | 2.0 ms | 8.7–9.1 / 6.2–6.6 MB |
+| Spanish, rare | 81 µs | 0.35–0.37 ms | 0.7 ms | 8.9–9.0 / 6.4–6.5 MB |
+| English, typos (near misses) | 690 µs | 1.33 ms | 1.7 ms | 9.0–9.3 / 6.5–6.9 MB |
+| Spanish, typos (near misses) | 880 µs | 1.53 ms | 1.7 ms | 8.8–8.9 / 6.3–6.4 MB |
+
+`talos ask "hola"`, seven runs: 8.3–8.5 / 5.7–6.0 MB with the pack attached,
+7.5–8.2 / 5.5–6.2 MB with an empty data directory; wall time, 21 runs,
+median of two interleaved rounds: 66–68 ms either way (within noise; most
+of it is process start and the `date` call). Budgets (ROADMAP v0.3):
+resident memory ≤ 20 MB, a knowledge query p99 ≤ 10 ms; both hold, a whole
+lookup of many queries included.
+
+**Read, not measured: a sample of everyday words.**
+`examples/vocabulary_sample.rs` looks up 45 English and 43 Spanish words
+and prints each one's senses, glosses, translations and what the sense
+choice does with no context. Read on 2026-11-25:
+
+- Right: the first sense of every English word is its everyday one (the
+  sense choice decides alone for all but "better"), the irregular forms
+  resolve ("geese", "went", "children", "mice"), and the first Spanish word
+  of the first sense is the expected translation for all but two ("house"
+  casa, "dog" perro, "car" coche, "computer" ordenador, "money" dinero,
+  "tree" árbol). Every Spanish word but one has its everyday sense first;
+  the sense choice asks for casa (with *caso*, whose feminine the rules
+  read it as), agua (with *aguar*), cabeza (with *cabezo*), mano (with
+  *manar*) and trabajo (with *trabajar*), the right behaviour for a form
+  two lemmas share.
+- Wrong or doubtful: "lentamente" → *dumbly* first (the pivot guess fails
+  when every English word is on one concept only); "go" and "eat" are named
+  in Spanish *moverse* and *consumir* before *ir* and *comer* (equal rank,
+  and the definitions use those words more); "time" → *an instance or single
+  occasion* first and "bank" → *sloping land* first: WordNet's own order;
+  "banco" (financial) is named in English *depository financial
+  institution*, because a concept's words are ordered by rank and the
+  concept is "bank"'s second sense (KNOWLEDGE.md §2: rank, then order
+  written); "better" asks between *better* and the comparative of *good*.
+- Errors in the Spanish source, kept as written: plural lemmas ("perros",
+  "ríos", 507 senses, ordered last), unaccented duplicates ("arbol", "dia"),
+  a typo ("ninzzo"), Catalan spellings ("avançat", "tràmite", "retraïdo"):
+  36 lemmas have letters outside Spanish spelling, most of them proper names
+  ("Curaçao", "François Rabelais"). No mojibake (a test checks).
+- 76 % of the concepts with Spanish words have no Spanish gloss (18 853 of
+  78 215), as the research measured: `define` in Spanish falls back for most
+  words.
+
+**Gaps.** No Spanish irregular forms: the Spanish source has no exception
+lists and none were written by hand; the rules cover the regular ones, so
+"fue", "tengo", "hizo" are not found (KNOWLEDGE.md, "Inflected forms").
+Examples are not stored (no table). The notice's copyright lines are those
+of wordnet-sources.md §4, not yet checked against each project's own
+LICENSE file (§6, items 5 and 8). The Raspberry Pi and a cold page cache
+were not measured.
+
+## Decisions taken in v0.3 Slice B (define, translate, teach)
+
+| Question | Taken | Note |
+|---|---|---|
+| The fallback marker | `Outcome::fallback: Option<Fallback>`, an open set of names like `Reason`; `fallback` in the `talos` object only when set; `· fallback <name>` at the end of outcome lines (golden files, `talos explain`). A handler sets it with `Context::mark_fallback`; it is kept on `Answer` and `Unable` only | values today: `word-pairs`, `word-by-word`, `relations`, `other-language` (API.md §2.2). Weather from a cache or an encyclopedia's opening will add their own |
+| Without the store | `define`, `translate` and `teach` are always installed; without the `knowledge` feature (`talos-skills/knowledge`, on by default, turned on by the binary's `knowledge`) or without a store, `define` and `translate` answer "no dictionary" (`unhandled`) | the manifests, and so the classifier's corpus hash, are the same in every build; `teach` needs no store (the correction table is the engine's user data) |
+| Conversation memory | `ConversationState` keeps, per conversation, the sense chosen for each word (by key; at most 64), the concepts mentioned in the last three turns and the topic word; handlers write it through `Context` (`remember_sense`, `mention`, `set_topic`), applied only on `Answer`/`Unable` | a cancelled "which one?" leaves nothing (spec 2.2); nothing is written to disk |
+| Sense order | words of the turn first (they replace a remembered sense), then the remembered one, recent concepts and rank (two calls of `choose_sense`) | the specification's example «¿y el banco que da préstamos?» after «el de sentarse» needs the turn's context to win over memory; `choose_sense` itself is unchanged |
+| Reading a meaning | `Context::understand`: the correction table, then the rules, a rule counting only if its skill would take it (the handler is asked in a throwaway context: fresh conversation, no engine, draws discarded, no change applied), then the classifier when it accepts outright | "six-string" matches a `calc` pattern but `calc` declines it, so it means nothing yet |
+| Free-text answers | `Expects::Text` (`Expectation::text`): the answer taken as written even when it reads as a request; `Expectation::keeping` carries slots worked out before asking | "What do you mean by it?" → "toss a coin" must not toss a coin; «¿te refieres a «guitarra»?» → "sí" must still know the word |
+| Wording | definitions read «Guitarra: instrumento de cuerda…» / "Guitar: a string instrument…" | the store has no grammatical gender, so Spanish articles cannot be chosen; the dictionary form needs none |
+| `teach.forget` and `teach.list` | phrases only, plus honest "not yet" for facts («olvida que la ballena…», «eso no es verdad, olvídalo») and "nothing about X" for a topic | taught facts are v0.6; `teach.assert` stays out of scope (out-of-scope corpus) |
 
 ## Server
 
@@ -571,6 +734,7 @@ Given: draw = 3, 5
   | `slots` | `all` (include internal slots), `public` | `public` |
   | `stored` | `stored name = Raúl, place = Sevilla, units = metric` (any of the three), or `stored = none`: the preferences at the start of each conversation | `none` |
   | `phrase` | `phrase = flip it -> random.coin` or `phrase = tira -> random.dice count=2 sides=20`, one per line, adding to the table; `phrase = none` empties it: the user-correction table at the start of each conversation | empty |
+  | `pack` | `pack = knowledge/seed.toml` (a pack source, relative to the directory that holds `golden/`), or `pack = none`: built in memory and given to the engine as its knowledge store. A build without the `knowledge` feature skips the turns that need one (`Summary::skipped`) | `none` |
 
   Anything else after `Given:` is an error, so a spec line such as "Given:
   a conversation that has been in Spanish" must be expressed with turns.

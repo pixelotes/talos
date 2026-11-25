@@ -12,5 +12,12 @@ build = "build.rs"
 [lints]
 workspace = true
 
+[features]
+default = ["knowledge"]
+# The dictionary skills (`define`, `translate`) read the knowledge store.
+# Off, they are still installed (same manifests, same classifier) and say
+# that this build has no dictionary; `teach` does not need the store.
+knowledge = ["talos-core/knowledge"]
+
 [dependencies]
 talos-core.workspace = true

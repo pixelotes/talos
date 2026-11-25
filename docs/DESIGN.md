@@ -27,9 +27,12 @@ choice links to the decision record that justifies it.
    reachable, an article's opening when there is no local definition. The
    cheap answer is local, small and deterministic. Where no honest cheap
    answer exists — the weather cannot be guessed — the skill says it cannot.
-   (Owner's ruling, 2026-11-25. How an outcome marks a fallback answer, so
-   that a host can choose to do better, is to be designed with the first
-   skill that needs it.)
+   (Owner's ruling, 2026-11-25.) The outcome marks such an answer, so that
+   a host can choose to do better: `Outcome::fallback` names the source
+   (`word-pairs`, `word-by-word`, `relations`, `other-language`; an open
+   set, like `Reason`), the `talos` object carries it as `fallback`, and
+   it is absent when the best source answered (designed with v0.3 Slice B;
+   API.md §2.2).
 
 ### Non-goals
 
@@ -116,6 +119,7 @@ struct Outcome {
     pending: bool,           // a question is open: the next message goes to it first
     asks: Option<String>,    // the slot asked for, when the turn asked back
     generated: bool,         // true only if an external skill used a model
+    fallback: Option<Fallback>, // the cheaper source the reply rests on (principle 8)
     trace: Option<Trace>,    // stage-by-stage decisions, if the turn asked
 }
 
@@ -133,8 +137,8 @@ enum Value {                 // a slot value, typed by the manifest
 engine's own (`empty`, `catch-all`, `cannot`, `failed`; for dialog moves
 `acknowledgement`, `cancelled`, `hedge`, `nothing-pending`, `gave-up`; for
 commands `unknown-command`, `command-argument`) and the sentence shapes the
-reflector adds. `Number` is an exact decimal, so a number
-loses nothing between extractor and reply.
+reflector adds. `Fallback` is an open set of the same kind. `Number` is an
+exact decimal, so a number loses nothing between extractor and reply.
 
 Two rules follow from this shape:
 
@@ -468,4 +472,10 @@ read in place from the executable's image, never copied to the heap
    ([ADR 0013](adr/0013-external-skills.md)), declared `generated`; Talos
    stays model-free and keeps word-by-word translation from the lexicon for
    when Dédalo is not there. How such a skill is presented to Talos is not
-   designed.
+   designed. Built in v0.3: when every word of a phrase is known (a word of
+   the store, its sense chosen with the rest of the phrase as context, or
+   the lexicon's first candidate), `translate.word` says it does not
+   translate sentences and adds the word-by-word rendering, labelled
+   approximate; the turn stays `unhandled` and is marked `fallback:
+   word-by-word`. With an unknown word it only says it does not translate
+   sentences.

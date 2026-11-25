@@ -2,7 +2,8 @@
 //! builds the engine as `talos ask` does (user store, packs of the data
 //! directory), answers "hola", then looks words up the way `define` and
 //! `translate` will: senses, the gloss of the first, its words in the other
-//! language, and the sense choice. Prints the latency of a whole lookup;
+//! language and the plural of the first of them, and the sense choice.
+//! Prints the latency of a whole lookup;
 //! run it under `/usr/bin/time -l` for the resident set.
 //!
 //! ```text
@@ -55,10 +56,17 @@ fn main() {
             if k.gloss(first, lookup.lang).unwrap().is_some() {
                 glossed += 1;
             }
-            let _ = k.words(first, lookup.lang.other()).unwrap();
+            let words = k.words(first, lookup.lang.other()).unwrap();
+            // A translation keeps the number of what was typed.
+            if let Some(target) = words.first() {
+                let _ = k.form_of(target, "pl").unwrap();
+            }
             let _ = k
                 .choose_sense(&lookup.senses, &Cues::none(lookup.lang))
                 .unwrap();
+        } else {
+            // An unknown word: the near misses `define` offers (2.1, step 4).
+            let _ = k.near_misses(word, lang).unwrap();
         }
         times.push(started.elapsed().as_micros());
     }

@@ -1,0 +1,181 @@
+# translate.word (docs/spec/knowledge.md, translate; 1.6, 1.8, 2.2),
+# answered from the seed pack, which is the specification's fixture.
+#
+# Translations are shown in «» in both languages. A fallback source is on
+# the outcome line: `fallback word-pairs` for the lexicon (answered, with
+# the hedge in words), `fallback word-by-word` for a phrase (unhandled).
+#
+# Left out, because they need skills of a later milestone: the relation
+# turns of the lexicon examples (`relations.is_a`, `relations.provenance`,
+# `relations.part_of`) and the U1 state built by `teach.assert`.
+
+Given: pack = knowledge/seed.toml
+
+[es] U: ¿cómo se dice guitarra en inglés?
+     T: «Guitar».                                 → answered · translate.word · sense=core:guitar target=en term=guitarra
+
+[es] U: ¿cómo se dice «instrumento de cuerda» en inglés?
+     T: «String instrument»; también «stringed instrument».
+                                                  → answered · translate.word · sense=core:string_instrument target=en term=instrumento de cuerda
+
+[es] U: traduce violín
+     T: En inglés, «violin»; también «fiddle».    → answered · translate.word · sense=core:violin target=en term=violín
+
+# The plural is kept: the target lexeme has a plural form.
+[es] U: guitarras en inglés
+     T: «Guitars».                                → answered · translate.word · sense=core:guitar target=en term=guitarras
+
+# No sense known: one translation per sense, no question.
+[es] U: ¿cómo se dice banco en inglés?
+     T: Depende: «bank» (entidad financiera); «bench» (asiento); «shoal»; también «school» (grupo).
+                                                  → answered · translate.word · target=en term=banco
+
+# Words of the turn choose the sense. (The spec says "el de sentarse"; no
+# word of the fixture says "sentarse", so the class word is used.)
+[es] U: ¿cómo se dice banco en inglés, el asiento?
+     T: «Bench».                                  → answered · translate.word · sense=core:bench target=en term=banco
+
+[es] U: ¿cómo se dice cuerda en inglés?
+     T: Depende: «rope» (conjunto de hilos retorcidos…); «string» (hilo tenso de un…).
+                                                  → answered · translate.word · target=en term=cuerda
+
+# Stock phrases; the follow-up keeps the target.
+[es] U: ¿cómo se dice «de nada» en inglés?
+     T: «You're welcome».                         → answered · translate.word · target=en term=de nada
+[es] U: ¿y «buen provecho»?
+     T: No hay una expresión fija en inglés; lo más parecido es «enjoy your meal».
+                                                  → answered · translate.word · target=en term=buen provecho
+
+[es] U: ¿cómo se dice «bench» en español?
+     T: «Banco».                                  → answered · translate.word · sense=core:bench target=es term=bench
+
+Given: hint = en
+
+[en] U: how do you say guitar in Spanish?
+     T: «Guitarra».                               → answered · translate.word · sense=core:guitar target=es term=guitar
+
+[en] U: what's "string instrument" in Spanish?
+     T: «Instrumento de cuerda».                  → answered · translate.word · sense=core:string_instrument target=es term=string instrument
+
+[en] U: translate fiddle
+     T: In Spanish, «violín».                     → answered · translate.word · sense=core:violin target=es term=fiddle
+
+[en] U: Spanish for drums?
+     T: «Tambores».                               → answered · translate.word · sense=core:drum target=es term=drums
+
+[en] U: how do you say bank in Spanish?
+     T: It depends: «banco» (financial institution); «orilla»; also «ribera» (the land along the…).
+                                                  → answered · translate.word · target=es term=bank
+
+[en] U: what's "school" in Spanish?
+     T: It depends: «escuela»; also «colegio» (a place where children…); «banco de peces»; also «banco» (group).
+                                                  → answered · translate.word · target=es term=school
+
+[en] U: what's "cold" in Spanish?
+     T: It depends: «frío» (a low temperature); «resfriado»; also «catarro» (a mild infection of…).
+                                                  → answered · translate.word · target=es term=cold
+
+[en] U: how do I say "nice to meet you" in Spanish?
+     T: «Encantado» (said by a man); «encantada» (said by a woman); «encantado de conocerte» (said by a man); «encantada de conocerte» (said by a woman).
+                                                  → answered · translate.word · target=es term=nice to meet you
+
+[en] U: how do you say "good evening" in Spanish?
+     T: «Buenas noches» (as a greeting after dark); «buenas tardes» (later in the day, until dark).
+                                                  → answered · translate.word · target=es term=good evening
+
+# From the word-pair lexicon (1.8): always hedged, and marked.
+
+Given: hint = none
+
+[es] U: ¿cómo se dice pandereta en inglés?
+     T: Seguramente «tambourine», pero lo saco de un diccionario de pares de palabras, menos fiable que lo demás que sé.
+                                                  → answered · translate.word · target=en term=pandereta · fallback word-pairs
+
+[es] U: gaita en inglés
+     T: Seguramente «bagpipes»; también «bagpipe». Lo saco de un diccionario de pares de palabras, menos fiable que lo demás que sé.
+                                                  → answered · translate.word · target=en term=gaita · fallback word-pairs
+
+[es] U: ¿cómo se dice tamboril en inglés?
+     T: Seguramente «drum»; también «tabor». Lo saco de un diccionario de pares de palabras, menos fiable que lo demás que sé.
+                                                  → answered · translate.word · target=en term=tamboril · fallback word-pairs
+
+# The concept store answers first: no hedge, the lexicon is not consulted.
+[es] U: ¿cómo se dice guitarra en inglés?
+     T: «Guitar».                                 → answered · translate.word · sense=core:guitar target=en term=guitarra
+
+Given: hint = en
+
+[en] U: how do you say tambourine in Spanish?
+     T: Probably «pandereta», but that comes from a word-pair dictionary, which is less reliable than the rest of what I know.
+                                                  → answered · translate.word · target=es term=tambourine · fallback word-pairs
+
+[en] U: what's "accordion" in Spanish?
+     T: Probably «acordeón», but that comes from a word-pair dictionary, which is less reliable than the rest of what I know.
+                                                  → answered · translate.word · target=es term=accordion · fallback word-pairs
+
+[en] U: translate cord
+     T: Probably «cuerda»; also «cordón». That comes from a word-pair dictionary, which is less reliable than the rest of what I know.
+                                                  → answered · translate.word · target=es term=cord · fallback word-pairs
+
+# Edge cases.
+
+Given: hint = none
+
+# A known concept with no English lexeme: nothing invented.
+[es] U: ¿cómo se dice bandurria en inglés?
+     T: No tengo una palabra en inglés para «bandurria».
+                                                  → unhandled · translate.word · sense=core:bandurria target=en term=bandurria
+
+Given: hint = en
+
+[en] U: translate dulcimer
+     T: I don't have a Spanish word for "dulcimer".
+                                                  → unhandled · translate.word · sense=core:dulcimer target=es term=dulcimer
+
+Given: hint = none
+
+# Free sentences are not translated; with an unknown word there is no
+# word-by-word rendering either.
+[es] U: tradúceme «mañana me compro una guitarra»
+     T: Solo traduzco palabras sueltas y frases hechas; frases enteras, no.
+                                                  → unhandled · translate.word · target=en term=mañana me compro una guitarra
+
+[es] U: ¿cómo se dice «guitarra roja» en inglés?
+     T: Solo traduzco palabras sueltas y frases hechas; frases enteras, no.
+                                                  → unhandled · translate.word · target=en term=guitarra roja
+
+# Every word known: a word-by-word rendering, labelled approximate, the
+# turn still unhandled (DESIGN.md principle 8).
+[es] U: ¿cómo se dice «guitarra eléctrica pandereta» en inglés?
+     T: Solo traduzco palabras sueltas y frases hechas, no frases enteras. Palabra por palabra, y sin garantías de que suene bien, sería: «electric guitar tambourine».
+                                                  → unhandled · translate.word · target=en term=guitarra eléctrica pandereta · fallback word-by-word
+
+[es] U: ¿cómo se dice guitarra en francés?
+     T: Solo traduzco entre español e inglés.     → unhandled · translate.word · target=fr term=guitarra
+
+# No target: the other language.
+[es] U: ¿cómo se dice guitarra?
+     T: En inglés, «guitar».                      → answered · translate.word · sense=core:guitar target=en term=guitarra
+
+[es] U: ¿cómo se dice virus en inglés?
+     T: Igual: «virus».                           → answered · translate.word · sense=core:virus target=en term=virus
+
+# A stock phrase with one counterpart per situation.
+[es] U: ¿cómo se dice «salud» en inglés?
+     T: «Bless you» (al estornudar); «cheers» (al brindar).
+                                                  → answered · translate.word · target=en term=salud
+
+Given: hint = en
+
+[en] U: what does "banco" mean in English?
+     T: It depends: «bank» (financial institution); «bench» (seat); «shoal»; also «school» (group).
+                                                  → answered · translate.word · target=en term=banco
+
+[en] U: translate "my brother plays the violin"
+     T: I only translate single words and set phrases, not sentences.
+                                                  → unhandled · translate.word · target=es term=my brother plays the violin
+
+# The command, with the target at the end of the line.
+Given: hint = none
+[es] U: /traduce violín al inglés
+     T: «Violin»; también «fiddle».               → answered · translate.word · sense=core:violin target=en term=violín

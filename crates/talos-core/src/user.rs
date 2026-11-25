@@ -25,6 +25,12 @@ use crate::normalise::normalise;
 use crate::skill::{Preferences, Units};
 use crate::{Error, IntentId};
 
+/// Intents a taught phrase may never stand for: a short phrase must not be
+/// able to delete anything, nor teach another phrase
+/// (docs/spec/knowledge.md, teach.phrase). The engine ignores such an entry
+/// and `teach.phrase` refuses to store one.
+pub const NOT_TEACHABLE: &[&str] = &["preferences.forget", "teach.forget", "teach.phrase"];
+
 /// One entry of the user-correction table: a message that **is** `phrase`
 /// (after [`Correction::key`]) is handled as `intent` with `slots`, at the
 /// rule stage and ahead of the patterns (ADR 0008).

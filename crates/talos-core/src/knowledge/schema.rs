@@ -26,7 +26,10 @@ pub const APPLICATION_ID: i32 = 0x544C_4F53;
 /// tables the section names but does not spell out: the stock phrases
 /// (docs/spec/knowledge.md 1.6), their notes, and the word-pair lexicon
 /// (KNOWLEDGE.md section 7, "its own table of word pairs with rank and
-/// source"). The `REFERENCES` clauses are documentation: foreign keys are
+/// source"), and one more index, `form_by_lexeme`: a word's stored form
+/// with given features ([`super::Knowledge::form_of`]) is found through its
+/// lexeme, which without it scans every form of a pack (10 ms on the
+/// vocabulary pack). The `REFERENCES` clauses are documentation: foreign keys are
 /// off, since a pack may name another pack's concepts; the pack builder
 /// checks references instead.
 const KNOWLEDGE_V1: &str = "
@@ -60,6 +63,7 @@ CREATE TABLE @.form (
   features  TEXT
 );
 CREATE INDEX @.form_lookup ON form(form);
+CREATE INDEX @.form_by_lexeme ON form(lexeme_id);
 
 CREATE TABLE @.sense (
   id         INTEGER PRIMARY KEY,

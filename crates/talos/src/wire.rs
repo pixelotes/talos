@@ -35,6 +35,11 @@ pub fn talos_object(outcome: &Outcome, elapsed_us: u128) -> Json {
         "generated": outcome.generated,
         "elapsed_us": u64::try_from(elapsed_us).unwrap_or(u64::MAX),
     });
+    // Present only when the reply rests on a cheaper source (DESIGN.md
+    // principle 8; API.md 2.2).
+    if let (Some(fallback), Some(map)) = (&outcome.fallback, object.as_object_mut()) {
+        map.insert("fallback".to_owned(), json!(fallback.as_str()));
+    }
     if let (Some(trace), Some(map)) = (&outcome.trace, object.as_object_mut()) {
         let steps: Vec<Json> = trace
             .steps
@@ -84,5 +89,13 @@ mod tests {
         assert_eq!(json["reply"], "Hello!");
         assert!(json["slots"].as_object().unwrap().is_empty());
         assert!(json.get("trace").is_none());
+        assert!(json.get("fallback").is_none());
+        let mut fell_back = engine.respond(Turn::new(
+            "hello",
+            ConvId::new("u"),
+            Timestamp::from_unix(0),
+        ));
+        fell_back.fallback = Some(talos_core::Fallback::WORD_PAIRS);
+        assert_eq!(outcome_json(&fell_back, 1)["fallback"], "word-pairs");
     }
 }

@@ -1,0 +1,903 @@
+# teach: the user's own phrases ("cuando diga «tira», quiero decir «tira un
+# dado»"), listed and forgotten (docs/spec/knowledge.md, `teach.phrase`;
+# the phrase parts of `teach.list` and `teach.forget`). Teaching facts
+# («aprende que…») is v0.6 and stays out of scope until then.
+#
+# Patterns match the match form (lower case, no accents; «» become "). The
+# split between the phrase and what it means is at «quiero decir» / «me
+# refiero a» / "I mean"; quotes help but are optional.
+#
+# Slots:
+# - `phrase`: the user's phrase, as typed.
+# - `meaning`: what it should mean, as typed; the handler reports the
+#   request it was read as (`intent slot=value …`).
+# - `confirm`: the yes/no to replacing a meaning, or to a change the
+#   classifier guessed.
+# - `kind`: `phrases` or `facts`, when a list asks for one of them.
+# - `count`: how many items a list or a forgetting covered (reported).
+# - `target`: what to forget: a taught phrase, or `all`.
+#
+# `teach.phrase` and `teach.forget` change what is stored: the classifier
+# never dispatches them alone (talos_core::classifier::SIDE_EFFECTS); on a
+# guess the handler restates the change and asks first.
+#
+# The `will_*` and `doing_*` replies describe a meaning ("tiraré un dado",
+# "tirar un dado"), one pair per intent, with the stored slots as
+# variables; the handler picks them, and `p_list_item` and `word_and`,
+# to compose replies. They are never answered on their own.
+
+[skill]
+id = "teach"
+summary.es = "aprender tus propias frases para lo que ya sé hacer"
+summary.en = "learn your own phrases for what I can already do"
+names.es = ["enseñar", "frases", "aprender"]
+names.en = ["teach", "phrases", "learn"]
+help.es = ["cuando diga «tira», quiero decir «tira un dado»", "¿qué frases te he enseñado?", "olvida lo de «tira»"]
+help.en = ["when I say 'flip it' I mean 'toss a coin'", "what phrases have I taught you?", "forget \"flip it\""]
+capabilities = []
+
+# ---------------------------------------------------------------- phrase
+
+[[intent]]
+id = "teach.phrase"
+priority = 80
+courtesy = false
+
+  [intent.examples]
+  es = ["cuando diga «tira», quiero decir «tira un dado»", "cuando te diga la de Tokio me refiero a qué hora es en Tokio",
+    "si te digo «¿y hoy?», quiero decir «qué día es hoy»", "con «sorpréndeme» me refiero a «dime un refrán»",
+    "cuando diga «la de seis cuerdas», quiero decir «qué es una guitarra»", "cuando digo peli quiero decir película",
+    "cuando diga moneda quiero decir echa una moneda", "si digo «hora» me refiero a qué hora es",
+    "a partir de ahora, cuando diga «dado» quiero decir «tira un dado»", "cuando te diga «chiste» quiero decir «dime un refrán»",
+    "si te digo «ayuda», me refiero a «qué sabes hacer»", "cuando diga «fecha» quiero decir «qué día es hoy»",
+    "cuando diga «madrid» quiero decir «qué hora es en Madrid»", "con «cara o cruz» me refiero a «lanza una moneda»",
+    "cuando diga «número» quiero decir «dame un número del 1 al 10»", "si te digo «dos dados» quiero decir «tira dos dados»",
+    "cuando diga «hola tú», me refiero a «hola»", "cuando diga «nueva york» quiero decir «hora en Nueva York»",
+    "cuando te diga «cuenta» quiero decir «cuánto es 2 más 2»", "cuando diga «limpia», quiero decir «olvida todo lo que te he enseñado»",
+    "cuando diga «abracadabra», quiero decir «haz magia»", "cuando digo «la de seis» me refiero a la guitarra",
+    "cuando diga «flip it»", "si te digo «venga», quiero decir «tira un dado»", "con «suerte» quiero decir «dime un refrán»",
+    "quiero que cuando diga «sí o no» eches una moneda", "cuando te diga «elige» quiero decir «elige entre cara y cruz»",
+    "si digo «quién eres» quiero decir «qué eres»", "cuando diga «adiós» me refiero a «hasta luego»",
+    "cuando diga bench quiero decir qué es un banco", "si te digo «traduce perro» quiero decir «cómo se dice perro en inglés»",
+    "cuando te diga «guitarra en inglés» quiero decir «cómo se dice guitarra en inglés»", "con «la hora» me refiero a «qué hora es»",
+    "cuando diga «mi nombre» quiero decir «cómo me llamo»", "si te digo «diferencia» quiero decir «diferencia horaria entre Madrid y Tokio»",
+    "cuando diga «falta» quiero decir «cuánto falta para Navidad»", "cuando diga «semana» quiero decir «qué día de la semana es»",
+    "oye, cuando diga «tira» quiero decir «tira un dado»", "a partir de ahora con «peli» me refiero a «película»",
+    "cuando te diga «calcula» me refiero a «cuánto es el 21 % de 80»", "cuando diga «un dado» quiero decir «tira un dado de 20»",
+    "si alguna vez digo «moneda» quiero decir «echa una moneda»", "cuando diga «sinte» quiero decir «qué es un sintetizador»",
+    "cuando diga tokio quiero decir la hora en tokio", "cuando digo azar me refiero a un número al azar",
+    "si te digo «refrán» me refiero a «cuéntame un refrán»", "cuando diga «qué tal» quiero decir «cómo estás»",
+    "cuando diga «gracias tío» quiero decir «gracias»", "cuando diga «ayúdame» quiero decir «qué puedes hacer»",
+    "con «el reloj» me refiero a «qué hora es»", "cuando diga «otra» quiero decir «otro refrán»",
+    "si te digo «uno al azar» quiero decir «dame un número aleatorio»", "cuando diga «dados» quiero decir «tira tres dados»",
+    "cuando te diga «quién soy» quiero decir «cómo me llamo»", "cuando diga «unidades» quiero decir «qué unidades uso»",
+    "si digo «la de Londres» quiero decir «qué hora es en Londres»", "cuando te diga «y mañana» quiero decir «qué día es mañana»",
+    "quiero enseñarte una frase: cuando diga «dado» quiero decir «tira un dado»", "cuando diga X quiero decir Y",
+    "cuando te diga «cejilla» me refiero a «qué es una cejilla»", "si te digo «hola» quiero decir «buenos días»",
+    "quiero que cuando diga «finde» entiendas «fin de semana»", "asocia «peli» con «película»", "crea un atajo: «t» para la hora",
+    "haz que «chao» signifique «adiós»", "a partir de ahora «x» quiere decir «y»", "usa «ya» para decir «vale»",
+    "cuando te pida «suerte», dime un refrán", "si escribo «hr», es que quiero saber la hora", "añade un atajo «cc» para calcular",
+    "quiero que «buenas» signifique «hola»", "enséñate esta: «tq» es «te quiero»", "vincula «madrí» a «Madrid»",
+    "cuando diga «la de siempre» me refiero a «la hora en Londres»", "cuando ponga «?» quiero decir «ayuda»",
+    "si te digo «otra», me refiero a «otra vez lo mismo»", "de ahora en adelante, cuando diga «tic» quiero decir «tac»",
+    "apúntate que con «cole» me refiero a «colegio»", "quiero que entiendas «dd» como «dos dados»",
+    "cuando escribo «hl» quiero decir «hasta luego»", "si alguna vez escribo «nyc» me refiero a «Nueva York»",
+    "configura el atajo «r» para un refrán", "siempre que diga «bah» quiero decir «da igual»", "con «la otra» me refiero a la segunda opción",
+    "cuando te diga «toca», tira una moneda", "si digo «número» elige un número del uno al diez",
+    "me gustaría que cuando diga «brindis» me digas un refrán", "guarda el atajo «hm» como «qué hora es en México»",
+    "cuando diga «uf», quiero decir que estoy cansado", "cuando digo «ok» me refiero a «vale»"]
+  en = ["when I say 'flip it' I mean 'toss a coin'", "if I say \"tokyo?\", I mean \"what time is it in Tokyo\"",
+    "by \"today?\" I mean \"what's the date today\"", "when I say \"hit me\" I mean \"roll a die\"",
+    "when I say \"wisdom\" I mean \"tell me a fortune\"", "when I say \"six-string\" I mean \"what is a guitar\"",
+    "when I say flick I mean film", "if I say coin, I mean toss a coin", "from now on when I say dice I mean roll a die",
+    "whenever I say \"time\" I mean \"what time is it\"", "when I say \"london\" I mean \"what time is it in London\"",
+    "by \"help\" I mean \"what can you do\"", "when I say \"heads or tails\" I mean \"flip a coin\"",
+    "when I say \"pick\" I mean \"pick between red and blue\"", "if I say \"number\", I mean \"give me a number from 1 to 100\"",
+    "when I say \"two dice\" I mean \"roll two dice\"", "when I say \"date\" I mean \"what's today's date\"",
+    "when I say \"what time is it\" I mean \"roll a die\"", "when I say \"flip it\"", "when I say \"clean\" I mean \"forget everything\"",
+    "when I say \"abracadabra\" I mean \"do magic\"", "when I say \"the six\" I mean the guitar",
+    "if I say \"sum\" I mean \"what is 2 plus 2\"", "by \"saying\" I mean \"tell me a saying\"",
+    "when I say \"bye bye\" I mean \"goodbye\"", "whenever I say \"weekday\" I mean \"what day of the week is it\"",
+    "when I say \"xmas\" I mean \"how long until Christmas\"", "if I say \"ny\" I mean \"the time in New York\"",
+    "when I say \"my name\" I mean \"what's my name\"", "by \"who\" I mean \"who are you\"",
+    "when I say \"rnd\" I mean \"random number\"", "when I say \"d20\" I mean \"roll a 20-sided die\"",
+    "when i say cheers i mean thank you", "when I say \"how's it going\" I mean \"how are you\"",
+    "if I ever say \"coin\", I mean flip a coin", "when I say \"banco\" I mean \"translate banco\"",
+    "when I say \"fiddle?\" I mean \"what's a fiddle\"", "when I say \"units\" I mean \"which units do I use\"",
+    "by \"percent\" I mean \"what's 15% of 80\"", "when I say \"convert\" I mean \"5 km in miles\"",
+    "hey, when I say \"hit me\" I mean \"roll a die\"", "from now on, by \"wisdom\" I mean \"a fortune\"",
+    "if I say \"roll\" I mean \"roll two dice\"", "when I say \"paris\" I mean \"what time is it in Paris\"",
+    "let me teach you a phrase: when I say \"dice\" I mean \"roll a die\"", "when I say X I mean Y",
+    "when I say \"another\" I mean \"another fortune\"", "if I say \"diff\" I mean \"time difference between London and Tokyo\"",
+    "whenever I say \"tomorrow?\" I mean \"what's the date tomorrow\"", "when I say \"capo\" I mean \"what's a capo\"",
+    "by \"spanish guitar\" I mean \"how do you say guitar in Spanish\"", "when I say \"hiya\" I mean \"hello\"",
+    "when I say morning I mean good morning", "if I say \"lucky\", I mean \"give me a fortune\"",
+    "when I say \"choose\" I mean \"pick one: tea or coffee\"", "when I say \"what am i\" I mean \"what do you know about me\"",
+    "when I say \"helpme\" I mean \"help\"", "when I type \"t\" I mean \"what time is it\"",
+    "when I write \"dd\" I mean \"roll two dice\"", "when I say \"toss\" I mean \"toss a coin\""]
+
+  [[intent.slot]]
+  name = "phrase"
+  type = "term"
+  required = true
+  guess = { after = ["cuando diga", "cuando digo", "cuando te diga", "si te digo", "si digo", "con", "when i say", "if i say", "by", "whenever i say"] }
+
+  [[intent.slot]]
+  name = "meaning"
+  type = "term"
+  required = true
+  guess = { after = ["quiero decir", "me refiero a", "i mean"] }
+
+  [[intent.slot]]
+  name = "confirm"
+  type = "confirm"
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|vale|bueno|mira),?\s+)?(?:(?:quiero\s+ensenarte\s+una\s+frase|te\s+enseno\s+una\s+frase|aprende(?:te)?\s+esto|apunta\s+esto)\s*:?\s*|(?:aprende|aprendete|apunta|apuntate|recuerda|acuerdate\s+de|quiero\s+ensenarte|quiero\s+que\s+sepas)\s*(?:que|:)\s*)?(?:a\s+partir\s+de\s+ahora,?\s+|de\s+ahora\s+en\s+adelante,?\s+)?(?:cuando|si|si\s+alguna\s+vez|siempre\s+que)\s+(?:te\s+)?(?:diga|digo|escriba|escribo|ponga|pongo)\s+(?<phrase>.+?)\s*,?\s+(?:quiero\s+decir|me\s+refiero\s+a|significa|es\s+que\s+quiero|lo\s+que\s+quiero\s+es|quiere\s+decir|equivale\s+a|es\s+como\s+si\s+dijera|es\s+lo\s+mismo\s+que)\s+(?<meaning>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:oye|vale|bueno|mira),?\s+)?(?:a\s+partir\s+de\s+ahora,?\s+|de\s+ahora\s+en\s+adelante,?\s+)?(?:cuando|si|siempre\s+que)\s+(?:te\s+)?(?:diga|digo|escriba|escribo)\s+(?<phrase>"[^"]+")\s*,\s*(?<meaning>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:a\s+partir\s+de\s+ahora,?\s+)?con\s+(?<phrase>".+?"|\S+(?:\s+\S+){0,3}?)\s*,?\s+(?:me\s+refiero\s+a|quiero\s+decir)\s+(?<meaning>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:quiero\s+que|haz\s+que|a\s+partir\s+de\s+ahora,?)\s+(?<phrase>"[^"]+"|\S+)\s+(?:signifique|quiera\s+decir|significa|quiere\s+decir)\s+(?<meaning>.+?)[\s.!]*$'
+
+  # «quiero que cuando diga X me digas la hora», «cuando te pida X, tira un
+  # dado»: the meaning is the request that follows.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:quiero\s+que\s+|me\s+gustaria\s+que\s+)?(?:cuando|si|siempre\s+que)\s+(?:te\s+)?(?:diga|escriba|pida|ponga)\s+(?<phrase>.+?)\s*,?\s+(?<meaning>(?:me\s+digas|hagas|tires|eches|lances|elijas|calcules|traduzcas|me\s+des|entiendas|interpretes)\s+.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:asocia|vincula|enlaza|relaciona)\s+(?<phrase>"[^"]+"|\S+(?:\s+\S+)?)\s+(?:con|a)\s+(?<meaning>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:crea(?:me)?|anade|ponme|configura|guarda|apunta)\s+(?:un|el|este)\s+atajo\s*:?\s*(?<phrase>"[^"]+"|\S+(?:\s+\S+)?)\s+(?:para|significa|=|que\s+signifique|como)\s+(?<meaning>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:usa|utiliza|define|establece)\s+(?<phrase>"[^"]+")\s+(?:para|como)\s+(?<meaning>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:cuando|si)\s+(?:te\s+)?(?:diga|digo)\s+(?<phrase>"[^"]+")[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:(?:hey|ok|so),?\s+)?(?:let\s+me\s+teach\s+you\s+a\s+phrase\s*:?\s*)?(?:from\s+now\s+on,?\s+)?(?:when|if|whenever|if\s+i\s+ever)\s+(?:i\s+)?(?:say|type|write)\s+(?<phrase>.+?)\s*,?\s+(?:i\s+mean|i\s+want|it\s+means)\s+(?<meaning>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:from\s+now\s+on,?\s+)?by\s+(?<phrase>".+?"|\S+(?:\s+\S+){0,3}?)\s*,?\s+i\s+mean\s+(?<meaning>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:make|let)\s+(?<phrase>"[^"]+")\s+mean\s+(?<meaning>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:when|if)\s+i\s+say\s+(?<phrase>"[^"]+")[\s.!]*$'
+
+# ---------------------------------------------------------------- list
+
+[[intent]]
+id = "teach.list"
+priority = 75
+courtesy = false
+
+  [intent.examples]
+  es = ["qué te he enseñado", "qué has aprendido de mí", "dime lo que te he enseñado", "enséñame lo que has aprendido",
+    "qué frases te he enseñado", "qué frases te enseñé", "cuáles son mis frases", "lista las frases que te he enseñado",
+    "muéstrame las frases que te enseñé", "qué te enseñé", "qué cosas te he enseñado", "repasa lo que te he enseñado",
+    "qué expresiones te he enseñado", "qué has aprendido conmigo", "dime qué frases te sabes mías",
+    "qué frases mías conoces", "recuérdame qué te he enseñado", "a ver, qué te he enseñado hasta ahora",
+    "qué me has aprendido", "cuántas frases te he enseñado", "tienes alguna frase mía guardada",
+    "qué atajos te he enseñado", "dime mis frases", "lista lo que has aprendido de mí", "enumera las frases que te enseñé",
+    "qué palabras te he enseñado", "qué datos te he enseñado", "qué te he enseñado yo", "y qué has aprendido de mí",
+    "cuéntame lo que te he enseñado", "qué frases tienes apuntadas", "qué tienes aprendido de mí",
+    "me dices qué te he enseñado", "puedes decirme qué te he enseñado", "has aprendido algo de mí",
+    "te he enseñado algo", "qué recuerdas de lo que te enseñé", "enséñame las frases que te enseñé",
+    "qué significan mis frases", "qué frases personalizadas tengo", "dime las frases que te he enseñado",
+    "qué te he enseñado hasta ahora", "lista de frases enseñadas", "frases que te he enseñado",
+    "cuántas cosas te he enseñado", "qué te tengo enseñado", "qué te he enseñado esta semana", "qué frases conoces de mí",
+    "qué atajos tengo", "cuáles son mis atajos", "enséñame mis frases guardadas", "muéstrame los atajos que te di",
+    "qué palabras nuevas te he enseñado", "qué te enseñé el otro día", "qué te he enseñado sobre la guitarra",
+    "listado de mis frases", "qué frases personalizadas tienes", "a ver qué me has aprendido", "qué recuerdas de lo que te expliqué",
+    "qué cosas sabes porque te las enseñé yo", "repíteme lo que te enseñé", "qué te enseñé hoy", "me dices qué frases te he dado",
+    "qué expresiones mías conoces", "tienes apuntada alguna frase mía", "cuántos atajos te he enseñado", "qué te he enseñado hasta ahora",
+    "ver mis frases", "qué hay en mi lista de frases", "qué datos te he enseñado yo"]
+  en = ["what have I taught you", "what have you learned from me", "list what I've taught you", "what phrases have I taught you",
+    "what did I teach you", "show me the phrases I taught you", "what are my phrases", "list my phrases",
+    "tell me what I've taught you", "what have you learnt from me", "which phrases do you know from me",
+    "what shortcuts have I taught you", "remind me what I taught you", "so what have I taught you so far",
+    "how many phrases have I taught you", "do you have any of my phrases", "what custom phrases do I have",
+    "show me what you've learned from me", "list the phrases I taught you", "what did you learn from me",
+    "what have i taught u", "have I taught you anything", "anything I taught you", "what do you know from me that I taught you",
+    "go over what I've taught you", "tell me my phrases", "what words have I taught you", "what facts have I taught you",
+    "what things have I taught you", "can you list what I taught you", "could you tell me what I've taught you",
+    "what have you picked up from me", "which phrases did I teach you", "what phrases do you know",
+    "list everything I taught you", "show my phrases", "my taught phrases", "phrases I taught you",
+    "what have I taught you so far", "what did I teach you this week", "what have you learned so far from me",
+    "what do my phrases mean", "list your learned phrases", "what have I shown you", "what's in my phrase list",
+    "what phrases have you learned", "remind me of my phrases", "what did i teach u"]
+
+  [[intent.slot]]
+  name = "kind"
+  type = "term"
+
+  [[intent.slot]]
+  name = "count"
+  type = "number"
+
+  # What the list is about ("what did I teach you about whales?"). Only
+  # facts have a topic, and teaching facts is v0.6: nothing is listed.
+  [[intent.slot]]
+  name = "topic"
+  type = "term"
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:y|a\s+ver),?\s+)?(?:(?:me\s+)?(?:dices|puedes\s+decirme|recuerdas)\s+|dime\s+|recuerdame\s+)?(?:que|cuales|cuantas)\s+(?:frases|expresiones|atajos)\s+(?:mias\s+)?(?:te\s+(?:he\s+ensenado|ensene)|conoces(?:\s+de\s+mi)?|tienes\s+apuntadas)(?:\s+(?:hasta\s+ahora|yo))?[\s?.!]*$'
+  slots = { kind = "phrases" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:dime|lista|muestrame|ensename|enumera|repasa|recuerdame)\s+(?:las\s+|mis\s+)?frases(?:\s+que\s+te\s+(?:he\s+ensenado|ensene))?[\s?.!]*$'
+  slots = { kind = "phrases" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*cuales\s+son\s+(?:mis\s+frases|las\s+frases\s+que\s+te\s+(?:he\s+ensenado|ensene))[\s?.!]*$'
+  slots = { kind = "phrases" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:y|a\s+ver|oye),?\s+)?(?:(?:me\s+)?(?:dices|puedes\s+decirme|podrias\s+decirme)\s+|dime\s+|recuerdame\s+|cuentame\s+)?(?:que|que\s+cosas|cuantas\s+cosas|algo\s+de\s+lo\s+que)\s+te\s+(?:he\s+ensenado|ensene|tengo\s+ensenado|haya\s+ensenado)(?:\s+(?:hasta\s+ahora|yo|hoy|ayer|esta\s+semana|este\s+mes|ultimamente))?(?:\s+(?:sobre|acerca\s+de)\s+(?:el\s+|la\s+|los\s+|las\s+)?(?<topic>[^?]+?))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:y|a\s+ver|oye),?\s+)?que\s+(?:has\s+aprendido|tienes\s+aprendido|me\s+has\s+aprendido|sabes\s+que\s+te\s+haya\s+ensenado\s+yo)(?:\s+(?:de\s+mi|conmigo))?(?:\s+(?:hasta\s+ahora|hoy|esta\s+semana))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:dime|ensename|muestrame|cuentame|lista|repasa|recuerdame)\s+(?:todo\s+)?lo\s+que\s+(?:te\s+he\s+ensenado|te\s+ensene|has\s+aprendido(?:\s+de\s+mi|\s+conmigo)?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:te\s+acuerdas\s+de|recuerdas)\s+(?:todo\s+)?lo\s+que\s+te\s+(?:he\s+ensenado|ensene)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:te\s+he\s+ensenado\s+algo|has\s+aprendido\s+algo\s+de\s+mi)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:so,?\s+)?what\s+(?:phrases|shortcuts|custom\s+phrases)\s+(?:have\s+i\s+taught\s+you|did\s+i\s+teach\s+you|do\s+you\s+know\s+from\s+me)(?:\s+so\s+far)?[\s?.!]*$'
+  slots = { kind = "phrases" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:list|show|show\s+me|tell\s+me|remind\s+me\s+of)\s+(?:my\s+phrases|the\s+phrases\s+i(?:\x27ve|\s+have)?\s+taught\s+you|my\s+taught\s+phrases)[\s?.!]*$'
+  slots = { kind = "phrases" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*what\s+are\s+my\s+phrases[\s?.!]*$'
+  slots = { kind = "phrases" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:so,?\s+|and\s+)?(?:anything\s+i\s+taught\s+you|what\s+(?:have\s+i\s+taught\s+(?:you|u)|did\s+i\s+teach\s+(?:you|u)))(?:\s+(?:so\s+far|today|yesterday|this\s+week|lately|recently))?(?:\s+about\s+(?:the\s+)?(?<topic>[^?]+?))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*what\s+(?:have\s+you\s+learn(?:ed|t)|did\s+you\s+learn)\s+from\s+me[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:(?:can|could)\s+you\s+)?(?:list|tell\s+me|show\s+me|go\s+over)\s+(?:what|everything)\s+i(?:\x27ve|\s+have)?\s+taught\s+you[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y\s+)?(?:que|cuales|cuantos|cuantas)\s+(?:son\s+)?(?:mis\s+|los\s+|las\s+)?(?:atajos|frases|expresiones|palabras)(?:\s+(?:personalizad[ao]s|mias))?(?:\s+(?:tengo|tienes(?:\s+(?:guardad[ao]s|apuntad[ao]s))?|has\s+aprendido|conoces|te\s+sabes|te\s+he\s+dado))?[\s?.!]*$'
+  slots = { kind = "phrases" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:ensename|muestrame|dime|lista|enumera|repasa|ver)\s+(?:mis|los|tus|las)\s+(?:atajos|frases|expresiones)(?:\s+(?:personalizad[ao]s|guardad[ao]s|aprendid[ao]s))?[\s?.!]*$'
+  slots = { kind = "phrases" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:lista|listado|resumen)\s+de\s+(?:lo\s+que\s+te\s+he\s+ensenado|(?:mis\s+)?frases(?:\s+ensenadas)?|(?:mis\s+)?atajos)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:what|which)\s+(?:are\s+)?(?:my\s+)?(?:shortcuts|phrases|custom\s+phrases)\s+(?:do\s+i\s+have|have\s+you\s+(?:learned|learnt|saved|got)|do\s+you\s+know)[\s?.!]*$'
+  slots = { kind = "phrases" }
+
+# ---------------------------------------------------------------- forget
+
+[[intent]]
+id = "teach.forget"
+priority = 76
+courtesy = false
+
+  [intent.examples]
+  es = ["olvida lo de «tira»", "olvida la frase «tira»", "olvida «flip it»", "borra la frase «la de Tokio»",
+    "olvida todo lo que te he enseñado", "olvida todas las frases", "borra todas las frases que te enseñé",
+    "olvídate de lo de «sorpréndeme»", "quita la frase «peli»", "ya no quiero la frase «tira»",
+    "borra lo de «dado»", "olvida la expresión «la de seis cuerdas»", "elimina la frase «moneda»",
+    "olvida las frases que te he enseñado", "borra todo lo que te enseñé", "olvida lo de peli",
+    "olvida mi frase «tira»", "quítate de la cabeza lo de «tira»", "deja de usar la frase «hora»",
+    "ya no hace falta lo de «tira»", "borra mis frases", "olvida mis atajos", "elimina todas mis frases",
+    "olvida lo que significa «tira»", "que «tira» ya no signifique nada", "deshaz lo de «tira»",
+    "olvida la frase de la hora", "borra el atajo «hora»", "olvida lo de la de Tokio",
+    "olvida esa frase", "por favor, olvida lo de «sinte»", "olvida «¿y hoy?»", "borra «hit me»",
+    "olvida lo de «sorpréndeme», porfa", "olvídate de todas las frases", "borra «la de seis cuerdas»",
+    "elimina el atajo «moneda»", "olvida las frases", "borra lo que te he enseñado", "olvida «dados»",
+    "quita lo de «número»", "olvida lo de «fecha»", "borra la frase que te enseñé ayer", "olvida «chiste»",
+    "ya no quiero que «moneda» signifique nada", "olvida lo de «madrid»", "borra lo de «flip it»",
+    "borra el atajo «t»", "deja de usar «peli»", "ya no uses «chao»", "quita el atajo «cc»", "olvida lo último que te enseñé",
+    "deshaz la última frase que te enseñé", "elimina el atajo «hm»", "olvida mis frases, todas", "borra lo que te enseñé de «finde»",
+    "ya no entiendas «tq»", "olvida que «x» quiere decir «y»", "olvida la frase de la guitarra", "quítate de la cabeza «r»",
+    "olvida el atajo de la hora", "no quiero que recuerdes la frase «suerte»", "borra todas mis frases personalizadas",
+    "olvida lo que te enseñé ayer", "elimina lo de «dd»", "olvida la expresión «bah»", "olvida lo que te dije del gato",
+    "eso no es verdad, olvídalo", "olvida que la zanfona es un instrumento de cuerda", "olvida que la ballena es un mamífero",
+    "esto es mentira, bórralo", "olvida que el calor provoca sequía", "olvídate de que la flauta es de cuerda"]
+  en = ["forget \"flip it\"", "forget the phrase \"tira\"", "delete the phrase \"tokyo?\"", "forget everything I taught you",
+    "forget all my phrases", "delete all the phrases I taught you", "remove the phrase \"hit me\"", "forget about \"wisdom\"",
+    "drop \"six-string\"", "I don't want the phrase \"flip it\" any more", "forget my phrase \"today?\"",
+    "please forget \"flip it\"", "delete \"hit me\"", "forget all the phrases", "clear my phrases",
+    "remove all my phrases", "forget what \"flip it\" means", "stop using \"hit me\"", "undo \"flip it\"",
+    "get rid of the phrase \"wisdom\"", "forget the shortcut \"time\"", "delete my shortcut \"dice\"",
+    "forget that phrase", "forget \"tokyo?\" please", "erase the phrase \"coin\"", "forget every phrase I taught you",
+    "delete everything I've taught you", "wipe my phrases", "forget the \"flip it\" thing", "remove \"dice\"",
+    "forget \"heads or tails\"", "unlearn \"flip it\"", "forget the phrase I taught you yesterday",
+"drop the phrase \"london\"", "forget \"date\"", "forget \"another\"",
+    "please delete the phrase \"rnd\"", "can you forget \"flip it\"", "could you forget the phrase \"hit me\"",
+    "forget all of my phrases", "remove the shortcut \"pick\"", "forget my shortcuts", "delete my phrases",
+    "I want you to forget \"wisdom\"", "forget \"six-string\"", "that's wrong, forget it",
+    "forget that a theremin is an electronic instrument", "forget that a guitar is a string instrument",
+    "that's not true, forget that", "forget the last thing I taught you", "forget what i told you about the cat"]
+
+  [[intent.slot]]
+  name = "target"
+  type = "term"
+  required = true
+  guess = { after = ["olvida lo de", "olvida la frase", "olvida", "borra la frase", "borra", "forget the phrase", "forget", "delete the phrase", "delete", "remove the phrase"] }
+
+  [[intent.slot]]
+  name = "confirm"
+  type = "confirm"
+
+  [[intent.slot]]
+  name = "count"
+  type = "number"
+
+  # `fact` when the target is a statement («olvida que la ballena es un
+  # mamífero»): facts are v0.6.
+  [[intent.slot]]
+  name = "shape"
+  type = "term"
+  internal = true
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+favor,?\s+)?(?:olvida|olvidate\s+de|borra|elimina|quita)\s+(?:(?:todo\s+)?lo\s+que\s+te\s+(?:he\s+ensenado|ensene)|(?:todas\s+)?(?:las|mis)\s+frases(?:\s+que\s+te\s+(?:he\s+ensenado|ensene))?|(?:todos\s+)?mis\s+atajos|todas\s+las\s+frases)(?:,?\s+(?:porfa|por\s+favor))?[\s.!]*$'
+  slots = { target = "all" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+favor,?\s+)?(?:olvida|olvidate\s+de|borra|deshaz)\s+lo\s+ultimo\s+que\s+te\s+(?:he\s+ensenado|ensene)(?:,?\s+(?:porfa|por\s+favor))?[\s.!]*$'
+  slots = { target = "last" }
+
+  # «eso no es verdad, olvídalo»: the claim of the last answer, a fact.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:eso|esto)\s+(?:no\s+es\s+(?:verdad|cierto|asi)|es\s+(?:mentira|falso)|esta\s+mal)\s*,?\s*(?:olvidalo|olvida\s+eso|borralo)[\s.!]*$'
+  slots = { target = "that" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:that\x27s|that\s+is|this\s+is)\s+(?:wrong|not\s+true|false|not\s+right)\s*,?\s*(?:so\s+)?(?:forget\s+it|forget\s+that|delete\s+it)[\s.!]*$'
+  slots = { target = "that" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:deja\s+de\s+(?:usar|entender)|ya\s+no\s+(?:uses|entiendas))\s+(?:el\s+atajo\s+|la\s+frase\s+)?(?<target>"[^"]+")[\s.!]*$'
+
+  # «olvida que «tira» significa…» names a phrase; «olvida que la ballena es
+  # un mamífero», a fact (v0.6).
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+favor,?\s+)?(?:olvida|olvidate\s+de)\s+que\s+(?<target>"[^"]+")\s+(?:significa|quiere\s+decir)\s+.+$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+favor,?\s+)?(?:olvida|olvidate\s+de|borra)\s+(?:de\s+)?que\s+(?<target>.+?)[\s.!]*$'
+  slots = { shape = "fact" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:please\s+)?forget\s+that\s+(?<target>"[^"]+")\s+means\s+.+$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:please\s+)?forget\s+that\s+(?<target>.+?)[\s.!]*$'
+  slots = { shape = "fact" }
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+favor,?\s+)?(?:olvida|olvidate\s+de|borra|elimina|quita|deshaz)\s+(?:la\s+frase|la\s+expresion|el\s+atajo|mi\s+frase)\s+(?<target>.+?)(?:,?\s+(?:porfa|por\s+favor))?[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+favor,?\s+)?(?:olvida|olvidate\s+de|borra|elimina|quita|deshaz)\s+lo\s+de\s+(?<target>"[^"]+")(?:,?\s+(?:porfa|por\s+favor))?[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:por\s+favor,?\s+)?(?:olvida|olvidate\s+de|borra|elimina)\s+(?<target>"[^"]+")(?:,?\s+(?:porfa|por\s+favor))?[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*ya\s+no\s+quiero\s+(?:la\s+frase\s+|que\s+)(?<target>"[^"]+")(?:\s+signifique\s+nada)?[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:please\s+)?(?:forget|delete|remove|clear|wipe|erase)\s+(?:everything\s+i(?:\x27ve|\s+have)?\s+taught\s+you|(?:all\s+(?:of\s+)?)?(?:the|my)\s+phrases(?:\s+i(?:\x27ve|\s+have)?\s+taught\s+you)?|all\s+(?:the\s+)?phrases|every\s+phrase\s+i(?:\x27ve|\s+have)?\s+taught\s+you|my\s+shortcuts)(?:\s+please)?[\s.!]*$'
+  slots = { target = "all" }
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:please\s+|(?:can|could)\s+you\s+)?(?:forget|delete|remove|drop|erase|get\s+rid\s+of|unlearn)\s+(?:about\s+)?(?:the\s+phrase\s+|my\s+phrase\s+|the\s+shortcut\s+|my\s+shortcut\s+)?(?<target>"[^"]+")(?:\s+please)?[\s.!?]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:please\s+)?(?:forget|delete|remove)\s+the\s+phrase\s+(?<target>.+?)(?:\s+please)?[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:please\s+)?(?:forget|undo|delete)\s+(?:the\s+)?last\s+(?:thing|phrase)\s+i\s+taught\s+you(?:\s+please)?[\s.!]*$'
+  slots = { target = "last" }
+
+# ---------------------------------------------------------------- replies
+
+[reply.forget_fact]
+es = ["Todavía no olvido datos: solo las frases que me has enseñado. No he cambiado nada."]
+en = ["I can't forget facts yet, only the phrases you've taught me. Nothing was changed."]
+
+[reply.phrase_taught]
+es = ["Vale: cuando digas «{phrase}», {will}."]
+en = ["Okay: when you say \"{phrase}\", {will}."]
+
+[reply.phrase_replaced]
+es = ["Hecho: cuando digas «{phrase}», {will}."]
+en = ["Done: when you say \"{phrase}\", {will}."]
+
+[reply.phrase_kept]
+es = ["Vale, lo dejo como estaba."]
+en = ["Okay, I'll leave it as it was."]
+
+[reply.phrase_unknown]
+es = ["No sé qué hacer con «{meaning}», así que no puedo asociarle nada."]
+en = ["I don't know what to do with \"{meaning}\", so I can't link anything to it."]
+
+[reply.phrase_thing]
+es = ["Solo puedo asociar frases a peticiones, y «{meaning}» no es una petición."]
+en = ["I can only link phrases to requests, and \"{meaning}\" isn't a request."]
+
+[reply.phrase_deletes]
+es = ["Eso no: no asocio frases a peticiones que borran cosas."]
+en = ["Not that: I don't link phrases to requests that delete things."]
+
+[reply.phrase_ask_phrase]
+es = ["¿Qué frase?"]
+en = ["Which phrase?"]
+
+[reply.phrase_ask_meaning]
+es = ["¿Qué quieres decir con eso?"]
+en = ["What do you mean by it?"]
+
+[reply.phrase_confirm_replace]
+es = ["«{phrase}» ya significa {old}. ¿Lo cambio por {new}?"]
+en = ["\"{phrase}\" already means {old}. Do you want it to mean {new} instead?"]
+
+[reply.phrase_confirm_new]
+es = ["¿Quieres que «{phrase}» signifique {doing}?"]
+en = ["Do you want \"{phrase}\" to mean {doing}?"]
+
+[reply.list_none]
+es = ["Todavía no me has enseñado nada."]
+en = ["You haven't taught me anything yet."]
+
+[reply.list_one]
+es = ["Me has enseñado una frase: {items}."]
+en = ["You've taught me one phrase: {items}."]
+
+[reply.list_many]
+es = ["Me has enseñado {count} frases: {items}."]
+en = ["You've taught me {count} phrases: {items}."]
+
+[reply.list_more]
+es = ["Me has enseñado {count} frases. Las {shown} últimas: {items}. Y {more} más."]
+en = ["You've taught me {count} phrases. The last {shown}: {items}. And {more} more."]
+
+[reply.list_facts]
+es = ["Todavía no me has enseñado ningún dato."]
+en = ["You haven't taught me any facts yet."]
+
+[reply.list_topic]
+es = ["Nada sobre «{topic}»."]
+en = ["Nothing about \"{topic}\"."]
+
+[reply.forget_done]
+es = ["Olvidado: «{phrase}» ya no significa {doing}."]
+en = ["Forgotten: \"{phrase}\" no longer means {doing}."]
+
+[reply.forget_none]
+es = ["No me habías enseñado nada con «{phrase}»."]
+en = ["You hadn't taught me anything with \"{phrase}\"."]
+
+[reply.forget_ask]
+es = ["¿Qué quieres que olvide?"]
+en = ["What should I forget?"]
+
+[reply.forget_confirm_one]
+es = ["¿Olvido que «{phrase}» significa {doing}?"]
+en = ["Shall I forget that \"{phrase}\" means {doing}?"]
+
+[reply.forget_all_confirm]
+es = ["¿Olvido las {count} frases que me has enseñado?"]
+en = ["Shall I forget all {count} phrases you've taught me?"]
+
+[reply.forget_all_done]
+es = ["Hecho: he olvidado las {count} frases que me enseñaste."]
+en = ["Done: I've forgotten the {count} phrases you taught me."]
+
+[reply.forget_all_none]
+es = ["No me has enseñado nada que olvidar."]
+en = ["You haven't taught me anything to forget."]
+
+[reply.forget_kept]
+es = ["Vale, no olvido nada."]
+en = ["Okay, I'll keep them."]
+
+[reply.p_list_item]
+es = ["«{phrase}» para {doing}"]
+en = ["\"{phrase}\" for {doing}"]
+
+[reply.word_and]
+es = ["y"]
+en = ["and"]
+
+# What a meaning does: `will_*` after "cuando digas «…»,", `doing_*` as a
+# name for it.
+
+[reply.will_other]
+es = ["haré lo que hago con «{intent}»"]
+en = ["I'll do what I do for \"{intent}\""]
+
+[reply.doing_other]
+es = ["lo que hago con «{intent}»"]
+en = ["what I do for \"{intent}\""]
+
+[reply.will_greet]
+es = ["te saludaré"]
+en = ["I'll say hello"]
+
+[reply.doing_greet]
+es = ["saludarte"]
+en = ["saying hello"]
+
+[reply.will_bye]
+es = ["me despediré"]
+en = ["I'll say goodbye"]
+
+[reply.doing_bye]
+es = ["despedirme"]
+en = ["saying goodbye"]
+
+[reply.will_thanks]
+es = ["te diré que de nada"]
+en = ["I'll say you're welcome"]
+
+[reply.doing_thanks]
+es = ["decirte que de nada"]
+en = ["saying you're welcome"]
+
+[reply.will_how_are_you]
+es = ["te contaré qué tal estoy"]
+en = ["I'll tell you how I am"]
+
+[reply.doing_how_are_you]
+es = ["contarte qué tal estoy"]
+en = ["telling you how I am"]
+
+[reply.will_who]
+es = ["te diré quién soy"]
+en = ["I'll tell you who I am"]
+
+[reply.doing_who]
+es = ["decirte quién soy"]
+en = ["telling you who I am"]
+
+[reply.will_nature]
+es = ["te contaré qué soy"]
+en = ["I'll tell you what I am"]
+
+[reply.doing_nature]
+es = ["contarte qué soy"]
+en = ["telling you what I am"]
+
+[reply.will_capabilities]
+es = ["te diré lo que sé hacer"]
+en = ["I'll tell you what I can do"]
+
+[reply.doing_capabilities]
+es = ["decirte lo que sé hacer"]
+en = ["telling you what I can do"]
+
+[reply.will_skill_help]
+es = ["te explicaré cómo usar {skill}"]
+en = ["I'll explain how to use {skill}"]
+
+[reply.doing_skill_help]
+es = ["explicarte cómo usar {skill}"]
+en = ["explaining how to use {skill}"]
+
+[reply.will_help]
+es = ["te echaré una mano"]
+en = ["I'll help you"]
+
+[reply.doing_help]
+es = ["echarte una mano"]
+en = ["helping you"]
+
+[reply.will_now]
+es = ["te diré la hora"]
+en = ["I'll tell you the time"]
+
+[reply.doing_now]
+es = ["decirte la hora"]
+en = ["telling you the time"]
+
+[reply.will_date_day]
+es = ["te diré la fecha de {day}"]
+en = ["I'll tell you the date for {day}"]
+
+[reply.doing_date_day]
+es = ["decirte la fecha de {day}"]
+en = ["telling you the date for {day}"]
+
+[reply.will_date]
+es = ["te diré la fecha"]
+en = ["I'll tell you the date"]
+
+[reply.doing_date]
+es = ["decirte la fecha"]
+en = ["telling you the date"]
+
+[reply.will_weekday]
+es = ["te diré qué día de la semana es"]
+en = ["I'll tell you the day of the week"]
+
+[reply.doing_weekday]
+es = ["decirte el día de la semana"]
+en = ["telling you the day of the week"]
+
+[reply.will_until_target]
+es = ["te diré cuánto falta para {target}"]
+en = ["I'll tell you how long until {target}"]
+
+[reply.doing_until_target]
+es = ["decirte cuánto falta para {target}"]
+en = ["telling you how long until {target}"]
+
+[reply.will_until]
+es = ["te diré cuánto falta"]
+en = ["I'll tell you how long is left"]
+
+[reply.doing_until]
+es = ["decirte cuánto falta"]
+en = ["telling you how long is left"]
+
+[reply.will_time_in_place]
+es = ["te diré la hora en {place}"]
+en = ["I'll tell you the time in {place}"]
+
+[reply.doing_time_in_place]
+es = ["decirte la hora en {place}"]
+en = ["telling you the time in {place}"]
+
+[reply.will_time_in]
+es = ["te diré la hora en otro sitio"]
+en = ["I'll tell you the time somewhere else"]
+
+[reply.doing_time_in]
+es = ["decirte la hora en otro sitio"]
+en = ["telling you the time somewhere else"]
+
+[reply.will_difference]
+es = ["te diré la diferencia horaria"]
+en = ["I'll tell you the time difference"]
+
+[reply.doing_difference]
+es = ["decirte la diferencia horaria"]
+en = ["telling you the time difference"]
+
+[reply.will_arithmetic_expression]
+es = ["calcularé {expression}"]
+en = ["I'll work out {expression}"]
+
+[reply.doing_arithmetic_expression]
+es = ["calcular {expression}"]
+en = ["working out {expression}"]
+
+[reply.will_arithmetic]
+es = ["haré la cuenta"]
+en = ["I'll do the sum"]
+
+[reply.doing_arithmetic]
+es = ["hacer la cuenta"]
+en = ["doing the sum"]
+
+[reply.will_percent]
+es = ["calcularé el porcentaje"]
+en = ["I'll work out the percentage"]
+
+[reply.doing_percent]
+es = ["calcular el porcentaje"]
+en = ["working out the percentage"]
+
+[reply.will_convert]
+es = ["haré la conversión"]
+en = ["I'll do the conversion"]
+
+[reply.doing_convert]
+es = ["hacer la conversión"]
+en = ["doing the conversion"]
+
+[reply.will_dice_count_sides]
+es = ["tiraré {count} dados de {sides} caras"]
+en = ["I'll roll {count} {sides}-sided dice"]
+
+[reply.doing_dice_count_sides]
+es = ["tirar {count} dados de {sides} caras"]
+en = ["rolling {count} {sides}-sided dice"]
+
+[reply.will_dice_count]
+es = ["tiraré {count} dados"]
+en = ["I'll roll {count} dice"]
+
+[reply.doing_dice_count]
+es = ["tirar {count} dados"]
+en = ["rolling {count} dice"]
+
+[reply.will_dice]
+es = ["tiraré un dado"]
+en = ["I'll roll a die"]
+
+[reply.doing_dice]
+es = ["tirar un dado"]
+en = ["rolling a die"]
+
+[reply.will_coin]
+es = ["echaré una moneda al aire"]
+en = ["I'll toss a coin"]
+
+[reply.doing_coin]
+es = ["echar una moneda al aire"]
+en = ["tossing a coin"]
+
+[reply.will_pick_options]
+es = ["elegiré entre {options}"]
+en = ["I'll pick one of {options}"]
+
+[reply.doing_pick_options]
+es = ["elegir entre {options}"]
+en = ["picking one of {options}"]
+
+[reply.will_pick]
+es = ["elegiré una opción"]
+en = ["I'll pick an option"]
+
+[reply.doing_pick]
+es = ["elegir una opción"]
+en = ["picking an option"]
+
+[reply.will_number_range]
+es = ["te daré un número entre {low} y {high}"]
+en = ["I'll give you a number between {low} and {high}"]
+
+[reply.doing_number_range]
+es = ["darte un número entre {low} y {high}"]
+en = ["giving you a number between {low} and {high}"]
+
+[reply.will_number]
+es = ["te daré un número al azar"]
+en = ["I'll give you a random number"]
+
+[reply.doing_number]
+es = ["darte un número al azar"]
+en = ["giving you a random number"]
+
+[reply.will_fortune]
+es = ["te diré un refrán"]
+en = ["I'll tell you a saying"]
+
+[reply.doing_fortune]
+es = ["decirte un refrán"]
+en = ["telling you a saying"]
+
+[reply.will_set_value]
+es = ["guardaré «{value}» en tus preferencias"]
+en = ["I'll save \"{value}\" in your preferences"]
+
+[reply.doing_set_value]
+es = ["guardar «{value}» en tus preferencias"]
+en = ["saving \"{value}\" in your preferences"]
+
+[reply.will_set]
+es = ["guardaré tus preferencias"]
+en = ["I'll save your preferences"]
+
+[reply.doing_set]
+es = ["guardar tus preferencias"]
+en = ["saving your preferences"]
+
+[reply.will_get]
+es = ["te diré lo que sé de ti"]
+en = ["I'll tell you what I know about you"]
+
+[reply.doing_get]
+es = ["decirte lo que sé de ti"]
+en = ["telling you what I know about you"]
+
+[reply.will_define_word]
+es = ["te diré qué significa «{word}»"]
+en = ["I'll tell you what \"{word}\" means"]
+
+[reply.doing_define_word]
+es = ["decirte qué significa «{word}»"]
+en = ["telling you what \"{word}\" means"]
+
+[reply.will_define]
+es = ["te daré una definición"]
+en = ["I'll give you a definition"]
+
+[reply.doing_define]
+es = ["darte una definición"]
+en = ["giving you a definition"]
+
+[reply.will_translate_term]
+es = ["te diré cómo se dice «{term}»"]
+en = ["I'll tell you how to say \"{term}\""]
+
+[reply.doing_translate_term]
+es = ["decirte cómo se dice «{term}»"]
+en = ["telling you how to say \"{term}\""]
+
+[reply.will_translate]
+es = ["te traduciré una palabra"]
+en = ["I'll translate a word"]
+
+[reply.doing_translate]
+es = ["traducir una palabra"]
+en = ["translating a word"]
+
+[reply.will_list]
+es = ["te diré las frases que me has enseñado"]
+en = ["I'll list the phrases you've taught me"]
+
+[reply.doing_list]
+es = ["decirte las frases que me has enseñado"]
+en = ["listing the phrases you've taught me"]

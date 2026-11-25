@@ -18,7 +18,9 @@ publish = false
 # prefer no dependency, then a small one, then a feature-gated one).
 [workspace.dependencies]
 talos-core = { path = "crates/talos-core", version = "0.0.0" }
-talos-skills = { path = "crates/talos-skills", version = "0.0.0" }
+# Without its default `knowledge` feature: each dependent turns it on
+# through its own `knowledge` feature (the binary does by default).
+talos-skills = { path = "crates/talos-skills", version = "0.0.0", default-features = false }
 # Derive for the manifest model; the de facto standard, needed by `toml`.
 serde = { version = "1.0.228", default-features = false, features = ["std", "derive"] }
 # Parses skill manifests (ADR 0007); parse-only, no writer or display code.
@@ -40,6 +42,13 @@ serde_json = { version = "1.0.140", default-features = false, features = ["std"]
 # .cargo/config.toml. No optional rusqlite feature is used. Behind the
 # `knowledge` feature of talos-core.
 rusqlite = { version = "0.37", default-features = false, features = ["bundled"] }
+# The vocabulary pack builder (tools/pack, dev-time only, never in the binary):
+# streams the Open English WordNet XML (quick-xml: MIT, one dependency,
+# memchr), reads it gzipped (flate2 with its pure-Rust backend) and checks the
+# sources' SHA-256 sums (sha2). DEVELOPMENT.md, "The vocabulary pack".
+quick-xml = { version = "0.42", default-features = false }
+flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }
+sha2 = { version = "0.10", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

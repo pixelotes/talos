@@ -375,8 +375,10 @@ Given: hint = en
      (trigonometry: declined by the handler)
 
 [en] U: what is pi
-     T: I don't know that.                        → unhandled · unknown-fact
-     (constants)
+     T: I don't have a dictionary installed, so I can't tell you what it means.
+                                                  → unhandled · define.word · word=pi
+     (constants are not calc's: "what is X" asks for a definition, and this
+      engine has no knowledge store)
 
 [en] U: 50 + 10%
      T: 50 plus 10% is 55.                        → answered · calc.percent · amount=50 percent=+10

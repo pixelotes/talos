@@ -118,5 +118,8 @@ Given: hint = en
         · arithmetic, percentages and unit conversion (/calc)
         · roll dice, flip coins, pick among options and give random numbers (/roll, /coin, /pick, /number)
         · give a saying or a fortune (/fortune)
+        · tell you what a word means (/define)
+        · learn your own phrases for what I can already do
+        · translate words and set phrases between Spanish and English (/translate)
         · remember your name, where you live and your units
                                                   → answered · help.capabilities

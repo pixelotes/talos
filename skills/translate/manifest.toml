@@ -1,0 +1,302 @@
+# translate: words and stock phrases between Spanish and English
+# (docs/spec/knowledge.md, `translate.word`). Free sentences are not
+# translated (ADR 0012): Talos says so, adding a word-by-word rendering,
+# labelled approximate, when every word is known.
+#
+# Patterns match the match form (lower case, no accents; «» become ").
+# Within the intent the first pattern that matches wins: those with a
+# target language come before the bare ones, so "cómo se dice banco en
+# inglés" is not read as the word "banco en inglés". Any language name is
+# captured (`target` is a `language` slot) so that a third one is refused
+# by name.
+#
+# Slots:
+# - `term`: the word or phrase, as typed; the conversation's topic when
+#   missing ("¿y en inglés?"), else asked for.
+# - `target`: the language to translate into; by default the one the term
+#   is not in.
+# - `sense`: reported when the sense was known from memory or context.
+# - `context` (internal): what follows the term after a comma ("…, el
+#   asiento"), words that may choose the sense.
+#
+# The `p_*`, `name_*` and `word_*` replies are pieces the handler composes
+# a reply from; they are never answered on their own.
+
+[skill]
+id = "translate"
+summary.es = "traducir palabras y frases hechas entre español e inglés"
+summary.en = "translate words and set phrases between Spanish and English"
+names.es = ["traducción", "traductor", "traducir"]
+names.en = ["translation", "translator", "translate"]
+help.es = ["¿cómo se dice guitarra en inglés?", "traduce violín", "¿cómo se dice «de nada» en inglés?"]
+help.en = ["how do you say guitar in Spanish?", "translate fiddle", "Spanish for drums?"]
+capabilities = []
+
+[[intent]]
+id = "translate.word"
+priority = 47
+courtesy = false
+command = { es = "/traduce", en = "/translate", slot = "term" }
+
+  [intent.examples]
+  es = ["cómo se dice guitarra en inglés", "cómo se dice violín en inglés", "traduce violín", "tradúceme sintetizador",
+    "guitarras en inglés", "cómo se dice banco en inglés", "cómo se dice cuerda en inglés", "cómo se dice de nada en inglés",
+    "y buen provecho", "cómo se dice bench en español", "qué es fiddle en español", "cómo se dice pandereta en inglés",
+    "gaita en inglés", "tamboril en inglés", "pásame tambor al inglés", "traduce flauta al inglés",
+    "cómo se dice instrumento de cuerda en inglés", "cómo se dice caja de resonancia en inglés", "cómo se dice salud en inglés",
+    "cómo se dice buenas noches en inglés", "cómo se dice lo siento en inglés", "cómo se dice encantado en inglés",
+    "cómo se dice qué tal en inglés", "cómo se dice buenos días en inglés", "traducción de ballena al inglés",
+    "cómo se dice guitarra", "cómo se dice en inglés", "y en inglés", "y eso cómo se dice en inglés",
+    "cómo se dice guitarra en francés", "cómo se dice ballena en alemán", "tradúceme esta frase: mañana me compro una guitarra",
+    "cómo se dice guitarra roja en inglés", "traduce al inglés «tengo un violín»", "en inglés cómo se dice tormenta",
+    "cuál es la traducción de terremoto al inglés", "cómo se diría tambor en inglés", "cómo digo mamífero en inglés",
+    "qué significa string en español", "qué quiere decir drum en español", "qué es shoal en castellano",
+    "cómo se dice virus en inglés", "cómo se dice bandurria en inglés", "cómo se dice zanfona en inglés",
+    "pon pez en inglés", "dime cómo se dice nube en inglés", "sabes cómo se dice lluvia en inglés",
+    "me traduces cejilla", "traducir traste al inglés", "la palabra pastilla en inglés",
+    "cómo se dice orilla en inglés", "ribera en inglés", "cómo se dice mueble en inglés", "sequía en inglés",
+    "cómo se dice inundación en inglés", "cómo se dice el de sentarse en inglés", "cómo se dice banco en inglés, el asiento",
+    "cómo se dice entidad financiera en inglés", "en inglés, cómo se dice escuela", "traduce colegio al inglés",
+    "cómo se dice marte en inglés", "plutón en inglés", "cómo se dice tierra en inglés", "cómo se escribe guitarra en inglés",
+    "como se dice planeta en ingles", "q significa fiddle en español", "traduceme catarro", "traduce resfriado al ingles",
+    "cómo se dice violines en inglés", "cuerdas en inglés", "dime la traducción de evaporación",
+    "cómo se dice dispositivo en inglés", "traduce aparato", "cómo se dice good morning en español",
+    "cómo se dice cheers en español", "qué es bless you en español", "tradúceme gracias al inglés"]
+  en = ["how do you say guitar in Spanish", "how do you say violin in Spanish", "translate fiddle", "translate synthesizer",
+    "Spanish for drums", "what's string instrument in Spanish", "how do you say bank in Spanish", "what's school in Spanish",
+    "what's cold in Spanish", "how do I say nice to meet you in Spanish", "how do you say good evening in Spanish",
+    "how do you say tambourine in Spanish", "what's accordion in Spanish", "translate cord", "what's guitarra in English",
+    "how do you say flute in Spanish", "translate whale into Spanish", "how would you say storm in Spanish",
+    "what's the Spanish for earthquake", "Spanish word for cloud", "what's the Spanish word for rain",
+    "what does banco mean in English", "what does cuerda mean in English", "translate bandurria",
+    "translate dulcimer", "how do you say guitar in French", "how do you say whale in German",
+    "translate my brother plays the violin", "translate this email", "how do you say red guitar in Spanish",
+    "how do you say you're welcome in Spanish", "how do you say good morning in Spanish", "and in Spanish",
+    "how do you say it in Spanish", "how do you say that in English", "and what about \"good night\"",
+    "how do you say sound box in Spanish", "what's pickup in Spanish", "how do you say pill in Spanish",
+    "Spanish for neck", "how do I say fret in Spanish", "how do you say capo in Spanish", "translate riverbank",
+    "what's shoal in Spanish", "how do you say mammal in Spanish", "how do you say virus in Spanish",
+    "what's evaporation in Spanish", "drought in Spanish", "flood in Spanish", "what's the Spanish for furniture",
+    "translate seat into Spanish", "how do you say company in Spanish", "how do you say financial institution in Spanish",
+    "translate guitarras into English", "what is tambor in English", "how do you say mesa in English",
+    "Spanish for guitars", "how do I say violins in Spanish", "translate strings", "english for pandereta",
+    "how do you say bless you in Spanish", "how do you say cheers in Spanish", "what's sorry in Spanish",
+    "how do u say drum in spanish", "translate electric guitar", "how do you say classical guitar in Spanish",
+    "what's the Spanish translation of planet", "give me the Spanish for Mars", "how is device said in Spanish",
+    "translation of string into Spanish", "what's the English word for gaita", "how to say wind instrument in Spanish",
+    "can you translate cloud", "what's dulcimer in Spanish", "how do you say enjoy your meal in Spanish"]
+
+  [[intent.slot]]
+  name = "term"
+  type = "term"
+  required = true
+  guess = { after = ["como se dice", "traduce", "traduceme", "traducir", "how do you say", "how do i say", "translate", "spanish for", "english for"] }
+
+  [[intent.slot]]
+  name = "target"
+  type = "language"
+
+  [[intent.slot]]
+  name = "sense"
+  type = "term"
+
+  [[intent.slot]]
+  name = "context"
+  type = "term"
+  internal = true
+
+  # «cómo se dice X en inglés», with a trailing context after a comma.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:y|oye|a\s+ver|pues),?\s+)?(?:(?:me\s+)?dices\s+|dime\s+|(?:tu\s+)?sabes\s+|quiero\s+saber\s+|no\s+se\s+|(?:me\s+)?(?:puedes|podrias)\s+decir(?:me)?\s+)?como\s+(?:se\s+dice|se\s+diria|digo|diria|se\s+escribe|se\s+llama|es|se\s+traduce)\s+(?<term>.+?)\s+(?<target>(?:en|al)\s+[a-z]+)(?:\s*,\s*(?<context>[^?]+?))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:y|oye|pues),?\s+)?(?:(?:me\s+)?dices\s+|dime\s+|(?:tu\s+)?sabes\s+)?como\s+(?:se\s+dice|se\s+diria|digo|se\s+escribe|se\s+llama)\s+(?<target>en\s+(?:ingles|espanol|castellano))\s+(?<term>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:cual\s+es\s+|dime\s+|sabes\s+)?(?:la\s+)?palabra\s+(?<target>ingles|espanol)a?\s+(?:para|de)\s+(?<term>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:necesito|quiero)\s+(?:la\s+traduccion\s+de|traducir)\s+(?<term>.+?)(?:\s+(?<target>(?:al|en|a)\s+(?:ingles|espanol|castellano|frances|aleman|italiano|portugues|catalan)))?[\s?.!]*$'
+
+  # «cómo se dice en inglés» (the topic), «y en inglés».
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y\s+)?(?:(?:y\s+)?(?:eso|esto)\s+)?como\s+(?:se\s+dice|se\s+diria)\s+(?<target>(?:en|al)\s+[a-z]+)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*y\s+(?<target>en\s+(?:ingles|espanol|castellano))[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?<target>en\s+(?:ingles|espanol|castellano))\s*,?\s*como\s+se\s+dice\s+(?<term>.+?)[\s?.!]*$'
+
+  # «¿y «buen provecho»?»: another term, the same target.
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*y\s+(?<term>"[^"]+")[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:me\s+)?(?:traduces|puedes\s+traducir)|traduce|traduceme|traducir|pasame|pon)\s+(?<target>(?:al|en|a)\s+(?:ingles|espanol|castellano|frances|aleman|italiano|portugues|catalan))\s*:?\s+(?<term>.+?)[\s.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:me\s+)?(?:traduces|puedes\s+traducir)|traduce|traduceme|traducir|traduccion\s+de|dime\s+la\s+traduccion\s+de|cual\s+es\s+la\s+traduccion\s+de)\s+(?<term>.+?)(?:\s+(?<target>(?:al|en|a)\s+(?:ingles|espanol|castellano|frances|aleman|italiano|portugues|catalan)))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:pasame|pon)\s+(?<term>.+?)\s+(?<target>(?:al|en)\s+(?:ingles|espanol|castellano))[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:que|q)\s+(?:es|significa|quiere\s+decir)\s+(?<term>.+?)\s+(?<target>en\s+(?:ingles|espanol|castellano))[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:la\s+palabra\s+)?(?<term>[^\s?¿,]+(?:\s+[^\s?¿,]+)?)\s*,?\s+(?<target>en\s+(?:ingles|espanol|castellano|frances|aleman|italiano|portugues|catalan))[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y\s+)?(?:(?:me\s+)?dices\s+|dime\s+|sabes\s+)?como\s+(?:se\s+dice|se\s+diria)\s+(?<term>.+?)[\s?.!]*$'
+
+  # English.
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:and\s+)?(?:(?:can|could)\s+you\s+tell\s+me\s+)?how\s+(?:do\s+(?:you|i|we|u)|would\s+(?:you|i)|to|can\s+i)\s+say\s+(?<term>.+?)\s+(?<target>in(?:to)?\s+[a-z]+)(?:\s*,\s*(?<context>[^?]+?))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*how\s+is\s+(?<term>.+?)\s+said\s+(?<target>in\s+[a-z]+)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:and|what\s+about)\s+(?<target>in\s+(?:spanish|english))[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:and|what\s+about|and\s+what\s+about)\s+(?<term>"[^"]+")[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:what\x27s|whats|what\s+is|give\s+me)\s+the\s+(?<target>spanish|english)(?:\s+(?:word|translation))?\s+(?:for|of)\s+(?<term>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:what\x27s|whats|what\s+is)\s+(?<term>.+?)\s+(?<target>in\s+(?:spanish|english|french|german|italian|portuguese|catalan))[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*what\s+(?:does|do)\s+(?<term>.+?)\s+mean\s+(?<target>in\s+(?:spanish|english|french|german|italian|portuguese|catalan))[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?<target>spanish|english)\s+(?:word\s+)?for\s+(?<term>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:(?:can|could)\s+you\s+)?(?:translate|translation\s+of)\s+(?<term>.+?)(?:\s+(?<target>(?:in|into|to)\s+(?:spanish|english|french|german|italian|portuguese|catalan)))?[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?<term>[^\s?,]+(?:\s+[^\s?,]+){0,2})\s+(?<target>in\s+(?:spanish|english|french|german|italian|portuguese|catalan))[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^\s*(?:and\s+)?how\s+(?:do\s+(?:you|i|u)|would\s+you)\s+say\s+(?<term>.+?)[\s?.!]*$'
+
+[reply.translated]
+es = ["{words}."]
+en = ["{words}."]
+
+[reply.in_lang]
+es = ["En {target_name}, {words}."]
+en = ["In {target_name}, {words}."]
+
+[reply.same]
+es = ["Igual: {words}."]
+en = ["The same: {words}."]
+
+[reply.already]
+es = ["«{term}» ya está en {lang_name}; en {target_name} es {words}."]
+en = ["\"{term}\" is already {lang_name}; in {target_name} it's {words}."]
+
+[reply.senses]
+es = ["Depende: {items}."]
+en = ["It depends: {items}."]
+
+[reply.phrase]
+es = ["{text}."]
+en = ["{text}."]
+
+[reply.phrase_approx]
+es = ["No hay una expresión fija en {target_name}; lo más parecido es {text}."]
+en = ["There's no set phrase for it in {target_name}; the closest is {text}."]
+
+[reply.lexicon]
+es = ["Seguramente {first}, pero lo saco de un diccionario de pares de palabras, menos fiable que lo demás que sé."]
+en = ["Probably {first}, but that comes from a word-pair dictionary, which is less reliable than the rest of what I know."]
+
+[reply.lexicon_also]
+es = ["Seguramente {first}; también {second}. Lo saco de un diccionario de pares de palabras, menos fiable que lo demás que sé."]
+en = ["Probably {first}; also {second}. That comes from a word-pair dictionary, which is less reliable than the rest of what I know."]
+
+[reply.no_word]
+es = ["No tengo una palabra en {target_name} para «{term}»."]
+en = ["I don't have a {target_name} word for \"{term}\"."]
+
+[reply.unknown]
+es = ["No conozco la palabra «{term}»."]
+en = ["I don't know the word \"{term}\"."]
+
+[reply.sentence]
+es = ["Solo traduzco palabras sueltas y frases hechas; frases enteras, no."]
+en = ["I only translate single words and set phrases, not sentences."]
+
+[reply.word_by_word]
+es = ["Solo traduzco palabras sueltas y frases hechas, no frases enteras. Palabra por palabra, y sin garantías de que suene bien, sería: «{text}»."]
+en = ["I only translate single words and set phrases, not sentences. Word by word, with no promise that it reads well, it would be: \"{text}\"."]
+
+[reply.third_language]
+es = ["Solo traduzco entre español e inglés."]
+en = ["I only translate between Spanish and English."]
+
+[reply.ask_term]
+es = ["¿Qué quieres que traduzca?"]
+en = ["What should I translate?"]
+
+[reply.no_dictionary]
+es = ["No tengo ningún diccionario instalado, así que no puedo traducirlo."]
+en = ["I don't have a dictionary installed, so I can't translate it."]
+
+[reply.p_word]
+es = ["«{word}»"]
+en = ["«{word}»"]
+
+[reply.p_also]
+es = ["{first}; también {rest}"]
+en = ["{first}; also {rest}"]
+
+[reply.p_sense]
+es = ["{words} ({label})"]
+en = ["{words} ({label})"]
+
+[reply.p_noted]
+es = ["{text} ({note})"]
+en = ["{text} ({note})"]
+
+[reply.name_es]
+es = ["español"]
+en = ["Spanish"]
+
+[reply.name_en]
+es = ["inglés"]
+en = ["English"]
+
+[reply.word_and]
+es = ["y"]
+en = ["and"]

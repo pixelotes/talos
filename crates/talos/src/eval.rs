@@ -67,11 +67,11 @@ pub(crate) struct IntentScore {
 }
 
 impl IntentScore {
-    /// The held-out rows whose label belongs to one of `skills`.
-    pub(crate) fn built_held_out(&self, skills: &BTreeSet<String>) -> Count {
+    /// The held-out rows whose label is one of the installed `intents`.
+    pub(crate) fn built_held_out(&self, intents: &BTreeSet<String>) -> Count {
         let mut count = Count::default();
         for (intent, c) in &self.held_out {
-            if skills.contains(intent.split('.').next().unwrap_or_default()) {
+            if intents.contains(intent) {
                 count.rows += c.rows;
                 count.hits += c.hits;
             }
@@ -79,11 +79,13 @@ impl IntentScore {
         count
     }
 
-    /// The rows whose label belongs to one of `skills`.
-    pub(crate) fn built(&self, skills: &BTreeSet<String>) -> Count {
+    /// The rows whose label is one of the installed `intents`. A skill may
+    /// be installed with only some of its catalogue intents; the others are
+    /// not built.
+    pub(crate) fn built(&self, intents: &BTreeSet<String>) -> Count {
         let mut count = Count::default();
         for (intent, c) in &self.per_intent {
-            if skills.contains(intent.split('.').next().unwrap_or_default()) {
+            if intents.contains(intent) {
                 count.rows += c.rows;
                 count.hits += c.hits;
             }
@@ -140,6 +142,8 @@ pub(crate) struct LangReport {
 pub(crate) struct Report {
     /// The installed skills, whose intents are "built".
     pub(crate) skills: BTreeSet<String>,
+    /// The intents the installed manifests declare: the "built" ones.
+    pub(crate) intents: BTreeSet<String>,
     /// The intent model, or why there is none.
     pub(crate) model: String,
     pub(crate) languages: Vec<LangReport>,
@@ -367,6 +371,11 @@ pub(crate) fn run(classified: &Engine, rules: &Engine, dir: &Path) -> Result<Rep
     };
     Ok(Report {
         skills: classified.skills().iter().map(|m| m.id.clone()).collect(),
+        intents: classified
+            .skills()
+            .iter()
+            .flat_map(|m| m.intents.iter().map(|i| i.id.to_string()))
+            .collect(),
         model,
         languages,
     })
@@ -454,8 +463,8 @@ pub(crate) fn render_text(report: &Report) -> String {
             ratio(b.intents.total)
         );
         let (ba, bb) = (
-            a.intents.built(&report.skills),
-            b.intents.built(&report.skills),
+            a.intents.built(&report.intents),
+            b.intents.built(&report.intents),
         );
         let _ = writeln!(
             out,
@@ -465,8 +474,8 @@ pub(crate) fn render_text(report: &Report) -> String {
             ratio(bb)
         );
         let (ha, hb) = (
-            a.intents.built_held_out(&report.skills),
-            b.intents.built_held_out(&report.skills),
+            a.intents.built_held_out(&report.intents),
+            b.intents.built_held_out(&report.intents),
         );
         let _ = writeln!(
             out,
@@ -536,7 +545,7 @@ pub(crate) fn render_text(report: &Report) -> String {
     out
 }
 
-fn scores_json(s: &Scores, skills: &BTreeSet<String>) -> Json {
+fn scores_json(s: &Scores, intents: &BTreeSet<String>) -> Json {
     let per_intent: Vec<Json> = worst_first(&s.intents)
         .into_iter()
         .map(|(intent, c)| json!({ "intent": intent, "rows": c.rows, "correct": c.hits }))
@@ -552,8 +561,8 @@ fn scores_json(s: &Scores, skills: &BTreeSet<String>) -> Json {
             )
         })
         .collect();
-    let built = s.intents.built(skills);
-    let held_out = s.intents.built_held_out(skills);
+    let built = s.intents.built(intents);
+    let held_out = s.intents.built_held_out(intents);
     let conversations = s.conversations.map_or(Json::Null, |c| {
         json!({
             "conversations": c.conversations,
@@ -598,12 +607,12 @@ pub(crate) fn render_json(report: &Report) -> Json {
         .languages
         .iter()
         .map(|r| {
-            let mut entry = scores_json(&r.classifier, &report.skills);
+            let mut entry = scores_json(&r.classifier, &report.intents);
             if let Json::Object(map) = &mut entry {
                 map.insert("lang".to_owned(), json!(r.lang.code()));
                 map.insert(
                     "rules_only".to_owned(),
-                    scores_json(&r.rules, &report.skills),
+                    scores_json(&r.rules, &report.intents),
                 );
             }
             entry
@@ -695,7 +704,7 @@ mod tests {
         assert_eq!(score.per_intent["z.three"], Count { rows: 1, hits: 0 });
         let order: Vec<&str> = worst_first(&score).iter().map(|(i, _)| *i).collect();
         assert_eq!(order, ["z.three", "x.one", "y.two"]);
-        let built: BTreeSet<String> = ["x".to_owned(), "z".to_owned()].into();
+        let built: BTreeSet<String> = ["x.one".to_owned(), "z.three".to_owned()].into();
         assert_eq!(score.built(&built), Count { rows: 3, hits: 1 });
     }
 
@@ -747,6 +756,7 @@ mod tests {
         };
         let report = Report {
             skills: ["x".to_owned()].into(),
+            intents: ["x.one".to_owned()].into(),
             model: "test model".to_owned(),
             languages: vec![LangReport {
                 lang: Lang::En,

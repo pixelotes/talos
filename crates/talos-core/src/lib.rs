@@ -45,14 +45,14 @@ pub use error::Error;
 pub use knowledge::{Knowledge, UserDb};
 pub use lang::{Lang, UnknownLang};
 pub use manifest::Manifest;
-pub use outcome::{IntentId, Outcome, Reason, Status, Trace, TraceStep};
+pub use outcome::{Fallback, IntentId, Outcome, Reason, Status, Trace, TraceStep};
 pub use random::{Coin, Draw, Random};
 pub use safety::{DEFAULT_EMERGENCY, Emergency, SPAIN};
 pub use skill::{
     Call, Choice, Context, Expectation, Expects, Message, PreferenceChange, Preferences,
-    Registration, Skill, SkillError, SkillResult, Units,
+    Recognition, Registration, Skill, SkillError, SkillResult, Understood, Units,
 };
 pub use state::ConversationState;
 pub use turn::{ConvId, Place, Timestamp, Turn};
-pub use user::{Correction, FileStore, MemoryStore, UserData, UserStore};
+pub use user::{Correction, FileStore, MemoryStore, NOT_TEACHABLE, UserData, UserStore};
 pub use value::{Number, PlaceRef, Problem, SlotType, Slots, Value};

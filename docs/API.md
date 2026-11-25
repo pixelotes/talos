@@ -67,7 +67,8 @@ plus the reply:
 
 Slot values are strings (a list is an array of strings; numbers keep their
 exact decimal text, dates are ISO 8601). `intent` and `reason` are `null` when
-absent. With `explain`, the object also carries `trace` (an array of
+absent; `fallback` is present only when the reply rests on a cheaper source
+(§2.2). With `explain`, the object also carries `trace` (an array of
 `{stage, note}`) and `internal_slots`. Without `--json`, `explain` prints one
 line per stage, then `outcome` and `reply`.
 
@@ -188,6 +189,7 @@ another engine uses the same chat-completions call as any client and reads the
 | `status` | `answered`, `deflected` or `unhandled` — whether to show the reply or pass the turn on |
 | `pending` | a question is open after this turn: Talos asked one back (the status is then `answered` and `intent` the request being completed), or the user hesitated and it stays open. Send the next message of this conversation to Talos first: it may answer, cancel or replace the question. It closes after three more turns or five minutes |
 | `generated` | true only when the answer came from an external skill that declares it uses a model; every other outcome is reproducible |
+| `fallback` | present only when the reply rests on a cheaper source because the best one had nothing ([DESIGN.md](DESIGN.md) principle 8): `word-pairs` (a translation from the word-pair lexicon, `answered`, hedged in the reply), `word-by-word` (a phrase rendered word by word, `unhandled`), `relations` (no definition in the conversation's language; what the word's claims say instead, `unhandled`), `other-language` (the other language's definition, given because it was asked for). The reply always says so in words too. An open set: later skills add their own (a cached value, an article's opening). A host with something better — a translator, an encyclopedia — can step in. `talos explain` and golden outcome lines end with `· fallback <name>` |
 | `intent`, `slots`, `confidence`, `language` | what was recognised, for logging and routing decisions; `intent` is kept when the status is `unhandled` |
 | `reason` | why a turn is `unhandled` (unknown, cannot, generative, noise, other language, `nothing-pending` for a bare yes/no with no question open, `unknown-command`, `command-argument`, `gave-up` for a question dropped after two failed answers…) or which shape was `deflected`; on an `answered` turn with no intent, the dialog move: `acknowledgement`, `cancelled`, `hedge` |
 

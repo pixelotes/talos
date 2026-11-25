@@ -90,7 +90,7 @@ command = { es = "/calc", en = "/calc", slot = "expression", sentence = true }
 
   [[intent.pattern]]
   lang = "es"
-  regex = '''^[¿¡\s]*(?<expression>[-+(]*\s*(?:\d|(?:raiz|sqrt|(?:un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero))\b).*?)[\s=?.!]*$'''
+  regex = '''^[¿¡\s]*(?<expression>[-+(]*\s*(?:\d|(?:raiz|sqrt|(?:(?:un|una)\s+(?:mil|millon|millones|billon|billones|medio|media|tercio|cuarto|quinto|docena|centenar|cien|ciento|cero)|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|veinti[a-z]*|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien|ciento|mil|millon|millones|billon|billones|medio|media|cero))\b).*?)[\s=?.!]*$'''
 
   [[intent.pattern]]
   lang = "es"
@@ -98,7 +98,7 @@ command = { es = "/calc", en = "/calc", slot = "expression", sentence = true }
 
   [[intent.pattern]]
   lang = "en"
-  regex = '''^[\s¿]*(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+(?<expression>(?:[^\d]{0,24}\d|(?:sqrt|square\s+root|cube\s+root|(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero))\b).*?)[\s=?.!]*$'''
+  regex = '''^[\s¿]*(?:what(?:'s|\s+is|\s+are)|whats|how\s+much\s+(?:is|are)|calculate|compute|work\s+out|tell\s+me)\s+(?<expression>(?:[^\d]{0,24}\d|(?:sqrt|square\s+root|cube\s+root|(?:(?:a|an)\s+(?:hundred|thousand|million|billion|half|quarter|third|fifth|tenth|dozen)|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|half|zero))\b).*?)[\s=?.!]*$'''
 
   [[intent.pattern]]
   lang = "en"

@@ -5,9 +5,12 @@
 //! talos-pack                          build knowledge/seed.toml into target/packs/core.talospack
 //! talos-pack build SOURCE OUT         build a pack source into OUT
 //! talos-pack synthetic N OUT          a synthetic pack of N concepts, for measuring (DEVELOPMENT.md)
+//! talos-pack wordnet DIR [OUT] [--unverified]
+//!                                     the vocabulary pack from the wordnets in DIR (wordnet.rs),
+//!                                     by default into target/packs/vocabulary.talospack
 //! ```
 //!
-//! The same source always gives the same bytes (`build_file`).
+//! The same source always gives the same bytes (`build_file`, `wordnet::build`).
 
 #![allow(
     clippy::print_stdout,
@@ -22,7 +25,31 @@ use rusqlite::{Connection, params};
 use talos_core::knowledge::build::build_file;
 use talos_core::knowledge::schema::{self, DbKind};
 
-const USAGE: &str = "usage: talos-pack [build SOURCE OUT | synthetic N OUT]";
+mod wordnet;
+
+const USAGE: &str =
+    "usage: talos-pack [build SOURCE OUT | synthetic N OUT | wordnet DIR [OUT] [--unverified]]";
+
+/// `talos-pack wordnet`: builds the vocabulary pack, prints what it counted
+/// and dropped, and writes that report beside the pack (`*.report.txt`),
+/// with the notice (`*.NOTICE`).
+fn vocabulary(dir: &Path, out: &Path, unverified: bool) -> Result<(), String> {
+    let started = std::time::Instant::now();
+    let report = wordnet::build(dir, out, unverified)?;
+    let text = report.text();
+    print!("{text}");
+    let path = out.with_extension("report.txt");
+    std::fs::write(&path, &text).map_err(|e| format!("{}: {e}", path.display()))?;
+    let size = std::fs::metadata(out).map_or(0, |m| m.len());
+    println!(
+        "{} ({size} bytes) in {:.1} s; notice in {}, report in {}",
+        out.display(),
+        started.elapsed().as_secs_f64(),
+        out.with_extension("NOTICE").display(),
+        path.display()
+    );
+    Ok(())
+}
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -200,6 +227,19 @@ fn main() -> ExitCode {
             Ok(n) => synthetic(n, Path::new(out)),
             Err(_) => Err(format!("`{n}` is not a number\n{USAGE}")),
         },
+        ["wordnet", dir, rest @ ..] => {
+            let unverified = rest.contains(&"--unverified");
+            let outs: Vec<&&str> = rest.iter().filter(|a| **a != "--unverified").collect();
+            match outs.as_slice() {
+                [] => vocabulary(
+                    Path::new(dir),
+                    &root().join("target/packs/vocabulary.talospack"),
+                    unverified,
+                ),
+                [out] => vocabulary(Path::new(dir), Path::new(out), unverified),
+                _ => Err(USAGE.to_owned()),
+            }
+        }
         _ => Err(USAGE.to_owned()),
     };
     match result {

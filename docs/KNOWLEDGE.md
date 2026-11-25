@@ -154,6 +154,10 @@ these settlements:
   the order the pack wrote them.
 - Foreign keys are off: the `REFERENCES` clauses document, the pack builder
   and `talos packs check` verify.
+- **One more index, `form_by_lexeme ON form(lexeme_id)`** (Slice C): a
+  word's form with given features ("the plural of *perro*") is read through
+  its lexeme; without it each such read scanned every form of the
+  vocabulary pack (10 ms).
 
 ### Inflected forms
 
@@ -177,6 +181,16 @@ gives are data: `form` rows of a pack ("fish" plural of *fish*, "llueve" of
 exception lists), never by changing the rules. The same rules write a
 regular plural for translation ("violines", "guitarras eléctricas"); a
 stored exception comes first, in the match form.
+
+As built (Slice C): the vocabulary pack carries Open English WordNet's
+exception lists, the `Form` elements of its entries, as 4 451 rows ("geese",
+"went", "better", "lain"). The lists do not say which form a form is, so
+the features are read from the part of speech and the ending: `pl` for a
+noun; `ger`, `pres,3sg`, `pres` (am, are) or `past` (past or participle) for
+a verb; `sup` or `cmp` for an adjective or adverb. **Spanish has no
+exception rows**: the Spanish wordnet carries no forms, and no table of
+irregular verbs has been written, so "fue", "tengo", "hizo" are not found.
+Writing them (or taking them from an attribution-only source) is open.
 
 ## 3. Queries Talos answers
 
@@ -375,6 +389,46 @@ model: one meaning, the words that express it in each language, and typed
 relations to other meanings. Wikidata plays the same role for entities and
 slots into the same schema when it is wanted.
 
+### The vocabulary pack, as built (v0.3 Slice C)
+
+`talos-pack wordnet DIR` builds `vocabulary.talospack` from Open English
+WordNet 2025+ and the MCR Spanish wordnet (as packaged by the Open
+Multilingual Wordnet), joined through the CILI map of WordNet 3.0 offsets.
+How to get the files, their checksums, every count, what is dropped and
+why, and the measurements are in [DEVELOPMENT.md](DEVELOPMENT.md), "The
+vocabulary pack". In short:
+
+- **120 564 concepts**, one per English synset, keyed by their CILI id
+  (`i46360`; the 3 213 synsets without one keep their own id); 161 814
+  English and 93 694 Spanish lexemes; 357 882 senses; 155 315 claims
+  (`is_a`, `instance_of`, `part_of`, `member_of`, `substance_of`, `causes`,
+  `similar_to`, `antonym_of`), which nothing queries until v0.6.
+- **The join** keeps 78 215 of the 78 417 Spanish synsets (99.7 %): 202
+  name a CILI id that Open English WordNet no longer carries.
+- **Glosses by source.** Every English sense has its synset's definition
+  (source `oewn`); 18 853 concepts have a Spanish one (source `mcr-spa`),
+  24 % of the 78 215 with Spanish words. A sense's source is its gloss's
+  source, so `Gloss::source` says which wordnet a definition came from.
+- **Sense order.** English: WordNet's order within an entry, commonest
+  first. Spanish: none in the source; borrowed from the English word that
+  most often translates the Spanish one, a guess documented with the
+  builder. Lexemes that share a match form (a noun and a verb, "CAT" and
+  "cat") are ordered between themselves so that one of them wins at rank 0.
+- **Examples, pronunciations and the derivational relations are not
+  stored**: schema version 1 has no place for them.
+- **No word pairs and no induced senses.** The word-pair lexicon below has
+  no settled source yet; when it has, its pairs go in a pack of their own
+  and the senses it induces for Spanish words into this pack under a third
+  source.
+
+The notice it carries, in its manifest and in `vocabulary.NOTICE` beside it,
+is the one of [wordnet-sources.md](research/wordnet-sources.md) §4 for the
+2025+ edition, with what was changed and which licence covers which part:
+no single outbound licence is claimed (the manifest's `license` is
+`CC-BY-4.0 AND CC-BY-3.0 AND WordNet`). Its copyright lines still have to
+be checked against each project's own licence file before the pack is
+published (§6 there).
+
 **Wiktionary is not a source.** It is organised by word, not by meaning; its
 senses are not aligned across languages, its structure varies from entry to
 entry, and it is share-alike. It is a poor fit for a concept store and is not
@@ -425,7 +479,10 @@ The research in [wordnet-sources.md](research/wordnet-sources.md) found that
 the open Spanish wordnet is much smaller than the English one (about 38,500
 synsets against 120,500) and that only a small minority of its synsets carry a
 Spanish definition — second-hand figures suggest 10–18 %, unverified. Relations
-and word translation are unaffected; Spanish *definitions* are.
+and word translation are unaffected; Spanish *definitions* are. Measured on
+the files used (wordnet-sources.md §2.3) and in the built vocabulary pack:
+78 215 concepts have Spanish words, 18 853 of them (24 %) a Spanish
+definition.
 
 The gap is closed in two ways (decided 2026-11-24):
 

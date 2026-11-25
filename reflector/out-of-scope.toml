@@ -11,8 +11,10 @@
 #
 # - requests to write or invent text (poems, letters, jokes, summaries);
 # - open questions about the world, opinions, advice;
-# - requests for skills not built yet: definitions, translations, what a
-#   thing is or has, teaching, weather, timers and reminders, devices;
+# - requests for skills not built yet: relations (is it a kind of, what
+#   it has, what it causes, what Talos knows about it), teaching facts,
+#   weather, timers and reminders, devices (definitions, word
+#   translation, taught phrases and forgetting them are skills since v0.3);
 # - statements about the user or the world;
 # - near misses: phrases that share words with an intent and mean something
 #   else ("el tiempo vuela", "time to go to bed"), and what lies just past
@@ -37,7 +39,7 @@ es = [
 
     # Preguntas abiertas, opiniones y consejos.
     "por qué el cielo es azul", "cuál es la capital de australia", "quién ganó el mundial de 2010",
-    "cuánto mide la torre eiffel", "qué es la fotosíntesis", "cómo funciona un motor de coche",
+    "cuánto mide la torre eiffel", "cómo funciona un motor de coche",
     "quién escribió el quijote", "cuál es el sentido de la vida", "existe dios", "qué pasa después de morir",
     "cuántos habitantes tiene españa", "cuál es el río más largo del mundo", "por qué se extinguieron los dinosaurios",
     "cómo se hace una tortilla de patatas", "qué es mejor, android o iphone", "cuál es tu color favorito",
@@ -52,15 +54,12 @@ es = [
     "cómo se llama la capital de italia", "quién es el mejor futbolista del mundo", "qué día murió cervantes",
     "cuándo fue la revolución francesa", "por qué llueve", "cómo se aprende a programar", "qué estudio en la universidad",
 
-    # Habilidades que aún no existen: definiciones, traducción, conocimiento,
-    # enseñar, el tiempo que hace, avisos, aparatos, juegos y predicciones;
-    # y cuentas que la calculadora no hace.
-    "qué significa efímero", "qué quiere decir procrastinar", "define resiliencia", "significado de la palabra ubicuo",
-    "qué es un ornitorrinco", "cómo se dice perro en inglés", "traduce casa al inglés", "qué significa dog en español",
-    "cómo se dice gracias en francés", "cómo se dice hola en inglés", "un perro es un animal?", "qué tipos de árboles hay",
+    # Habilidades que aún no existen: relaciones entre conceptos, enseñar
+    # datos, el tiempo que hace, avisos, aparatos, juegos y predicciones; y
+    # cuentas que la calculadora no hace.
+    "un perro es un animal?", "qué tipos de árboles hay",
     "de qué partes se compone un coche", "qué sabes de los delfines", "una ballena es un pez?",
-    "aprende que mi gato se llama bigotes", "recuerda que el agua hierve a 100 grados", "olvida lo que te dije del gato",
-    "qué te he enseñado", "cuando digo peli quiero decir película",
+    "aprende que mi gato se llama bigotes", "recuerda que el agua hierve a 100 grados",
     "qué tiempo hace hoy", "va a llover mañana",
     "qué tiempo hará el sábado", "hace frío fuera?", "avísame en 10 minutos", "pon una alarma a las 7",
     "ponme un temporizador de 5 minutos", "recuérdame comprar leche", "despiértame a las 8", "pon música",
@@ -70,7 +69,6 @@ es = [
     "dame un nombre al azar", "cuánto es en dólares mi sueldo", "cuándo es mi cumpleaños",
     "resuelve 2x + 3 = 7", "la derivada de x al cuadrado", "el resto de 17 entre 5", "el seno de 30 grados",
     "cuánto vale pi", "factorial de 5", "una cita de einstein", "dime un refrán sobre perros",
-    "qué significa a caballo regalado no le mires el diente",
 
     # Afirmaciones sobre uno mismo o el mundo.
     "estoy cansado", "hoy ha sido un día largo", "me gusta el chocolate", "mi perro se llama toby", "tengo hambre",
@@ -98,15 +96,13 @@ es = [
     "cómo estás tan seguro", "cómo está el tráfico", "cómo está tu familia", "cómo se llama esa canción",
 
     # Más variantes de las familias que más se parecen a un intent: el nombre
-    # de una zona horaria, preguntas de saber con «quién» y «qué», definiciones,
+    # de una zona horaria, preguntas de saber con «quién»,
     # «cuánto» que no es una cuenta, «sabes…» que no pregunta por una
     # habilidad, y frases hechas con hora, día, fecha, dado, moneda y número.
     "en qué zona horaria está lisboa",
     "quién inventó la bombilla", "quién descubrió américa", "quién pintó el guernica",
     "quién es el rey de españa", "quién canta esta canción", "quién es messi", "quién fue napoleón",
-    "quién ganó la liga", "quién es tu cantante favorito", "quién te gusta más", "qué es la física cuántica",
-    "qué es un agujero negro", "qué es el amor", "qué es la democracia", "qué es un sinónimo", "qué significa saudade",
-    "qué quiere decir la palabra liminal", "definición de entropía", "significado de serendipia",
+    "quién ganó la liga", "quién es tu cantante favorito", "quién te gusta más",
     "cuánto cuesta un billete a parís", "cuánto gana un médico", "cuánto vive un perro", "cuánto tarda en hervir un huevo",
     "cuánto dura una película", "cuánto dura el vuelo a nueva york", "cuánta gente hay en el mundo",
     "cuántos idiomas se hablan en la india", "cuántas patas tiene una araña", "cuántos huesos tiene el cuerpo",
@@ -132,15 +128,14 @@ es = [
     # Las mismas cosas pedidas de forma indirecta, larga o con faltas.
     "me gustaría saber quién ganó el mundial", "no sé quién escribió cien años de soledad",
     "tengo curiosidad por saber por qué el mar es salado", "necesito saber cuál es la capital de canadá",
-    "me pregunto qué significa la palabra melancolía", "quiero saber cómo se dice mariposa en inglés",
     "me gustaría saber qué tiempo va a hacer mañana",
     "me podrías escribir un poema sobre el otoño", "me gustaría que me contaras un chiste",
     "quiero que me hagas un resumen del libro", "me ayudas a escribir un correo para mi casero",
     "no sé qué hacer con mi vida", "me gustaría saber si debería cambiar de trabajo", "no sé qué regalarle a mi madre",
     "necesito que me recuerdes llamar al médico", "quiero que pongas una alarma para mañana",
     "me gustaría que me despertaras a las siete", "me podrías poner algo de música", "puedes apagar la calefacción",
-    "q tiempo hace", "k significa lol", "como se dice perro en frances", "quien gano el partido ayer",
-    "kien invento internet", "que es la inteligencia artificial", "que opinas de mi", "por que existimos",
+    "q tiempo hace", "quien gano el partido ayer",
+    "kien invento internet", "que opinas de mi", "por que existimos",
     "estoy un poco cansado de todo", "hoy no me apetece hacer nada", "llevo toda la semana trabajando",
     "mi jefe me ha gritado hoy", "creo que me he resfriado", "me encanta hablar contigo", "eres muy majo",
     "me caes genial, talos", "me lo estoy pasando bien", "esto es muy divertido", "qué aburrimiento",
@@ -256,7 +251,7 @@ es = [
     "los robots nos quitarán el trabajo", "qué opinas de la inteligencia artificial", "la ia es peligrosa",
     "me gustan los robots", "esto es una broma?", "esto es un sueño?", "estoy hablando demasiado?",
     "qué significa este refrán", "la suerte del principiante", "qué suerte tienes", "la rueda de la fortuna",
-    "hizo una fortuna con la bolsa", "le costó una fortuna", "una frase en francés", "traduce esta frase",
+    "hizo una fortuna con la bolsa", "le costó una fortuna", "una frase en francés",
     "el número de teléfono de la farmacia", "cuál es tu número favorito", "los números me dan miedo",
     "número de la seguridad social", "los dados de la abuela", "me ha salido un seis en el parchís",
     "da las gracias a tu madre", "dile gracias de mi parte", "el día de acción de gracias",
@@ -285,7 +280,7 @@ en = [
 
     # Open questions, opinions, advice.
     "why is the sky blue", "what's the capital of australia", "who won the 2010 world cup", "how tall is the eiffel tower",
-    "what is photosynthesis", "how does a car engine work", "who wrote hamlet", "what is the meaning of life",
+    "how does a car engine work", "who wrote hamlet", "what is the meaning of life",
     "does god exist", "what happens after we die", "how many people live in spain", "what's the longest river in the world",
     "why did the dinosaurs die out", "how do you make pancakes", "which is better, android or iphone",
     "what's your favorite color", "what do you think about politics", "who are you voting for",
@@ -300,15 +295,12 @@ en = [
     "who is the best footballer in the world", "when did shakespeare die", "when was the french revolution",
     "why does it rain", "how do i learn to code", "what should i study at university",
 
-    # Skills not built yet: definitions, translation, knowledge, teaching,
+    # Skills not built yet: relations between concepts, teaching facts,
     # weather, reminders, devices, games and predictions; and sums the
     # calculator does not do.
-    "what does ephemeral mean", "define resilience", "meaning of the word ubiquitous", "what is a platypus",
-    "how do you say dog in spanish", "translate house into spanish", "what does perro mean in english",
-    "how do you say thank you in french", "how do you say hello in spanish", "is a dog an animal",
+    "is a dog an animal",
     "what kinds of trees are there", "what are the parts of a car", "what do you know about dolphins",
     "is a whale a fish", "learn that my cat is called whiskers", "remember that water boils at 100 degrees",
-    "forget what i told you about the cat", "what have i taught you", "when i say flick i mean film",
     "what's the weather like today", "will it rain tomorrow", "what's the weather on saturday", "is it cold outside",
     "remind me in 10 minutes", "set an alarm for 7", "set a timer for 5 minutes", "remind me to buy milk",
     "wake me up at 8", "play some music", "call mom", "send a text to john", "turn off the lights",
@@ -331,15 +323,13 @@ en = [
     "my job is boring", "my favourite number is seven", "life is a lottery", "i teach history",
 
     # More of the families closest to an intent: the name of a time zone,
-    # who/what knowledge questions, definitions, "how much/many" that is not
+    # who knowledge questions, "how much/many" that is not
     # a sum, "can you…" that is not about a skill, and set phrases with time,
     # day, date, dice, coin and number.
     "what time zone is lisbon in",
     "who invented the light bulb", "who discovered america",
     "who painted the mona lisa", "who is the king of england", "who sings this song", "who is messi", "who was napoleon",
-    "who won the league", "who's your favourite singer", "who do you like more", "what is quantum physics",
-    "what's a black hole", "what is love", "what is democracy", "what's a synonym", "what does saudade mean",
-    "what does the word liminal mean", "definition of entropy", "meaning of serendipity",
+    "who won the league", "who's your favourite singer", "who do you like more",
     "how much is a ticket to paris", "how much does a doctor earn", "how long do dogs live",
     "how long does it take to boil an egg", "how long is the movie", "how long is the flight to new york",
     "how many people are there in the world", "how many languages are spoken in india", "how many legs does a spider have",
@@ -365,15 +355,15 @@ en = [
 
     # The same things asked indirectly, at length or misspelt.
     "i'd like to know who won the world cup", "i don't know who wrote the great gatsby",
-    "i'm curious why the sea is salty", "i need to know the capital of canada", "i wonder what the word wistful means",
-    "i want to know how to say butterfly in spanish", "i'd like to know what the weather will be tomorrow",
+    "i'm curious why the sea is salty", "i need to know the capital of canada",
+    "i'd like to know what the weather will be tomorrow",
     "could you write me a poem about autumn", "i'd like you to tell me a joke",
     "i want you to summarise the book", "can you help me write an email to my landlord",
     "i don't know what to do with my life", "i'd like to know if i should change jobs",
     "i don't know what to get my mum for her birthday", "i need you to remind me to call the doctor",
     "i want you to set an alarm for tomorrow", "i'd like you to wake me up at seven", "could you play some music",
-    "can you turn off the heating", "wats the weather", "wat does lol mean", "how do u say dog in french",
-    "who won the game last nite", "who invented the internet", "what's artificial intelligence",
+    "can you turn off the heating", "wats the weather",
+    "who won the game last nite", "who invented the internet",
     "what do you think of me", "why do we exist", "i'm a bit tired of everything", "i don't feel like doing anything today",
     "i've been working all week", "my boss shouted at me today", "i think i've caught a cold", "i love talking to you",
     "you're really nice", "i really like you, talos", "i'm having fun", "this is a lot of fun", "how boring",
@@ -493,7 +483,7 @@ en = [
     "what are pennies for", "you're a star", "you're so human", "robots will take our jobs",
     "what do you think of ai", "ai is dangerous", "i like robots", "is this the real life", "is this a joke",
     "is this a dream", "am i talking too much", "beginner's luck", "you're so lucky", "wheel of fortune",
-    "he made a fortune on the stock market", "it cost a fortune", "a phrase in french", "translate this sentence",
+    "he made a fortune on the stock market", "it cost a fortune", "a phrase in french",
     "the pharmacy's phone number", "what's your favourite number", "numbers scare me", "my social security number",
     "rock and roll", "roll up your sleeves", "roll the credits", "spring rolls", "roll with it",
     "let the good times roll", "say thanks to your mum", "tell him thanks from me", "thanksgiving dinner",
