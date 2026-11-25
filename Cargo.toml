@@ -39,9 +39,10 @@ unicode-normalization = "0.1.24"
 serde_json = { version = "1.0.140", default-features = false, features = ["std"] }
 # The knowledge store (ADR 0005, DEVELOPMENT.md "The SQLite binding"): SQLite
 # compiled from the bundled amalgamation, trimmed by LIBSQLITE3_FLAGS in
-# .cargo/config.toml. No optional rusqlite feature is used. Behind the
+# .cargo/config.toml. Of the optional rusqlite features only `cache` (prepared
+# statements kept between lookups) is used. Behind the
 # `knowledge` feature of talos-core.
-rusqlite = { version = "0.37", default-features = false, features = ["bundled"] }
+rusqlite = { version = "0.43", default-features = false, features = ["bundled", "cache"] }
 # The vocabulary pack builder (tools/pack, dev-time only, never in the binary):
 # streams the Open English WordNet XML (quick-xml: MIT, one dependency,
 # memchr), reads it gzipped (flate2 with its pure-Rust backend) and checks the

@@ -48,7 +48,8 @@ jobs:
         run: |
           bin="target/$TARGET/release/talos"
           file "$bin"
-          file "$bin" | grep -q "statically linked"
+          # x86_64 reports "static-pie linked", aarch64 "statically linked".
+          file "$bin" | grep -Eq "statically linked|static-pie linked"
           test "$("$bin" ask --lang en "hello")" != ""
           TALOS_DATA_DIR= "$bin" skills check
       - name: Package
