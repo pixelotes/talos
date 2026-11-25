@@ -33,7 +33,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4.2.2
-      - uses: EmbarkStudios/cargo-deny-action@v2.0.12
+      # Follows the major version: an older pinned release cannot read the
+      # current advisory database.
+      - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
 
@@ -49,18 +51,20 @@ jobs:
 
   release-aarch64-musl:
     name: release aarch64-unknown-linux-musl
-    runs-on: ubuntu-24.04
+    # Built on an ARM64 runner with musl-gcc, not cross-compiled: the zig
+    # linker refuses an argument rustc passes for this target, and the
+    # bundled SQLite needs a C compiler for it either way.
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4.2.2
       - uses: Swatinem/rust-cache@v2.7.8
-      - uses: mlugg/setup-zig@v2.0.5
-        with:
-          version: 0.14.1
-      - uses: taiki-e/install-action@v2.49.17
-        with:
-          tool: cargo-zigbuild@0.19.8
+      - name: Toolchain for a static build
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y musl-tools
+          rustup target add aarch64-unknown-linux-musl
       - name: Build (release profile already strips; see Cargo.toml)
-        run: cargo zigbuild --release --locked --target aarch64-unknown-linux-musl
+        run: cargo build --release --locked -p talos --target aarch64-unknown-linux-musl
       - name: Report size and enforce budget
         run: |
           bin=target/aarch64-unknown-linux-musl/release/talos
