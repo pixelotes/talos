@@ -86,8 +86,40 @@ So about a quarter of the Spanish synsets carry a Spanish gloss, somewhat
 above the 10–18 % estimated below, and the file is about twice the size the
 OMW 1 table states (38,512 synsets): the repository's current file is a later
 edition than that table describes. Still not measured: how many of these
-glosses are machine-translated, and how many synsets survive the join to Open
-English WordNet through CILI (§6, items 2–3).
+glosses are machine-translated. The join to Open English WordNet is
+measured in §2.3.1.
+
+### 2.3.1 The join to Open English WordNet, measured (2026-11-25)
+
+Spanish synset (WordNet 3.0 offset) → CILI id (`ili-map-pwn30.tab`) → Open
+English WordNet synset carrying that id. Files: `english-wordnet-2025.xml.gz`
+(SHA-256 `9ca6d1dc…74ad3fe`) and `english-wordnet-2025-plus.xml.gz`
+(`31f4af16…fde5b586bc`) from https://en-word.net/static/, and
+`ili-map-pwn30.tab` (`13b67413…3211a6627`) from
+https://github.com/globalwordnet/cili.
+
+| | OEWN 2025 (core) | OEWN 2025+ (with proper nouns) |
+|---|---|---|
+| English synsets with a CILI id | 104,335 (3,184 without) | 117,351 (3,213 without) |
+| Spanish synsets joined, of 78,417 | 67,827 (86.5 %) | **78,215 (99.7 %)** |
+| Lost | 10,590, of which 10,470 nouns | 202 |
+| Spanish glosses kept, of 19,444 | 16,395 | 19,384 |
+| English synsets that get Spanish words | 65.0 % | 66.7 % |
+
+Two things the join must do. The Spanish file writes adjective satellites
+with the suffix `-a` where the CILI map has `-s`: without trying both, 6,429
+adjectives find no id. And the nouns the core edition loses are proper nouns
+and instances, which only the "plus" edition carries. With both handled the
+loss is 0.3 %, so the fallback to Princeton WordNet 3.0 considered in §4 is
+not needed. **The vocabulary pack is built from OEWN 2025+.**
+
+Open English WordNet 2025 holds 234,810 synset relations in the core
+edition, among them 88,075 hypernym links, 5,387 part and 723 member
+meronyms, and 7,988 sense-level antonyms.
+
+A third of the English synsets have no Spanish word, and three quarters of
+the Spanish ones have no Spanish gloss: the cheap fallbacks of the
+dictionary (DESIGN.md, principle 8) are the common case, not the exception.
 
 The estimates gathered before the measurement, kept for the record:
 
