@@ -1,0 +1,157 @@
+# Open questions (docs/spec/conversation.md section 3): Talos asks for a
+# missing slot, and the next message of the conversation is offered to the
+# question first. The spec's examples use skills not built yet (timezones,
+# preferences); these use the built ones. Turns with no blank line between
+# them are one conversation.
+
+# 3.2 The next message answers it: bare, framed, or in either language. The
+# outcome is the original intent, completed.
+[es] U: elige uno
+     T: ¿Entre qué opciones?                       → asks · random.pick · options
+Given: draw = option 2
+[es] U: pues entre té o café, por favor
+     T: Elijo café.                               → answered · random.pick · options=té|café
+
+Given: hint = en
+[en] U: pick one
+     T: Pick among what?                          → asks · random.pick · options
+Given: draw = option 1
+[en] U: tea or coffee please
+     T: I pick tea.                               → answered · random.pick · options=tea|coffee
+
+Given: hint = none
+[es] U: calcula
+     T: ¿Qué quieres calcular?                     → asks · calc.arithmetic · expression
+[en] U: what is 7 times 6
+     T: 7 × 6 = 42.                               → answered · calc.arithmetic · expression=7*6
+     (the request repeated, in English: answered in English)
+
+# 3.3 Cancelling: the question closes, nothing runs, no intent.
+[es] U: elige uno
+     T: ¿Entre qué opciones?                       → asks · random.pick · options
+[es] U: déjalo
+     T: Vale, lo dejo.                            → answered · cancelled
+[es] U: pizza o sushi
+     T: No sé qué responder a eso.                → unhandled · catch-all
+     (the question was cancelled: "pizza o sushi" is not a request)
+
+Given: hint = en
+[en] U: pick one
+     T: Pick among what?                          → asks · random.pick · options
+[en] U: never mind
+     T: Okay, dropped.                            → answered · cancelled
+
+Given: hint = none
+[es] U: cuánto falta
+     T: ¿Para cuándo?                              → asks · clock.until · target
+[es] U: no, déjalo, da igual
+     T: Vale, lo dejo.                            → answered · cancelled
+
+# With nothing open, a cancellation word is a bare acknowledgement.
+[es] U: olvídalo
+     T: Vale.                                     → answered · acknowledgement
+
+# 3.4 Asking again: a choice when the answer is ambiguous; and never a third
+# time.
+Given: hint = en
+Given: now = 2027-03-14 18:42 America/New_York
+[en] U: how long until 3/4
+     T: Do you mean 3 April or 4 March?           → asks · clock.until · target
+[en] U: the first one
+     T: 20 days to go (Saturday 3 April 2027).    → answered · clock.until · target=2027-04-03
+
+[en] U: what weekday is 3/4/2027
+     T: Do you mean 3 April or 4 March?           → asks · clock.weekday · date
+[en] U: no
+     T: I didn't catch that. Do you mean 3 April or 4 March?
+                                                  → asks · clock.weekday · date
+[en] U: maybe the other
+     T: I couldn't work that out, so I'll leave it.
+                                                  → unhandled · clock.weekday
+
+Given: hint = none
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: añade el iva a 100
+     T: ¿Qué porcentaje de IVA?                    → asks · calc.percent · percent
+[es] U: el de siempre
+     T: No te he entendido. ¿Qué porcentaje de IVA?
+                                                  → asks · calc.percent · percent
+[es] U: 21
+     T: 100 más un 21 % de IVA es 121.            → answered · calc.percent · amount=100 percent=+21
+
+# 3.6 An unrelated message is handled normally and closes the question.
+[es] U: elige uno
+     T: ¿Entre qué opciones?                       → asks · random.pick · options
+[es] U: cuánto es 15 por 4
+     T: 15 × 4 = 60.                              → answered · calc.arithmetic · expression=15*4
+[es] U: pizza o sushi
+     T: No sé qué responder a eso.                → unhandled · catch-all
+
+Given: hint = en
+[en] U: convert 5 km
+     T: Convert it to what?                       → asks · calc.convert · to
+[en] U: thanks
+     T: No problem.                               → answered · smalltalk.thanks
+     (not an answer, not a cancellation: released)
+
+# 3.7 Hesitations keep the question open, and count as turns: after three
+# further turns it has expired.
+Given: hint = none
+[es] U: elige uno
+     T: ¿Entre qué opciones?                       → asks · random.pick · options
+[es] U: mmm
+     T: Tómate tu tiempo.                         → answered · hedge
+[es] U: a ver
+     T: Vale.                                     → answered · hedge
+[es] U: espera
+     T: Aquí sigo.                                → answered · hedge
+[es] U: pizza o sushi
+     T: Eso no lo he pillado.                     → unhandled · catch-all
+     (expired after three turns)
+
+# A hesitation and then the answer.
+Given: hint = en
+[en] U: pick one
+     T: Pick among what?                          → asks · random.pick · options
+[en] U: hmm, let me think
+     T: Take your time.                           → answered · hedge
+Given: draw = option 2
+[en] U: red or blue
+     T: I pick blue.                              → answered · random.pick · options=red|blue
+
+# Expired by the clock: more than five minutes after the question.
+Given: hint = none
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: elige uno
+     T: ¿Entre qué opciones?                       → asks · random.pick · options
+Given: now = 2027-03-14 18:49 Europe/Madrid
+[es] U: pizza o sushi
+     T: Eso no lo he pillado.                     → unhandled · catch-all
+
+# 3.8 A bare yes or no with nothing open; an acknowledgement is not one.
+Given: now = 2027-03-14 18:42 Europe/Madrid
+[es] U: sí
+     T: No tengo ninguna pregunta pendiente.      → unhandled · nothing-pending
+
+[es] U: sí, por favor
+     T: No tengo ninguna pregunta pendiente.      → unhandled · nothing-pending
+
+[es] U: vale
+     T: Vale.                                     → answered · acknowledgement
+
+Given: hint = en
+[en] U: yes
+     T: There's no open question to answer.       → unhandled · nothing-pending
+
+[en] U: no
+     T: There's no open question to answer.       → unhandled · nothing-pending
+
+# 3.9 Distress takes precedence over an open question, and closes it.
+Given: hint = none
+[es] U: elige uno
+     T: ¿Entre qué opciones?                       → asks · random.pick · options
+[es] U: no quiero seguir viviendo
+     T: Esto no puedo atenderlo yo, y es importante. Si estás en peligro, llama a tu número local de emergencias ahora mismo.
+                                                  → unhandled · distress
+[es] U: pizza o sushi
+     T: No sé qué responder a eso.                → unhandled · catch-all

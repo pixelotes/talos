@@ -2,8 +2,8 @@
 #
 # The date the weekday was asked about is the `date` slot, in ISO. A date
 # before 1583 is answered in the proleptic Gregorian calendar and the reply
-# says so. v0.1 never asks back: the spec's "Do you mean 3 April or 4 March?"
-# is an `unhandled` hint that names the two readings.
+# says so. An ambiguous English `3/4` is asked back as a choice: "Do you
+# mean 3 April or 4 March?".
 #
 # Given: now defaults to 2027-03-14 18:42 Europe/Madrid.
 
@@ -105,11 +105,12 @@ Given: hint = en
      T: February 29, 2027 doesn't exist: 2027 is not a leap year.
                                                   → answered · clock.weekday · date=February 29, 2027
 
-# Numeric dates in English are ambiguous. The spec asks which; v0.1 says so
-# and writes both readings out. 25/12 and 12/25 have only one reading.
+# Numeric dates in English are ambiguous: Talos asks which, as a choice.
+# 25/12 and 12/25 have only one reading.
 [en] U: what weekday is 3/4/2027
-     T: That date could be 3 April or 4 March. Please write it out in words.
-                                                  → unhandled · clock.weekday · date=3/4/2027
+     T: Do you mean 3 April or 4 March?           → asks · clock.weekday · date
+[en] U: 4 March
+     T: 4 March 2027 was a Thursday.              → answered · clock.weekday · date=2027-03-04
 
 [en] U: what weekday is 12/25/2027
      T: 25 December 2027 is a Saturday.           → answered · clock.weekday · date=2027-12-25

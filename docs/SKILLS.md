@@ -30,6 +30,7 @@ capabilities = []                # e.g. ["network"]
 id = "clock.now"
 priority = 50                    # explicit; higher wins among rule matches
 courtesy = false                 # true for greetings and thanks (see below)
+command = { es = "/hora", en = "/time" }   # optional shortcut (see below)
 
   [intent.examples]              # classifier training data
   en = ["what time is it", "do you have the time", "tell me the time"]
@@ -41,7 +42,8 @@ courtesy = false                 # true for greetings and thanks (see below)
 
   [[intent.slot]]
   name     = "date"
-  type     = "date"              # today: term | number | date
+  type     = "date"              # term | number | date | duration | datetime |
+                                 # daterange | place | language | choice | confirm
   required = false
   repeated = false               # only for `term`: a list of options
   internal = false               # true: steers the handler, not reported
@@ -79,18 +81,37 @@ Rules that follow from the format:
 - **The help answer is generated** from `summary`, so "what can you do?"
   cannot drift from what is installed.
 
-**Planned for v0.2:** an intent may declare a command shortcut — a name per
-language and the slot that receives the rest of the line
-([ADR 0016](adr/0016-command-shortcuts.md)). Not in the manifest format yet.
+- **Commands** ([ADR 0016](adr/0016-command-shortcuts.md)). An intent may
+  declare a shortcut: `command = { es = "/calc", en = "/calc", slot =
+  "expression" }`. Each name is `/` and lower-case ASCII (letters, digits,
+  `_`); both languages' names always work, and the reply is in the
+  conversation's language. `slot`, if given, is a public slot the intent
+  declares: the rest of the line fills it, read by that slot type's
+  extractor exactly as a rule capture is. A command without `slot` takes no
+  argument, and one given anyway is refused (`unhandled ·
+  command-argument`), never silently ignored. A command is the first check
+  of the rule stage: no rules, classifier, safety check or reflector run on
+  it, and it closes any open question. A missing argument is a missing slot,
+  so the handler asks for it. An unknown command is `unhandled ·
+  unknown-command`, and the reply says how to list them: `help` shows each
+  skill's commands after its summary. An intent that needs several
+  independent slots either takes one free-text argument its handler reads,
+  or declares no command.
+- **`choice` slots** list their options, each with its id and its names in
+  both languages: `options = [{ id = "metric", es = ["métrico"], en =
+  ["metric"] }, …]`. The slot holds the chosen id.
 
 `talos skills check` validates every manifest together with its handler.
 Errors (exit status 1): the manifest does not parse (schema, a missing
-language, a bad template or slot type); the id differs from the directory; a
+language, a bad template or slot type, a command name that is not `/` and
+lower-case ASCII, a command slot the intent does not declare or declares
+internal); the id differs from the directory; a
 manifest without a handler or the reverse; `names` or `help` missing in a
 language; a reply id the handler declares that the manifest lacks, or a
 manifest reply no handler declares; a pattern that does not compile, captures
 an undeclared slot or is written with accents or capitals; two intents of equal
-priority whose rules in one language match the same example. Warnings: an
+priority whose rules in one language match the same example; one command name
+declared by two intents. Warnings: an
 example taken by a rule of an intent with higher priority; an intent with no
 pattern (unreachable until the classifier exists); variants of one reply that
 use different variables.
@@ -131,9 +152,13 @@ system clock, environment, file or global state. The knowledge store, and an
 HTTP client when the `network` capability is granted, join the context as they
 are built.
 
-`Ask` is declared but not available until v0.2: today the engine renders such
-a turn as `Unhandled` with reason `cannot-ask`, and a skill whose required
-slot is missing answers `Unable` with a usage hint instead. How to write a
+`Ask(expectation, message)` asks the user one short question (the message)
+and says what answers it (the expectation, §3). The turn is `Answered`, the
+outcome's `pending` is true, and its line in a transcript is `asks · intent ·
+slot`. When the answer comes, the engine calls the same handler again with
+the request's slots and the answered one filled in; the handler never sees
+the dialog. A skill asks for a required slot that is missing, and for a value
+that is ambiguous (English `3/4`); never for an optional one. How to write a
 built-in skill, step by step, is in [SKILL_AUTHORING.md](SKILL_AUTHORING.md).
 
 Handlers are synchronous. One that uses the network must honour the timeout
@@ -141,18 +166,46 @@ it is given and degrade to a clear "I can't reach that right now" message.
 
 ## 3. Slots and expectations
 
-Slot types are shared and typed. Available today: `term` (a quoted or
-trailing phrase, in the user's spelling), `number` (exact decimal; digits and
-words) and `date` (absolute or relative to the turn's `now`); a slot that
-cannot be read becomes an `Invalid` value, never a guess. Planned: `duration`,
-`datetime`, `daterange` ("this week"), `place`, `language`, `choice`,
-`confirm` (yes or no). A `term` slot may be declared repeatable (a list of
-options). Extractors are bilingual and tested independently of any skill.
+Slot types are shared and typed, and each extractor is bilingual and tested
+independently of any skill (`talos_core::extract`):
 
-From v0.2, when a required slot is missing, the skill returns `Ask`. The expectation
-records which skill asked, which slot is open and when it expires. The next
-message in that conversation is offered to it first. "Never mind" / "déjalo"
-cancels; an unrelated message releases the expectation and is routed normally.
+| Type | Reads | Value |
+|---|---|---|
+| `term` | a quoted or trailing phrase, in the user's spelling; repeatable as a list of options | `Text`, `List` |
+| `number` | exact decimals; digits and words; separators by the turn's language | `Number` |
+| `date` | a day, absolute or relative to `now`; English `3/4` is ambiguous | `Date` |
+| `duration` | "hora y media", "45 min", "1h30", "a fortnight"; a vague quantity is not one | `Duration` (calendar months apart from seconds) |
+| `datetime` | a day, a time of day or both: "mañana por la tarde", "next Friday at 9 pm" | `Date` or `DateTime` |
+| `daterange` | "esta semana", "next month", "el finde" (weeks run Monday to Sunday) | `DateRange` |
+| `place` | a name kept as typed (no gazetteer yet), a zone or offset ("UTC+2", "CET"), or a reference: "aquí"/"here", "mi ciudad"/"home", "allí"/"there"; "somewhere warm" is not one | `Place` |
+| `language` | "inglés", "in Spanish", "al español"; other languages by code for the skill to refuse | `Language` |
+| `choice` | one of the options the manifest lists, by position ("la segunda", "the last one") or by name | `Choice` (the option's id) |
+| `confirm` | yes or no (conversation.md 3.3) | `Confirm` |
+
+A capture that cannot be read becomes an `Invalid` value, never a guess.
+
+An `Expectation` names the slot the answer fills and what it accepts:
+`Expectation::slot` (a value of the slot's type), `completing` (text that
+continues what the user wrote: "2 +", then "3"), `choice` (one of a few
+options, each with the text that fills the slot and its names in both
+languages) or `confirm` (yes or no). The engine keeps it in the conversation
+(one at a time) with the request's slots, and offers the next message to it
+first (docs/spec/conversation.md §3):
+
+- an answer, bare, framed ("pues Tokio", "London, thanks") or inside the
+  request repeated, completes the original request, in the language of the
+  answering turn;
+- "déjalo", "never mind" and the like cancel it (`answered · cancelled`);
+- a hesitation ("a ver", "hold on") keeps it open (`answered · hedge`);
+- a message a rule recognises as another request releases it: it is
+  answered normally and the question is closed;
+- anything else is a failed answer: the question is asked once more, then
+  dropped (`unhandled · gave-up`, intent kept);
+- it expires three turns, or five minutes by the turns' clock, after it was
+  asked; a distress message or a command closes it.
+
+With nothing open, a bare "sí"/"no" is `unhandled · nothing-pending` and an
+acknowledgement ("vale", "ok", "olvídalo") is `answered · acknowledgement`.
 
 ## 4. Built-in skills
 

@@ -8,7 +8,7 @@
 
 use talos_core::extract;
 use talos_core::normalise;
-use talos_core::{Call, Context, Lang, Message, Number, Skill, SkillResult, Value};
+use talos_core::{Call, Context, Expectation, Lang, Message, Number, Skill, SkillResult, Value};
 
 /// The `random` handler.
 #[derive(Debug, Default)]
@@ -212,11 +212,12 @@ impl Random {
 
     fn pick(cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
         let unable = |id| SkillResult::Unable(Message::new(id));
+        let ask = |id| SkillResult::Ask(Expectation::slot("options"), Message::new(id));
         let Some(Value::List { items, uncertain }) = call.slots.get("options") else {
-            return unable("pick_usage");
+            return ask("pick_usage");
         };
         if items.is_empty() {
-            return unable("pick_usage");
+            return ask("pick_usage");
         }
         if items.len() > MAX_OPTIONS {
             return unable("pick_many");
@@ -229,7 +230,7 @@ impl Random {
                     && extract::number(&normalise::fold(&first.to_lowercase()), call.lang).is_ok()
             });
             if quantity {
-                return unable("pick_usage");
+                return ask("pick_which");
             }
             return SkillResult::Answer(Message::new("pick_one").var("option", only.clone()));
         }
@@ -245,8 +246,12 @@ impl Random {
 
     fn number(cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
         let unable = |id| SkillResult::Unable(Message::new(id));
-        if call.slots.contains_key("incomplete") {
-            return unable("number_incomplete");
+        if call.slots.contains_key("incomplete") && !call.slots.contains_key("high") {
+            let low = bound(call, "low", 1).map_or_else(|_| "1".to_owned(), |n| n.format(call.lang));
+            return SkillResult::Ask(
+                Expectation::slot("high"),
+                Message::new("number_incomplete").var("low", low),
+            );
         }
         let (low, high) = match (bound(call, "low", 1), bound(call, "high", 100)) {
             (Ok(low), Ok(high)) => (low, high),
@@ -430,6 +435,7 @@ impl Skill for Random {
             "pick_one",
             "pick_many",
             "pick_usage",
+            "pick_which",
             "number_one",
             "number_range",
             "number_single",
@@ -485,7 +491,7 @@ mod tests {
 
     fn id(result: &SkillResult) -> &'static str {
         match result {
-            SkillResult::Answer(m) | SkillResult::Unable(m) => m.id,
+            SkillResult::Answer(m) | SkillResult::Unable(m) | SkillResult::Ask(_, m) => m.id,
             _ => "other",
         }
     }
@@ -575,7 +581,7 @@ mod tests {
         assert_eq!(id(&result), "pick_one");
         assert_eq!(draws, 0);
         let (result, _) = run("random.pick", &[("options", list(&["two shirts"]))], "");
-        assert_eq!(id(&result), "pick_usage");
+        assert_eq!(id(&result), "pick_which");
         let (result, draws) = run(
             "random.pick",
             &[("options", list(&["tea", "coffee"]))],

@@ -61,6 +61,7 @@ capabilities = []                             # built-in v0.1 skills need none
 id = "clock.weekday"                          # from docs/spec/README.md's catalogue
 priority = 50                                 # higher wins among rule matches
 courtesy = false                              # see §2.4; only greetings and thanks
+command = { es = "/diasemana", en = "/weekday", slot = "date" }  # optional, §2.5
 
   [intent.examples]                           # training data for v0.2's classifier
   es = ["qué día de la semana es", "qué día cae el 3 de mayo"]
@@ -68,8 +69,8 @@ courtesy = false                              # see §2.4; only greetings and th
 
   [[intent.slot]]
   name = "date"
-  type = "date"                               # term | number | date
-  required = false                            # informational in v0.1
+  type = "date"                               # see SKILLS.md §3 for every type
+  required = false                            # true: ask for it when missing
   repeated = false                            # only for term: a list of options
   internal = false                            # true: steers the handler only
 
@@ -129,6 +130,7 @@ Captures are turned into typed values before your handler runs:
 | `term`, `repeated = true` | split at commas, `/`, "y"/"e"/"o"/"u"/"and"/"or"; repeats removed | `Value::List { items, uncertain }`; `uncertain` when "y" and "o" were mixed |
 | `number` | digits by the turn's language conventions (`1.500` is 1500 in Spanish, 1.5 in English), number words, mixes ("3 mil", "two and a half million"), negatives | `Value::Number(Number)`, exact |
 | `date` | "hoy", "mañana", "pasado mañana", "ayer", weekdays with "este"/"próximo"/"pasado"/"que viene", "dentro de 3 días", "hace dos semanas", "el 3 de mayo", "3/5" (day first in Spanish), "el día 3", "a finales de mes" and their English equivalents, relative to the turn's `now` | `Value::Date { date, year_given }` |
+| `duration`, `datetime`, `daterange`, `place`, `language`, `choice`, `confirm` | see [SKILLS.md](SKILLS.md) §3 and conversation.md §2; a `choice` slot lists its `options` | `Value::Duration`, `DateTime`, `DateRange`, `Place`, `Language`, `Choice`, `Confirm` |
 
 A capture that cannot be read becomes `Value::Invalid { raw, problem }`:
 `Problem::Unreadable` (malformed, `1,500,000` in Spanish), `Ambiguous(readings)`
@@ -136,8 +138,9 @@ A capture that cannot be read becomes `Value::Invalid { raw, problem }`:
 give is simply absent from `call.slots`. The extractors are in
 `talos_core::extract` and you may call them on a `term` yourself.
 
-Times of day, durations and places have no extractor yet: capture them as
-`term` and say so to the integrator if your skill needs one.
+A place has no gazetteer yet: the `place` extractor keeps a name as typed
+and resolves only references ("aquí", "home") and time zones; checking that
+a name is a real place is the skill's job.
 
 **Internal slots** (`internal = true`) tell the handler which phrasing was
 used (smalltalk's `register`, `daypart`). They are in `call.slots` but not in
@@ -159,6 +162,19 @@ carrying a real request (greetings, thanks). When the whole message matches
 no rule, a courtesy of up to four words at its start or end is dropped if
 the rest matches: "hola, qué hora es" reaches your clock rule as "qué hora
 es". Your patterns need not allow greetings around them.
+
+### 2.5 Commands
+
+`command = { es = "/diasemana", en = "/weekday", slot = "date" }` gives the
+intent a shortcut ([ADR 0016](adr/0016-command-shortcuts.md)): `/weekday
+25/12` reaches your handler exactly as "what day is 25/12" would, with the
+rest of the line read by the `date` slot's extractor. Names are `/` and
+lower-case ASCII, one per language (they may be equal, as `/calc` is); both
+work in either conversation language. Leave `slot` out when the intent takes
+no argument (`/dado`). Give a command only where it helps: an intent with
+several independent slots gets none unless one free-text slot its handler
+already reads covers them. `talos skills check` rejects a name declared
+twice and a slot the intent does not declare.
 
 ## 3. The handler
 
@@ -205,10 +221,10 @@ pub trait Skill: Send + Sync {
 | `SkillResult` | Status | Use for |
 |---|---|---|
 | `Answer(Message)` | `answered` | a complete, correct answer, including a correct "no" or "that is impossible" (dividing by zero, 31 April) |
-| `Unable(Message)` | `unhandled`, intent kept | recognised but beyond what Talos supports (an unknown unit, too many dice), and, in v0.1, a request missing a required slot: reply with a short usage hint |
+| `Unable(Message)` | `unhandled`, intent kept | recognised but beyond what Talos supports (an unknown unit, too many dice) |
 | `Decline` | — | not yours after all; the next candidate rule is tried |
 | `Fail(SkillError)` | `unhandled` | a bug or an impossible internal state; the user gets an honest error |
-| `Ask(Expectation, Message)` | `unhandled · cannot-ask` | **not in v0.1**: open questions arrive in v0.2. Do not return it |
+| `Ask(Expectation, Message)` | `answered`, `pending`; `asks · intent · slot` in transcripts | a required slot is missing, or a value is ambiguous: one short question naming what is missing (`Expectation::slot("target")`, `::choice`, `::confirm`, `::completing`). The answer comes back as a new call with that slot filled; never ask for an optional slot |
 
 The test between `Answer` and `Unable` is the spec's: would a more capable
 engine plausibly give the user something better? If yes, `Unable`.
@@ -266,8 +282,11 @@ with these adjustments:
   Spanish") with turns;
 - replies are our wording; what must match the spec is content, language and
   outcome;
-- spec examples that need v0.2 (asking back, `→ asks · …`) or another skill
-  are left out, with a `#` comment saying why.
+- a turn that asks back is `→ asks · intent · slot`; the answering turn
+  follows it with no blank line (one conversation) and its outcome is the
+  original intent, completed;
+- spec examples that need another skill are left out, with a `#` comment
+  saying why.
 
 Write expected output by hand from the spec, run `cargo test -p
 talos-skills --test golden`, and fix code or file until they agree. Use

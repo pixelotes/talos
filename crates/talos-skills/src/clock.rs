@@ -9,7 +9,9 @@
 use talos_core::civil::{Date, Weekday, easter, is_leap_year};
 use talos_core::extract::{self, TimeOfDay};
 use talos_core::normalise::normalise;
-use talos_core::{Call, Context, Lang, Message, Problem, Skill, SkillResult, Value};
+use talos_core::{
+    Call, Choice, Context, Expectation, Lang, Message, Problem, Skill, SkillResult, Value,
+};
 
 /// The `clock` handler.
 #[derive(Debug, Default)]
@@ -409,8 +411,8 @@ enum Bad {
     /// "31 de abril": the user's words without the article, and the year
     /// when the problem is a 29 February in a year that is not leap.
     NoSuch { what: String, leap: Option<i32> },
-    /// English `3/4`: both readings, written out.
-    Ambiguous(String, String),
+    /// English `3/4`: both readings.
+    Ambiguous(Date, Date),
 }
 
 /// The year of a "29 February" in a year that has none, from the match form.
@@ -479,16 +481,28 @@ fn resolve(text: &str, lang: Lang, today: Date, since: bool) -> Result<Resolved,
         Err(Problem::Ambiguous(readings)) => {
             let dates: Vec<Date> = readings.iter().filter_map(Value::as_date).collect();
             match dates.as_slice() {
-                [a, b] => Err(Bad::Ambiguous(short_date(lang, *a), short_date(lang, *b))),
+                [a, b] => Err(Bad::Ambiguous(*a, *b)),
                 _ => Err(Bad::Unreadable),
             }
         }
     }
 }
 
+/// One reading of an ambiguous date, as an option of the question: it fills
+/// the slot with the ISO date, which reads the same in both languages, and
+/// is named by its day and month in either ("4 March", "March 4", "4 de
+/// marzo").
+fn reading(date: Date) -> Choice {
+    let (es, en) = (short_date(Lang::Es, date), short_date(Lang::En, date));
+    let us = format!("{} {}", month_name(Lang::En, date.month()), date.day());
+    Choice::new(date.to_string(), [en, us, es])
+}
+
 impl Bad {
-    /// The reply for it; `unreadable` is the hint of the asking intent.
-    fn result(self, unreadable: &'static str) -> SkillResult {
+    /// The reply for it, for the date in `slot`; `unreadable` is the hint
+    /// of the asking intent. Two readings are asked about (conversation.md
+    /// 3.4).
+    fn result(self, lang: Lang, slot: &str, unreadable: &'static str) -> SkillResult {
         match self {
             Bad::Unreadable => SkillResult::Unable(Message::new(unreadable)),
             Bad::NoSuch {
@@ -502,10 +516,11 @@ impl Bad {
             Bad::NoSuch { what, leap: None } => {
                 SkillResult::Answer(Message::new("no_such_date").var("what", what))
             }
-            Bad::Ambiguous(first, second) => SkillResult::Unable(
+            Bad::Ambiguous(first, second) => SkillResult::Ask(
+                Expectation::choice(slot, vec![reading(first), reading(second)]),
                 Message::new("ambiguous")
-                    .var("first", first)
-                    .var("second", second),
+                    .var("first", short_date(lang, first))
+                    .var("second", short_date(lang, second)),
             ),
         }
     }
@@ -587,7 +602,7 @@ impl Clock {
                     cx.report("day", dated(found.date));
                     found.date
                 }
-                Err(bad) => return bad.result("bad_date"),
+                Err(bad) => return bad.result(lang, "day", "bad_date"),
             },
         };
         if slot_text(call, "format") == Some("iso") {
@@ -621,7 +636,7 @@ impl Clock {
                     cx.report("date", dated(found.date));
                     found.date
                 }
-                Err(bad) => return bad.result("bad_date"),
+                Err(bad) => return bad.result(lang, "date", "bad_date"),
             },
         };
         let id = match today.days_until(date) {
@@ -644,16 +659,25 @@ impl Clock {
     fn until(cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
         let lang = call.lang;
         let Some(target) = slot_text(call, "target") else {
-            return SkillResult::Unable(Message::new("usage_until"));
+            return SkillResult::Ask(Expectation::slot("target"), Message::new("ask_until"));
         };
         let since = slot_text(call, "dir") == Some("since");
         let today = cx.now().date_or_utc();
-        if let Some((day, at)) = time_target(&normalise(target).folded, lang) {
+        let folded = normalise(target).folded;
+        if let Some((day, at)) = time_target(&folded, lang) {
             return Self::until_time(cx, call, since, day, at);
         }
         let found = match resolve(target, lang, today, since) {
             Ok(found) => found,
-            Err(bad) => return bad.result("usage_until"),
+            // "mi cumpleaños": a day only the user knows, so it is asked.
+            Err(Bad::Unreadable)
+                if folded
+                    .split(|c: char| !c.is_alphanumeric())
+                    .any(|w| matches!(w, "cumpleanos" | "cumple" | "birthday")) =>
+            {
+                return SkillResult::Ask(Expectation::slot("target"), Message::new("ask_birthday"));
+            }
+            Err(bad) => return bad.result(lang, "target", "usage_until"),
         };
         let date = found.date;
         cx.report("target", dated(date));
@@ -835,6 +859,8 @@ impl Skill for Clock {
             "time_ahead_date",
             "time_ahead_date_one",
             "usage_until",
+            "ask_until",
+            "ask_birthday",
             "since_time",
         ]
     }
@@ -887,7 +913,7 @@ mod tests {
 
     fn message(result: &SkillResult) -> &Message {
         match result {
-            SkillResult::Answer(m) | SkillResult::Unable(m) => m,
+            SkillResult::Answer(m) | SkillResult::Unable(m) | SkillResult::Ask(_, m) => m,
             other => panic!("{other:?}"),
         }
     }
@@ -1121,12 +1147,13 @@ mod tests {
         assert_eq!(id(&until("6:42 pm", &[])), "time_ahead_tomorrow_one");
         assert_eq!(var(&until("6:42 pm", &[]), "span"), "1 day");
         assert_eq!(id(&until("9pm", &since)), "since_time");
-        assert_eq!(id(&until("my birthday", &[])), "usage_until");
+        assert_eq!(id(&until("my birthday", &[])), "ask_birthday");
+        assert_eq!(id(&until("the match", &[])), "usage_until");
         assert_eq!(id(&until("3/4", &[])), "ambiguous");
-        // A missing target is a usage hint, not a question.
+        // A missing target is asked for.
         let result = run("clock.until", Lang::En, &[], now);
-        assert!(matches!(result, SkillResult::Unable(_)));
-        assert_eq!(id(&result), "usage_until");
+        assert!(matches!(&result, SkillResult::Ask(e, _) if e.slot == "target"));
+        assert_eq!(id(&result), "ask_until");
     }
 
     #[test]

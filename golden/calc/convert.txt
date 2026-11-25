@@ -75,15 +75,19 @@ Given: hint = none
 
 [es] U: convierte 20 grados
      T: ¿A qué unidad: Celsius, Fahrenheit o Kelvin?
-                                                  → unhandled · calc.convert · amount=20 from=grados
-     (no target (v0.1: a hint instead of a question))
+                                                  → asks · calc.convert · to
+[es] U: a fahrenheit
+     T: 20 °C son 68 °F (he entendido grados Celsius).
+                                                  → answered · calc.convert · amount=20 from=°C to=°F
+     (no target: asked)
 
 Given: hint = en
 
 [en] U: convert 5 km
-     T: Convert it to what? For example "5 km in miles".
-                                                  → unhandled · calc.convert · amount=5 from=km
-     (no target (v0.1: a hint instead of a question))
+     T: Convert it to what?                       → asks · calc.convert · to
+[en] U: miles
+     T: 5 km is ≈ 3.11 mi.                        → answered · calc.convert · amount=5 from=km to=mi
+     (no target: asked; the next message answers)
 
 Given: hint = none
 

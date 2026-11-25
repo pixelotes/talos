@@ -52,10 +52,25 @@ impl Reason {
     pub const CATCH_ALL: Reason = Reason(Cow::Borrowed("catch-all"));
     /// A skill recognised it and could not provide it.
     pub const CANNOT: Reason = Reason(Cow::Borrowed("cannot"));
-    /// A skill wanted to ask back, which this version cannot do yet.
-    pub const CANNOT_ASK: Reason = Reason(Cow::Borrowed("cannot-ask"));
     /// A skill or the renderer failed.
     pub const FAILED: Reason = Reason(Cow::Borrowed("failed"));
+    /// An open question was cancelled ("déjalo", "never mind"); `Answered`.
+    pub const CANCELLED: Reason = Reason(Cow::Borrowed("cancelled"));
+    /// A hesitation ("a ver", "hold on") while a question is open: it stays
+    /// open; `Answered`.
+    pub const HEDGE: Reason = Reason(Cow::Borrowed("hedge"));
+    /// A bare acknowledgement ("vale", "ok") with nothing to act on;
+    /// `Answered`.
+    pub const ACKNOWLEDGEMENT: Reason = Reason(Cow::Borrowed("acknowledgement"));
+    /// A bare "sí"/"no" with no question open (docs/spec/conversation.md
+    /// 3.8).
+    pub const NOTHING_PENDING: Reason = Reason(Cow::Borrowed("nothing-pending"));
+    /// An open question got no usable answer twice and was dropped.
+    pub const GAVE_UP: Reason = Reason(Cow::Borrowed("gave-up"));
+    /// A message starting with `/` that names no installed command.
+    pub const UNKNOWN_COMMAND: Reason = Reason(Cow::Borrowed("unknown-command"));
+    /// A command that takes no argument was given one.
+    pub const COMMAND_ARGUMENT: Reason = Reason(Cow::Borrowed("command-argument"));
 
     /// A reason by name, e.g. a reflector shape.
     #[must_use]
@@ -144,8 +159,12 @@ pub struct Outcome {
     /// sentence shape (`Deflected`) or the guard (`Unhandled`), with no
     /// intent (docs/spec/reflector.md 2.2).
     pub reason: Option<Reason>,
-    /// Talos asked back and expects the next message.
+    /// A question is open after this turn: Talos asked back (or the user
+    /// hesitated and the question stays open), and the next message of
+    /// the conversation is offered to it first.
     pub pending: bool,
+    /// The slot Talos asked for, when this turn asked back.
+    pub asks: Option<String>,
     /// True only when an external skill used a model.
     pub generated: bool,
     /// The trace, when the turn asked for one.
@@ -157,9 +176,13 @@ impl Outcome {
     /// `status · intent · slot=value slot=value` when an intent was
     /// recognised, `status · reason` when none was, and the bare status when
     /// there is neither. Slots are in name order; `extra` adds slots (the
-    /// internal ones, when a golden file asks for them).
+    /// internal ones, when a golden file asks for them). A turn that asked
+    /// back is `asks · intent · slot` (docs/spec/README.md).
     #[must_use]
     pub fn line(&self, extra: Option<&Slots>) -> String {
+        if let (Some(slot), Some(intent)) = (&self.asks, &self.intent) {
+            return format!("asks · {intent} · {slot}");
+        }
         let mut line = self.status.as_str().to_owned();
         match (&self.intent, &self.reason) {
             (Some(intent), _) => {

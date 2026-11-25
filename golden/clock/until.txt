@@ -7,10 +7,10 @@
 # target on the outcome line is the resolved date, or `YYYY-MM-DD HH:MM` for
 # a time.
 #
-# v0.1 never asks back, so these spec exchanges end in a hint and
-# `unhandled · clock.until` instead of a question: "cuánto falta para mi
-# cumpleaños", "how long until" and "how long until 3/4" (the second turns,
-# "el 9 de agosto" and "the 4th of March", are the direct questions below).
+# "cuánto falta para mi cumpleaños", "how long until" and "how long until
+# 3/4" ask back; the next message answers, and the original request is
+# completed (docs/spec/conversation.md 3.2 and 3.4). The same second turns
+# are also asked directly below.
 #
 # Left out, with the reason:
 #   "how long is the flight to Lisbon": not a date computation; no rule of
@@ -133,12 +133,16 @@ Given: now = 2027-03-14 18:42 Europe/Madrid
      T: El 31 de abril no existe.                 → answered · clock.until · target=el 31 de abril
 
 [es] U: cuánto falta para mi cumpleaños
-     T: Necesito una fecha, una hora o un día conocido: «cuánto falta para Navidad» o «cuánto falta para las 9».
-                                                  → unhandled · clock.until · target=mi cumpleaños
+     T: ¿Qué fecha es tu cumpleaños?               → asks · clock.until · target
+[es] U: el 9 de agosto
+     T: Faltan 148 días (lunes, 9 de agosto de 2027).
+                                                  → answered · clock.until · target=2027-08-09
 
 [es] U: cuánto falta
-     T: Necesito una fecha, una hora o un día conocido: «cuánto falta para Navidad» o «cuánto falta para las 9».
-                                                  → unhandled · clock.until
+     T: ¿Para cuándo?                              → asks · clock.until · target
+[es] U: para navidad
+     T: Faltan 286 días para Navidad (sábado, 25 de diciembre de 2027).
+                                                  → answered · clock.until · target=2027-12-25
 
 [es] U: cuánto falta para el 9 de agosto
      T: Faltan 148 días (lunes, 9 de agosto de 2027).
@@ -147,8 +151,9 @@ Given: now = 2027-03-14 18:42 Europe/Madrid
 Given: hint = en
 Given: now = 2027-03-14 18:42 America/New_York
 [en] U: how long until 3/4
-     T: That date could be 3 April or 4 March. Please write it out in words.
-                                                  → unhandled · clock.until · target=3/4
+     T: Do you mean 3 April or 4 March?           → asks · clock.until · target
+[en] U: the 4th of March
+     T: 356 days to go (Saturday 4 March 2028).   → answered · clock.until · target=2028-03-04
 
 [en] U: how long until the 4th of March
      T: 356 days to go (Saturday 4 March 2028).   → answered · clock.until · target=2028-03-04
@@ -157,8 +162,9 @@ Given: now = 2027-03-14 18:42 America/New_York
      T: 10 days since Thursday 4 March 2027.      → answered · clock.until · target=2027-03-04
 
 [en] U: how long until
-     T: I need a date, a time or a well-known day: “how long until Christmas” or “how long until 9pm”.
-                                                  → unhandled · clock.until
+     T: Until what?                               → asks · clock.until · target
+[en] U: never mind
+     T: Okay, dropped.                            → answered · cancelled
 
 Given: now = 2027-03-16 10:00 America/New_York
 [en] U: how long until next Friday

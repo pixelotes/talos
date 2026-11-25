@@ -19,7 +19,7 @@ mod percent;
 mod rat;
 mod units;
 
-use talos_core::{Call, Context, Lang, Message, Skill, SkillResult, Value};
+use talos_core::{Call, Context, Expectation, Lang, Message, Skill, SkillResult, Value};
 
 use expr::{Failure, Parsed};
 use rat::{MathError, show_significant};
@@ -59,7 +59,9 @@ const REPLIES: &[&str] = &[
     "pct_whole_zero",
     "pct_from_zero",
     "pct_percent_zero",
-    "pct_usage",
+    "pct_ask_percent",
+    "pct_ask_amount",
+    "pct_ask_number",
     "pct_needs_rate",
     "pct_bad_number",
     "pct_too_large",
@@ -108,28 +110,39 @@ fn unable(id: &'static str) -> SkillResult {
 /// Evaluates the `expression` slot and writes the answer.
 fn arithmetic(cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
     let Some(Value::Text(text)) = call.slots.get("expression") else {
-        return unable("arithmetic_usage");
+        return SkillResult::Ask(
+            Expectation::slot("expression"),
+            Message::new("arithmetic_usage"),
+        );
     };
     let parsed = match expr::parse(text, call.lang) {
         Ok(parsed) => parsed,
         Err(failure) => {
             cx.report("expression", Value::Text(expr::repair_parens(text)));
-            return failed(failure, call.lang);
+            return failed(failure, call.lang, text);
         }
     };
     cx.report("expression", Value::Text(parsed.canonical.clone()));
     match parsed.value() {
         Ok(value) => answer(&parsed, &value, call.lang),
-        Err(failure) => failed(failure, call.lang),
+        Err(failure) => failed(failure, call.lang, text),
     }
 }
 
-/// The reply for an expression that has no value.
-fn failed(failure: Failure, lang: Lang) -> SkillResult {
+/// The reply for an expression that has no value. An incomplete one is
+/// asked to be completed ("2 +", then "3"); one with an implicit
+/// multiplication is asked to be written again (docs/spec/basics.md).
+fn failed(failure: Failure, lang: Lang, text: &str) -> SkillResult {
     match failure {
         Failure::NotMath => SkillResult::Decline,
-        Failure::Incomplete => unable("incomplete"),
-        Failure::ImplicitMul => unable("implicit_multiplication"),
+        Failure::Incomplete => SkillResult::Ask(
+            Expectation::completing("expression", text.trim()),
+            Message::new("incomplete").var("expr", text.trim()),
+        ),
+        Failure::ImplicitMul => SkillResult::Ask(
+            Expectation::slot("expression"),
+            Message::new("implicit_multiplication"),
+        ),
         Failure::BadNumber(raw) => SkillResult::Unable(Message::new("bad_number").var("raw", raw)),
         Failure::TooBig | Failure::Math(MathError::TooLarge) => unable("too_large"),
         Failure::Math(MathError::DivZero { zero_over_zero }) => {
@@ -218,11 +231,12 @@ mod tests {
         Value::Number(Number::new(units, scale).unwrap())
     }
 
-    /// `(kind, reply id, variables)`, kind being A(nswer) or U(nable).
+    /// `(kind, reply id, variables)`, kind being A(nswer), U(nable) or Q (a question).
     fn shape(result: &SkillResult) -> (char, &'static str, Vec<(String, String)>) {
         let (kind, message) = match result {
             SkillResult::Answer(m) => ('A', m),
             SkillResult::Unable(m) => ('U', m),
+            SkillResult::Ask(_, m) => ('Q', m),
             other => panic!("unexpected {other:?}"),
         };
         (
@@ -387,11 +401,11 @@ mod tests {
     }
 
     #[test]
-    fn percentages_missing_or_unreadable_get_a_hint() {
+    fn percentages_missing_or_unreadable_are_asked() {
         let no_rate = percent(Lang::Es, &[("shape", text("adjust")), ("amount", number(100, 0))]);
-        assert_eq!(shape(&no_rate), ('U', "pct_needs_rate", vec![]));
+        assert_eq!(shape(&no_rate), ('Q', "pct_needs_rate", vec![]));
         let no_amount = percent(Lang::En, &[("shape", text("of")), ("percent", number(50, 0))]);
-        assert_eq!(shape(&no_amount), ('U', "pct_usage", vec![]));
+        assert_eq!(shape(&no_amount), ('Q', "pct_ask_amount", vec![]));
         let bad = percent(
             Lang::En,
             &[

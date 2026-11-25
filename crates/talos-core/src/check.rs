@@ -96,7 +96,8 @@ impl Report {
 /// a pattern that does not compile, captures an undeclared slot, or is
 /// written with accents or capitals (it matches the folded form and could
 /// never match); two intents of equal priority whose rules in one language
-/// both match the same example.
+/// both match the same example; a command name declared twice, or a
+/// command whose slot its intent does not declare (ADR 0016).
 ///
 /// Warnings: an example matched by a rule of another intent with higher
 /// priority; an intent with no pattern (unreachable until the classifier);
@@ -137,8 +138,40 @@ pub fn check(sources: &[(&str, &str)], handlers: &[Box<dyn Skill>]) -> Report {
         }
     }
     examples(&mut report, &valid);
+    commands(&mut report, &valid);
     report.findings.sort_by_key(|f| f.severity);
     report
+}
+
+/// No command name is declared twice, across all skills (ADR 0016). That a
+/// command's slot is a public slot of its intent is checked when the
+/// manifest is parsed.
+fn commands(report: &mut Report, manifests: &[Manifest]) {
+    let mut seen: Vec<(&str, &crate::IntentId)> = Vec::new();
+    for manifest in manifests {
+        for intent in &manifest.intents {
+            let Some(command) = &intent.command else {
+                continue;
+            };
+            let names = [command.names.es.as_str(), command.names.en.as_str()];
+            for (k, name) in names.iter().enumerate() {
+                if k == 1 && names[0] == *name {
+                    continue;
+                }
+                if let Some((_, other)) = seen.iter().find(|(n, _)| n == name) {
+                    report.error(
+                        &manifest.id,
+                        format!(
+                            "intent `{}`: command `{name}` is already declared by `{other}`",
+                            intent.id
+                        ),
+                    );
+                } else {
+                    seen.push((name, &intent.id));
+                }
+            }
+        }
+    }
 }
 
 /// Reply ids: declared by the handler and present in the manifest, and the
@@ -433,6 +466,38 @@ en = ["x"]
             warnings
                 .contains("en example \"hello\" of `a.greet` (priority 50) is taken by `b.loud`"),
             "{warnings}"
+        );
+    }
+
+    #[test]
+    fn commands_are_unique_and_fill_declared_slots() {
+        let command = |skill: &str, es: &str, slot: &str| {
+            A.replace("\"a\"", &format!("\"{skill}\""))
+                .replace("a.greet", &format!("{skill}.greet"))
+                .replace(
+                    "pattern = ",
+                    &format!("command = {{ es = \"{es}\", en = \"/hi\"{slot} }}\npattern = "),
+                )
+        };
+        let handlers: Vec<Box<dyn Skill>> = vec![
+            Box::new(Handler("a", &["hi"])),
+            Box::new(Handler("b", &["hi"])),
+        ];
+        let (a, b) = (command("a", "/hola", ""), command("b", "/buenas", ""));
+        let errors = messages(&check(&[("a", &a), ("b", &b)], &handlers), Severity::Error);
+        assert!(
+            errors.contains(
+                &"error: b: intent `b.greet`: command `/hi` is already declared by `a.greet`"
+                    .to_owned()
+            ),
+            "{errors:?}"
+        );
+        assert!(!errors.iter().any(|e| e.contains("/hola")), "{errors:?}");
+        let b = command("b", "/buenas", ", slot = \"who\"");
+        let errors = messages(&check(&[("b", &b)], &handlers[1..]), Severity::Error).join("\n");
+        assert!(
+            errors.contains("command slot `who` is not a slot"),
+            "{errors}"
         );
     }
 }

@@ -76,14 +76,14 @@ taken, plus the small ones Slice A needed. Slice B may revisit any of them.
 |---|---|---|
 | Handler signature | `Skill::handle(&self, cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult`, plus `Skill::replies()` listing every reply id the handler can return | `Call` is the request (intent, language, typed slots, original text); `Context` is everything else (clock, place, random source, conversation state, preferences, installed manifests), so the knowledge store joins `Context` later without touching handlers. Contract: [SKILL_AUTHORING.md](SKILL_AUTHORING.md) |
 | Accents in patterns | rules match a **match form**: the normalised text with diacritics removed from Latin letters (`qué` → `que`, `mañana` → `manana`); patterns are written without accents or capitals and `talos skills check` rejects any that has them | one consistent rule instead of `qu[eé]` everywhere; language detection still reads the accented text, so accents stay evidence. Captures are read back in the user's original spelling |
-| Slots | declared per intent (`[[intent.slot]]`: `name`, `type` = `term`/`number`/`date`, `required`, `repeated`, `internal`); named captures `(?P<name>…)` must be declared slots; extractors turn captures into typed `Value`s before the handler runs | `internal` slots (Slice A's `register`, `daypart`) are left out of `Outcome::slots` and of golden outcome lines unless `Given: slots = all`; a handler may `cx.report(…)` a default it applied ("tira un dado" → `count=1 sides=6`) |
+| Slots | declared per intent (`[[intent.slot]]`: `name`, `type` = `term`/`number`/`date`/`duration`/`datetime`/`daterange`/`place`/`language`/`choice`/`confirm`, `required`, `repeated`, `internal`); named captures `(?P<name>…)` must be declared slots; extractors turn captures into typed `Value`s before the handler runs | `internal` slots (Slice A's `register`, `daypart`) are left out of `Outcome::slots` and of golden outcome lines unless `Given: slots = all`; a handler may `cx.report(…)` a default it applied ("tira un dado" → `count=1 sides=6`) |
 | Numbers | exact decimals (`Number`: `i128` units and a scale), never floats; `Number::format(lang)` writes them by the language's conventions | the separator rules of conversation.md 2.1 are tested as a table |
 | Dates | `civil::Date` in-tree (Hinnant's algorithms), no zone rules | the zone database is still Slice C's decision; the golden harness knows a handful of zones the spec uses, with their DST rules, until then |
 | Random source | `SplitMix64` in-tree behind `RandomSource`; each turn is seeded from FNV-1a of (configured seed, conversation, turn number, normalised text), lazily, so a turn that draws nothing seeds nothing | handlers draw through `Random` in natural terms (`int`, `scaled`, `coin`, `pick`, `entry`), which is also what golden files script with `Given: draw = …` |
-| Conversation state | engine-owned map, one `Mutex` per conversation plus a short-held map lock; at most `Config::max_conversations` (1024), idle expiry `Config::idle_expiry_seconds` (30 min) measured with the injected `now` | holds the turn counter, the language and how firmly it is held, the recent topic (last intent), and an always-empty expectation slot for v0.2 |
+| Conversation state | engine-owned map, one `Mutex` per conversation plus a short-held map lock; at most `Config::max_conversations` (1024), idle expiry `Config::idle_expiry_seconds` (30 min) measured with the injected `now` | holds the turn counter, the language and how firmly it is held, the recent topic (last intent), and the open question (at most one, with the request's slots; it expires three turns or five minutes after it was asked) |
 | Language stickiness | a settled conversation switches only on at least two marker words of the other language and more than of its own; a conversation that only defaulted takes the first evidence; a hint settles it | ADR 0015's classifier step waits for v0.2 |
 | Greeting prefixes | an intent may be `courtesy = true`; when the whole message matches nothing, a courtesy of up to four words at its start or end is dropped if the rest is recognised | basics.md, "Greeting prefixes"; the reply does not add a greeting of its own |
-| Reasons | `Reason` is an open set of names (`empty`, `catch-all`, `cannot`, `cannot-ask`, `failed`; the reflector adds its shapes) | outcome lines show the reason when no intent was recognised |
+| Reasons | `Reason` is an open set of names (`empty`, `catch-all`, `cannot`, `failed`, `acknowledgement`, `cancelled`, `hedge`, `nothing-pending`, `gave-up`, `unknown-command`, `command-argument`; the reflector adds its shapes) | outcome lines show the reason when no intent was recognised |
 | Local time in the CLI | the binary runs `date +%z` before each turn | the smallest means with no `unsafe` and no crate; honours `TZ`; where `date` is missing the offset is unknown and time-of-day answers stay neutral. The date/time crate is left to Slice C |
 | JSON | `serde_json` (std only) in the binary for `--json` | +17 KB on the stripped binary, measured; the server will need it anyway |
 | Validator | `talos_core::check`, run by `talos skills check` and by a test in `talos-skills` that requires zero findings | see the list of checks in `check.rs` |
@@ -277,8 +277,11 @@ Given: draw = 3, 5
   intent was recognised, `→ status · reason` when none was. Slots are in
   name order, values canonical: numbers with a decimal point and no
   grouping (`1500`, `1.5`), dates in ISO (`2027-04-03`), lists joined by
-  `|` (`options=té|café`). Internal slots are left out. Reply and outcome
-  are compared byte for byte.
+  `|` (`options=té|café`). Internal slots are left out. A turn that asked
+  back is `→ asks · intent · slot`, and the turn that answers it follows
+  with no blank line between them (the same conversation); a `Given:` line
+  between turns (a new `now`, a `draw`) does not end a conversation. Reply
+  and outcome are compared byte for byte.
 - **`Given:` lines** last until changed, across conversations, except
   `draw`, which applies to the next turn only:
 

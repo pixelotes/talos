@@ -91,7 +91,13 @@ fn run(lang: Lang) -> Report {
                     report.reflector_catch_all += 1;
                 }
             }
-            if outcome.status.as_str() == expected {
+            // A turn that asked back is `asks` in the battery.
+            let got = if outcome.asks.is_some() {
+                "asks"
+            } else {
+                outcome.status.as_str()
+            };
+            if got == expected {
                 report.status_matches += 1;
             }
             if expected == "unhandled" && outcome.status == Status::Deflected {

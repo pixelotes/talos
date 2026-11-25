@@ -1,0 +1,73 @@
+# Commands (ADR 0016, docs/spec/conversation.md section 6): a message whose
+# first character is `/` names an intent directly. Both languages' names
+# work; the reply is in the conversation's language; the rest of the line
+# fills the declared slot through the same extractor as a captured slot, so
+# the outcome is the sentence form's.
+
+[es] U: /calc 1 + 2
+     T: 1 + 2 = 3.                                → answered · calc.arithmetic · expression=1+2
+
+Given: hint = en
+[en] U: /calc 1 + 2
+     T: 1 + 2 = 3.                                → answered · calc.arithmetic · expression=1+2
+
+# A Spanish name in an English conversation answers in English.
+Given: draw = 4
+[en] U: /dado
+     T: It came up 4.                             → answered · random.dice · count=1 sides=6
+
+Given: hint = none
+Given: draw = option 2
+[es] U: /pick pizza, sushi o tacos
+     T: Elijo sushi.                              → answered · random.pick · options=pizza|sushi|tacos
+
+[es] U: /falta navidad
+     T: Faltan 286 días para Navidad (sábado, 25 de diciembre de 2027).
+                                                  → answered · clock.until · target=2027-12-25
+
+# The conversation's language holds: a command line is no evidence.
+[en] U: what time is it
+     T: It's 18:42.                               → answered · clock.now
+[en] U: /hora
+     T: It's 18:42.                               → answered · clock.now
+
+# A missing argument is a missing slot: asked, and the next message answers.
+[es] U: /calc
+     T: ¿Qué quieres calcular?                     → asks · calc.arithmetic · expression
+[es] U: 6 por 7
+     T: 6 × 7 = 42.                               → answered · calc.arithmetic · expression=6*7
+
+# Unknown commands: never the rules or the reflector; the reply names the
+# command and how to list them.
+[es] U: /clac 1 + 2
+     T: No conozco el comando /clac. Escribe /ayuda para ver los que hay.
+                                                  → unhandled · unknown-command
+
+Given: hint = en
+[en] U: /clac 1 + 2
+     T: I don't know the command /clac. Type /help to see the ones there are.
+                                                  → unhandled · unknown-command
+
+# A command that takes no argument says so instead of ignoring it.
+[en] U: /roll 2d20
+     T: The command /roll takes nothing after it. → unhandled · random.dice
+
+# A command closes an open question, as an unrelated message would.
+Given: hint = none
+[es] U: elige uno
+     T: ¿Entre qué opciones?                       → asks · random.pick · options
+[es] U: /calc 2 * 3
+     T: 2 × 3 = 6.                                → answered · calc.arithmetic · expression=2*3
+
+# /help and /ayuda list what is installed, with its commands.
+Given: hint = en
+[en] U: /ayuda
+     T: Here's what I can do:
+        · say hello and goodbye
+        · say who and what I am
+        · help you use what I can do (/help)
+        · the time, the date and how long until something (/time, /date, /weekday, /until)
+        · arithmetic, percentages and unit conversion (/calc)
+        · roll dice, flip coins, pick among options and give random numbers (/roll, /coin, /pick, /number)
+        · give a saying or a fortune (/fortune)
+                                                  → answered · help.capabilities

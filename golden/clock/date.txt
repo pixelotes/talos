@@ -4,8 +4,8 @@
 # slot on the outcome line, in ISO, where the spec writes the user's words
 # ("day=mañana"); with no day given the slot is absent.
 #
-# v0.1 never asks back, so the spec's "Do you mean 3 April or 4 March?" is an
-# `unhandled` hint that names the two readings (see the end of the file).
+# An ambiguous English `3/4` is asked back as a choice ("Do you mean 3 April
+# or 4 March?"; see the end of the file).
 #
 # Left out, with the reason:
 #   "cuándo es mi cumpleaños" / "when is my birthday": the spec's outcome is a
@@ -203,8 +203,9 @@ Given: now = 2027-03-14 18:42 Europe/Madrid
 Given: hint = en
 Given: now = 2027-03-14 18:42 America/New_York
 [en] U: what's the date 3/4
-     T: That date could be 3 April or 4 March. Please write it out in words.
-                                                  → unhandled · clock.date · day=3/4
+     T: Do you mean 3 April or 4 March?           → asks · clock.date · day
+[en] U: the first one
+     T: It will be Saturday 3 April 2027.         → answered · clock.date · day=2027-04-03
 
 # Only one reading of 25/12 is a date, so it is not ambiguous.
 [en] U: what's the date 25/12

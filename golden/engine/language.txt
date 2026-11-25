@@ -21,7 +21,7 @@
 Given: default language = en
 
 [en] U: ok
-     T: I didn't understand that.                 → unhandled · catch-all
+     T: Okay.                                     → answered · acknowledgement
 [es] U: hola
      T: ¡Hola, buenas!                            → answered · smalltalk.greet
 [es] U: hi

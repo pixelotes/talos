@@ -8,14 +8,54 @@
 //! and "manana" are the same word. [`list`] reads the capture in the user's
 //! **original** spelling, because a term keeps its case and accents.
 //!
-//! What is here is what the v0.1 skills need. [`time_of_day`],
-//! [`duration_minutes`] and [`date_since`] are for skills that read a capture
-//! themselves (`clock`); places are not yet an extractor, and full slot
-//! filling and asking back arrive in v0.2.
+//! One extractor per slot type: [`term`], [`list`] (a repeated term),
+//! [`number`], [`date`], [`duration`], [`datetime`], [`daterange`],
+//! [`place`], [`language`], [`choice`] and [`confirm`]; [`slot`] picks the
+//! one a slot declaration names, for a rule capture, a command argument and
+//! the answer to an open question alike. [`time_of_day`],
+//! [`duration_minutes`] and [`date_since`] are for skills that read a
+//! capture themselves (`clock`).
 
-use crate::Lang;
+mod answer;
+mod span;
+
+pub use answer::{choice, choice_value, confirm, language, place};
+pub use span::{daterange, datetime, duration};
+
 use crate::civil::{Date, Weekday, days_in_month};
-use crate::value::{MAX_DIGITS, Number, Problem, Value};
+use crate::manifest::SlotDecl;
+use crate::value::{MAX_DIGITS, Number, Problem, SlotType, Value};
+use crate::{Lang, Timestamp};
+
+/// Reads a capture as the type its slot declares. `original` is the
+/// capture in the user's spelling, `folded` its match form. A capture that
+/// cannot be read becomes [`Value::Invalid`], never a guess.
+#[must_use]
+pub fn slot(decl: &SlotDecl, original: &str, folded: &str, lang: Lang, now: Timestamp) -> Value {
+    let invalid = |problem| Value::Invalid {
+        raw: trim_edges(original).to_owned(),
+        problem,
+    };
+    let today = now.date_or_utc();
+    let read = match decl.kind {
+        SlotType::Term if decl.repeated => Ok(list(original)),
+        SlotType::Term => Ok(term(original)),
+        SlotType::Number => number(folded, lang).map(Value::Number),
+        SlotType::Date => date(folded, lang, today),
+        SlotType::Duration => duration(folded, lang),
+        SlotType::DateTime => datetime(folded, lang, now),
+        SlotType::DateRange => daterange(folded, lang, today),
+        SlotType::Place => place(original, folded),
+        SlotType::Language => language(folded),
+        SlotType::Confirm => confirm(folded).map(Value::Confirm),
+        SlotType::Choice => {
+            let ids: Vec<&str> = decl.options.iter().map(|o| o.id.as_str()).collect();
+            let names: Vec<Vec<String>> = decl.options.iter().map(|o| o.names.clone()).collect();
+            choice_value(folded, &ids, &names)
+        }
+    };
+    read.unwrap_or_else(invalid)
+}
 
 /// Punctuation that may surround a captured value without being part of it.
 const EDGE_PUNCTUATION: &[char] = &['.', ',', ';', ':', '!', '?', '¡', '¿', '"', '\'', '(', ')'];
@@ -602,6 +642,15 @@ fn resolve_weekday(today: Date, day: Weekday, which: Which) -> Date {
 /// A numeric date: `3/4`, `3-4-2027`, `25/12/27`. Day first in Spanish; in
 /// English ambiguous unless only one reading is a valid date.
 fn numeric(word: &str, lang: Lang, today: Date) -> Option<Result<Value, Problem>> {
+    // ISO 8601, `2027-03-04`: one reading in both languages.
+    if let [y, m, d] = word.split('-').collect::<Vec<_>>().as_slice()
+        && y.len() == 4
+        && m.len() == 2
+        && d.len() == 2
+    {
+        let (y, m, d) = (y.parse().ok()?, m.parse().ok()?, d.parse().ok()?);
+        return Some(calendar(today, d, m, Some(y)));
+    }
     let sep = if word.contains('/') { '/' } else { '-' };
     let parts: Vec<&str> = word.split(sep).collect();
     if !(2..=3).contains(&parts.len())

@@ -401,6 +401,36 @@ fn identity_by_explicit_key() {
     assert!(is_english_greeting(&third.content()));
 }
 
+/// An open question spans two requests of one conversation: `pending` is
+/// true while it is open, and the next message answers it
+/// (docs/spec/conversation.md 3.2, docs/API.md 2.2).
+#[test]
+fn an_open_question_across_two_requests() {
+    let addr = start();
+    let with = |text: &str| {
+        let mut body = user(text);
+        body["metadata"] = json!({ "conversation": "question" });
+        body
+    };
+    let first = chat(addr, &with("calcula"));
+    assert_eq!(first.header("x-talos-status"), Some("answered"));
+    assert_eq!(first.content(), "¿Qué quieres calcular?");
+    let talos = &first.json()["talos"];
+    assert_eq!(talos["pending"], true);
+    assert_eq!(talos["status"], "answered");
+    assert_eq!(talos["intent"], "calc.arithmetic");
+    let second = chat(addr, &with("12 por 12"));
+    assert_eq!(second.content(), "12 × 12 = 144.");
+    let talos = &second.json()["talos"];
+    assert_eq!(talos["pending"], false);
+    assert_eq!(talos["intent"], "calc.arithmetic");
+    assert_eq!(talos["slots"]["expression"], "12*12");
+    // Another conversation has nothing open.
+    let mut elsewhere = user("12 por 12");
+    elsewhere["metadata"] = json!({ "conversation": "other" });
+    assert_eq!(chat(addr, &elsewhere).json()["talos"]["pending"], false);
+}
+
 #[test]
 fn identity_by_user_field() {
     let addr = start();

@@ -4,7 +4,7 @@
 use std::cmp::Ordering;
 
 use talos_core::normalise::fold;
-use talos_core::{Call, Context, Lang, Message, SkillResult, Value};
+use talos_core::{Call, Context, Expectation, Lang, Message, SkillResult, Value};
 
 use super::numbers::{canonical_number, echo_number};
 use super::rat::{MathError, Rat, show_places};
@@ -96,14 +96,22 @@ pub(super) fn handle(cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
     run(cx, call).unwrap_or_else(|_| unable("pct_too_large"))
 }
 
-/// Reads a slot the shape needs, or returns the reply for its absence.
+/// Reads a slot the shape needs, or asks for it: `$missing` is the
+/// question when it is absent; a number that cannot be read is asked for
+/// again (docs/spec/conversation.md 2.1).
 macro_rules! need {
     ($inputs:expr, $name:expr, $missing:expr) => {
         match $inputs.get($name) {
             Slot::Value(v) => v,
-            Slot::Missing => return Ok(unable($missing)),
+            Slot::Missing => {
+                return Ok(SkillResult::Ask(
+                    Expectation::slot($name),
+                    Message::new($missing),
+                ));
+            }
             Slot::Bad(raw) => {
-                return Ok(SkillResult::Unable(
+                return Ok(SkillResult::Ask(
+                    Expectation::slot($name),
                     Message::new("pct_bad_number").var("raw", raw),
                 ));
             }
@@ -117,8 +125,8 @@ fn run(cx: &mut Context<'_>, call: &Call<'_>) -> Result<SkillResult, MathError> 
     let answer = |message: Message| Ok(SkillResult::Answer(message));
     match inputs.text("shape").as_deref() {
         Some("of") => {
-            let percent = need!(inputs, "percent", "pct_usage");
-            let amount = need!(inputs, "amount", "pct_usage");
+            let percent = need!(inputs, "percent", "pct_ask_percent");
+            let amount = need!(inputs, "amount", "pct_ask_amount");
             let value = of(&amount, &percent)?;
             answer(
                 Message::new("pct_of")
@@ -128,8 +136,8 @@ fn run(cx: &mut Context<'_>, call: &Call<'_>) -> Result<SkillResult, MathError> 
             )
         }
         Some("part_of_whole") => {
-            let part = need!(inputs, "part", "pct_usage");
-            let whole = need!(inputs, "whole", "pct_usage");
+            let part = need!(inputs, "part", "pct_ask_number");
+            let whole = need!(inputs, "whole", "pct_ask_number");
             if whole.is_zero() {
                 return answer(Message::new("pct_whole_zero"));
             }
@@ -143,8 +151,8 @@ fn run(cx: &mut Context<'_>, call: &Call<'_>) -> Result<SkillResult, MathError> 
         }
         Some("adjust") => adjust(cx, &inputs),
         Some("change") => {
-            let from = need!(inputs, "from", "pct_usage");
-            let to = need!(inputs, "to", "pct_usage");
+            let from = need!(inputs, "from", "pct_ask_number");
+            let to = need!(inputs, "to", "pct_ask_number");
             if from.is_zero() {
                 return answer(Message::new("pct_from_zero"));
             }
@@ -157,8 +165,8 @@ fn run(cx: &mut Context<'_>, call: &Call<'_>) -> Result<SkillResult, MathError> 
             answer(Message::new(id).var("percent", result(&magnitude, lang, None)))
         }
         Some("whole") => {
-            let part = need!(inputs, "part", "pct_usage");
-            let percent = need!(inputs, "percent", "pct_usage");
+            let part = need!(inputs, "part", "pct_ask_number");
+            let percent = need!(inputs, "percent", "pct_ask_percent");
             if percent.is_zero() {
                 return answer(Message::new("pct_percent_zero"));
             }
@@ -171,8 +179,8 @@ fn run(cx: &mut Context<'_>, call: &Call<'_>) -> Result<SkillResult, MathError> 
             )
         }
         Some("tip") => {
-            let percent = need!(inputs, "percent", "pct_usage");
-            let amount = need!(inputs, "amount", "pct_usage");
+            let percent = need!(inputs, "percent", "pct_ask_percent");
+            let amount = need!(inputs, "amount", "pct_ask_amount");
             let tip = of(&amount, &percent)?;
             let total = amount.add(&tip)?;
             answer(
@@ -189,7 +197,7 @@ fn run(cx: &mut Context<'_>, call: &Call<'_>) -> Result<SkillResult, MathError> 
 /// change reported in the `percent` slot.
 fn adjust(cx: &mut Context<'_>, inputs: &Inputs<'_>) -> Result<SkillResult, MathError> {
     let lang = inputs.call.lang;
-    let amount = need!(inputs, "amount", "pct_usage");
+    let amount = need!(inputs, "amount", "pct_ask_amount");
     let percent = need!(inputs, "percent", "pct_needs_rate");
     let op = inputs.text("op").unwrap_or_default();
     let discount = op == "discount";

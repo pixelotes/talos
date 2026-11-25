@@ -13,8 +13,9 @@
 # `birth` (the user's own birth date, which Talos does not know), `dir`
 # (`since`: the verb looks back).
 #
-# v0.1 never asks back: a request missing what it needs, an ambiguous English
-# `3/4`, a target Talos cannot read, all get a short hint and `unhandled`.
+# A missing target ("cuánto falta"), a birthday Talos does not know, and an
+# ambiguous English `3/4` are asked back; a target Talos cannot read gets a
+# short hint and `unhandled`.
 
 [skill]
 id = "clock"
@@ -32,6 +33,7 @@ capabilities = []
 id = "clock.now"
 priority = 50
 courtesy = false
+command = { es = "/hora", en = "/time" }
 
   [intent.examples]
   es = ["qué hora es", "me dices la hora", "tienes hora", "hora", "dime la hora porfa", "qué hora será dentro de 3 horas", "qué hora es en formato de 12 horas"]
@@ -77,6 +79,7 @@ courtesy = false
 id = "clock.date"
 priority = 60
 courtesy = false
+command = { es = "/fecha", en = "/date", slot = "day" }
 
   [intent.examples]
   es = ["qué fecha es hoy", "a cuántos estamos", "qué día es hoy", "fecha de hoy", "qué fecha fue ayer", "en qué año estamos", "la fecha en formato iso"]
@@ -160,6 +163,7 @@ courtesy = false
 id = "clock.weekday"
 priority = 50
 courtesy = false
+command = { es = "/diasemana", en = "/weekday", slot = "date" }
 
   [intent.examples]
   es = ["qué día de la semana es hoy", "qué día cae el 25 de diciembre", "qué día fue el 20 de julio de 1969", "qué día era el 1/1/2000", "qué día será dentro de 3 semanas", "qué día de la semana nací"]
@@ -209,6 +213,7 @@ courtesy = false
 id = "clock.until"
 priority = 50
 courtesy = false
+command = { es = "/falta", en = "/until", slot = "target" }
 
   [intent.examples]
   es = ["cuánto falta para Navidad", "cuánto falta para las 7", "cuántos días faltan para el viernes", "cuánto hace desde el 1 de enero de 2000", "cuanto queda para pascua", "cuánto falta para medianoche"]
@@ -356,8 +361,8 @@ es = ["No he entendido esa fecha. Prueba con «el 3 de mayo» o «el próximo vi
 en = ["I couldn't read that date. Try “May 3” or “next Friday”."]
 
 [reply.ambiguous]
-es = ["Esa fecha puede ser {first} o {second}. Escríbela con palabras."]
-en = ["That date could be {first} or {second}. Please write it out in words."]
+es = ["¿Te refieres al {first} o al {second}?"]
+en = ["Do you mean {first} or {second}?"]
 
 [reply.weekday_today]
 es = ["Hoy es {weekday} ({short})."]
@@ -450,6 +455,14 @@ en = ["{span} to go ({full}, {time})."]
 [reply.usage_until]
 es = ["Necesito una fecha, una hora o un día conocido: «cuánto falta para Navidad» o «cuánto falta para las 9»."]
 en = ["I need a date, a time or a well-known day: “how long until Christmas” or “how long until 9pm”."]
+
+[reply.ask_until]
+es = ["¿Para cuándo?"]
+en = ["Until what?"]
+
+[reply.ask_birthday]
+es = ["¿Qué fecha es tu cumpleaños?"]
+en = ["What date is your birthday?"]
 
 [reply.since_time]
 es = ["Para «desde» necesito una fecha, no una hora: «cuánto hace desde el 1 de enero de 2000»."]

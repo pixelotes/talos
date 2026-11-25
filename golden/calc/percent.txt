@@ -152,16 +152,18 @@ Given: hint = en
 Given: hint = none
 
 [es] U: añade el iva a 100
-     T: Dime el porcentaje, por ejemplo «100 más el 21% de IVA»: no supongo ninguna tasa.
-                                                  → unhandled · calc.percent · amount=100
-     (no rate is assumed (v0.1: a hint instead of a question))
+     T: ¿Qué porcentaje de IVA?                    → asks · calc.percent · percent
+[es] U: 21
+     T: 100 más un 21 % de IVA es 121.            → answered · calc.percent · amount=100 percent=+21
+     (no rate is assumed: it is asked)
 
 Given: hint = en
 
 [en] U: what's 50% of
-     T: Give me the percentage and the amount, for example "15% of 80".
-                                                  → unhandled · calc.percent · percent=50
-     (missing amount (v0.1: a hint instead of a question))
+     T: Of what number?                           → asks · calc.percent · amount
+[en] U: 80
+     T: 50% of 80 is 40.                          → answered · calc.percent · amount=80 percent=50
+     (missing amount: asked)
 
 Given: hint = none
 

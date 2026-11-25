@@ -69,27 +69,26 @@ Given: draw = option 1
 [en] U: flip a coin to choose between tea and coffee
      T: I pick tea.                               → answered · random.pick · options=tea|coffee
 
-# Asking back is v0.2: here a hint, `unhandled`.
+# Missing options are asked for; the open question takes the reply.
 
 Given: hint = none
 [es] U: elige uno
-     T: Dime entre qué opciones elegir, por ejemplo: elige entre pizza, sushi y tacos.
-                                                  → unhandled · random.pick
+     T: ¿Entre qué opciones?                       → asks · random.pick · options
+Given: draw = option 3
+[es] U: pizza, sushi o tacos
+     T: Elijo tacos.                              → answered · random.pick · options=pizza|sushi|tacos
 
 Given: hint = en
 [en] U: pick one
-     T: Tell me the options, for example: pick between pizza, sushi and tacos.
-                                                  → unhandled · random.pick
+     T: Pick among what?                          → asks · random.pick · options
 
 Given: hint = none
 [es] U: ayúdame a elegir entre dos camisetas
-     T: Dime entre qué opciones elegir, por ejemplo: elige entre pizza, sushi y tacos.
-                                                  → unhandled · random.pick · options=dos camisetas
+     T: ¿Cuáles son? Dime sus nombres.            → asks · random.pick · options
 
 Given: hint = en
 [en] U: pick a color
-     T: Tell me the options, for example: pick between pizza, sushi and tacos.
-                                                  → unhandled · random.pick
+     T: Pick among what?                          → asks · random.pick · options
 
 Given: hint = none
 [es] U: elige entre pizza

@@ -14,7 +14,8 @@ use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use crate::language::Hold;
-use crate::skill::Expectation;
+use crate::skill::{Expectation, Message};
+use crate::value::Slots;
 use crate::{ConvId, IntentId, Lang, Status, Timestamp};
 
 /// What the engine remembers about one conversation between turns.
@@ -23,12 +24,34 @@ pub struct ConversationState {
     turns: u32,
     lang: Option<(Lang, Hold)>,
     last_intent: Option<IntentId>,
-    /// An open question waiting for the next message. Always `None` in
-    /// v0.1; open questions arrive in v0.2 (docs/spec/conversation.md
-    /// section 3).
-    expectation: Option<Expectation>,
+    /// The open question waiting for the next message, if any
+    /// (docs/spec/conversation.md section 3). At most one: asking again
+    /// replaces it.
+    open: Option<Open>,
     /// What was said lately, for the reflector's variants.
     recent: Recent,
+}
+
+/// An open question: what was asked, by whom, and what the request had so
+/// far.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Open {
+    /// The intent being completed.
+    pub(crate) intent: IntentId,
+    /// What answers it.
+    pub(crate) expectation: Expectation,
+    /// The request's slots when it asked (internal ones included), without
+    /// the open one.
+    pub(crate) slots: Slots,
+    /// The question, to ask again in the language of a later turn.
+    pub(crate) question: Message,
+    /// The turn that opened it.
+    pub(crate) turn: u32,
+    /// When it was opened, in Unix seconds of the turn's `now`.
+    pub(crate) at: i64,
+    /// How many times the question has been put: 1, or 2 after a failed
+    /// answer. It is never put a third time.
+    pub(crate) asked: u8,
 }
 
 /// What Talos said lately in a conversation: enough for the reflector to
@@ -68,7 +91,7 @@ impl ConversationState {
         turns: 0,
         lang: None,
         last_intent: None,
-        expectation: None,
+        open: None,
         recent: Recent::NEW,
     };
 
@@ -97,10 +120,20 @@ impl ConversationState {
         self.last_intent.as_ref()
     }
 
-    /// The open question, if any (never, in v0.1).
+    /// The open question, if any.
     #[must_use]
-    pub const fn expectation(&self) -> Option<&Expectation> {
-        self.expectation.as_ref()
+    pub fn expectation(&self) -> Option<&Expectation> {
+        self.open.as_ref().map(|open| &open.expectation)
+    }
+
+    /// Takes the open question out, for the turn to answer, keep or drop.
+    pub(crate) fn take_open(&mut self) -> Option<Open> {
+        self.open.take()
+    }
+
+    /// Leaves a question open for the next turn (or none).
+    pub(crate) fn set_open(&mut self, open: Option<Open>) {
+        self.open = open;
     }
 
     /// Starts the next turn and returns its number.

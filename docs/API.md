@@ -32,6 +32,11 @@ the reply text). `--config PATH` and `--data-dir PATH` are planned with
 only on a terminal) and prints one reply per line until end of input; all its
 lines are one conversation.
 
+A message that begins with `/` is a command (`/calc 1 + 2`, `/ayuda`;
+[ADR 0016](adr/0016-command-shortcuts.md)). The engine handles it, so it
+works the same through `ask`, `chat` and `serve`, and a host forwards it like
+any other text.
+
 Exit status of `talos ask`: `0` answered, `2` deflected, `3` unhandled. A
 shell script can fall through to something else exactly as a host application
 would. Other statuses: `talos skills check` exits `1` when a manifest has
@@ -179,10 +184,10 @@ another engine uses the same chat-completions call as any client and reads the
 | Field | Meaning |
 |---|---|
 | `status` | `answered`, `deflected` or `unhandled` — whether to show the reply or pass the turn on |
-| `pending` | Talos asked a question back; send the next message of this conversation to Talos first |
+| `pending` | a question is open after this turn: Talos asked one back (the status is then `answered` and `intent` the request being completed), or the user hesitated and it stays open. Send the next message of this conversation to Talos first: it may answer, cancel or replace the question. It closes after three more turns or five minutes |
 | `generated` | true only when the answer came from an external skill that declares it uses a model; every other outcome is reproducible |
 | `intent`, `slots`, `confidence`, `language` | what was recognised, for logging and routing decisions; `intent` is kept when the status is `unhandled` |
-| `reason` | why a turn is `unhandled` (unknown, cannot, generative, noise, other language…) or which shape was `deflected` |
+| `reason` | why a turn is `unhandled` (unknown, cannot, generative, noise, other language, `nothing-pending` for a bare yes/no with no question open, `unknown-command`, `command-argument`, `gave-up` for a question dropped after two failed answers…) or which shape was `deflected`; on an `answered` turn with no intent, the dialog move: `acknowledgement`, `cancelled`, `hedge` |
 
 Hints travel the other way in `metadata` (`language`, `conversation`, `place`,
 `trace`). This is the whole integration contract: one standard endpoint, one

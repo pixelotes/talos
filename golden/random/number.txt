@@ -90,12 +90,14 @@ Given: draw = 3, 3, 5
 [es] U: 2 numeros del 1 al 5 sin repetir
      T: 3, 5.                                     → answered · random.number · count=2 distinct=yes high=5 low=1
 
-# Asking back is v0.2: here a hint, `unhandled`.
+# A missing end of the range is asked for.
 
 Given: hint = en
 [en] U: random number between 1 and
-     T: The other end of the range is missing. Try: a number between 1 and 10.
-                                                  → unhandled · random.number · low=1
+     T: Between 1 and what?                       → asks · random.number · high
+Given: draw = 7
+[en] U: 10
+     T: 7.                                        → answered · random.number · high=10 low=1
 
 Given: hint = none
 [es] U: 150 numeros del 1 al 10

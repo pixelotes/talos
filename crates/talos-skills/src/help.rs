@@ -4,7 +4,7 @@
 //! than is installed.
 
 use talos_core::normalise::fold;
-use talos_core::{Call, Context, Lang, Manifest, Message, Skill, SkillResult, Value};
+use talos_core::{Call, Context, Expectation, Lang, Manifest, Message, Skill, SkillResult, Value};
 
 /// The `help` handler.
 #[derive(Debug, Default)]
@@ -13,7 +13,7 @@ pub(crate) struct Help;
 /// Example phrases shown for one skill ("two or three", basics.md).
 const EXAMPLES_SHOWN: usize = 3;
 
-/// Skills named in the usage hint when no topic was given.
+/// Skills named in the question when no topic was given.
 const NAMES_SHOWN: usize = 5;
 
 /// Words that may precede a skill's name in a question ("lo de los dados",
@@ -74,11 +74,26 @@ fn display_name(manifest: &Manifest, lang: Lang) -> &str {
         .map_or(manifest.id.as_str(), String::as_str)
 }
 
-/// One "· summary" line per skill, in the order given.
+/// The skill's command names in the turn's language, in intent order
+/// (ADR 0016: `/help` lists the installed commands).
+fn commands(manifest: &Manifest, lang: Lang) -> Vec<&str> {
+    manifest
+        .intents
+        .iter()
+        .filter_map(|i| i.command.as_ref())
+        .map(|c| c.names.get(lang).as_str())
+        .collect()
+}
+
+/// One "· summary" line per skill, in the order given, with the skill's
+/// commands after it: "· la hora y la fecha (/hora, /fecha)".
 fn capability_lines(skills: &[Manifest], lang: Lang) -> String {
     skills
         .iter()
-        .map(|m| format!("· {}", m.summary.get(lang)))
+        .map(|m| match commands(m, lang).as_slice() {
+            [] => format!("· {}", m.summary.get(lang)),
+            names => format!("· {} ({})", m.summary.get(lang), names.join(", ")),
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -122,7 +137,7 @@ fn skill_help(skills: &[Manifest], lang: Lang, topic: &str) -> Option<(String, M
     Some((manifest.id.clone(), message))
 }
 
-/// The usage hint when no topic was given: the skills' names.
+/// The question when no topic was given: the skills' names.
 fn which(skills: &[Manifest], lang: Lang) -> Message {
     let names = skills
         .iter()
@@ -149,7 +164,10 @@ impl Skill for Help {
             }
             "help.skill" => {
                 let Some(topic) = call.slots.get("skill").and_then(Value::as_text) else {
-                    return SkillResult::Unable(which(cx.skills(), call.lang));
+                    return SkillResult::Ask(
+                        Expectation::slot("skill"),
+                        which(cx.skills(), call.lang),
+                    );
                 };
                 match skill_help(cx.skills(), call.lang, topic) {
                     Some((id, message)) => {
@@ -296,11 +314,11 @@ mod tests {
     }
 
     #[test]
-    fn declines_foreign_intents_and_hints_when_the_topic_is_missing_or_unknown() {
+    fn declines_foreign_intents_and_asks_when_the_topic_is_missing() {
         assert_eq!(call_with("help.other", None), SkillResult::Decline);
         assert!(matches!(
             call_with("help.skill", None),
-            SkillResult::Unable(m) if m.id == "which"
+            SkillResult::Ask(e, m) if m.id == "which" && e.slot == "skill"
         ));
         assert!(matches!(
             call_with("help.skill", Some("weather")),

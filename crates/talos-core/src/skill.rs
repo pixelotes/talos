@@ -42,13 +42,101 @@ impl Message {
     }
 }
 
-/// What a skill expects next when it asks back. A placeholder until open
-/// questions arrive (v0.2); the engine answers an `Ask` honestly as
-/// `Unhandled` rather than pretending to wait.
+/// What a skill expects next when it asks back (docs/spec/conversation.md
+/// section 3). The engine keeps it in the conversation with the request's
+/// slots; the next message is offered to it first, and an answer completes
+/// the original request: the same handler is called again with the slot
+/// filled.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expectation {
-    /// The slot that is open.
+    /// The slot the answer fills; one the intent declares, and not internal.
     pub slot: String,
+    /// What is accepted as an answer.
+    pub expects: Expects,
+}
+
+/// The kinds of answer an [`Expectation`] accepts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Expects {
+    /// A value of the slot's declared type, read by its extractor: bare
+    /// ("Tokio"), framed ("en Tokio, por favor") or in a repetition of the
+    /// request ("la hora en Tokio").
+    Value,
+    /// Text that completes what the user already wrote: the slot is filled
+    /// with this prefix, a space and the answer ("2 +" and then "3").
+    Completion(String),
+    /// One of these options, by position or by name; the chosen option's
+    /// `value` fills the slot, through the slot's extractor.
+    Choice(Vec<Choice>),
+    /// Yes or no; the slot receives [`Value::Confirm`].
+    Confirm,
+}
+
+/// One option offered by an [`Expects::Choice`] question.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Choice {
+    /// The text that fills the slot when this option is chosen, read by
+    /// the slot's extractor ("4 march", for a date).
+    pub value: String,
+    /// How the user may name it, in either language; kept in the match
+    /// form (lower case, no accents).
+    pub names: Vec<String>,
+}
+
+impl Choice {
+    /// An option: what fills the slot, and the ways to name it.
+    #[must_use]
+    pub fn new<S: AsRef<str>>(
+        value: impl Into<String>,
+        names: impl IntoIterator<Item = S>,
+    ) -> Self {
+        Self {
+            value: value.into(),
+            names: names
+                .into_iter()
+                .map(|n| crate::normalise::normalise(n.as_ref()).folded)
+                .collect(),
+        }
+    }
+}
+
+impl Expectation {
+    /// Asks for a value of the slot's type.
+    #[must_use]
+    pub fn slot(slot: impl Into<String>) -> Self {
+        Self {
+            slot: slot.into(),
+            expects: Expects::Value,
+        }
+    }
+
+    /// Asks for the rest of what the user started: the answer is appended
+    /// to `prefix`.
+    #[must_use]
+    pub fn completing(slot: impl Into<String>, prefix: impl Into<String>) -> Self {
+        Self {
+            slot: slot.into(),
+            expects: Expects::Completion(prefix.into()),
+        }
+    }
+
+    /// Asks which of `options` (at most one question, conversation.md 3.4).
+    #[must_use]
+    pub fn choice(slot: impl Into<String>, options: Vec<Choice>) -> Self {
+        Self {
+            slot: slot.into(),
+            expects: Expects::Choice(options),
+        }
+    }
+
+    /// Asks yes or no.
+    #[must_use]
+    pub fn confirm(slot: impl Into<String>) -> Self {
+        Self {
+            slot: slot.into(),
+            expects: Expects::Confirm,
+        }
+    }
 }
 
 /// A failure inside a handler, rendered as an honest error.
@@ -61,9 +149,10 @@ pub enum SkillResult {
     /// Facts to render; the turn is `Answered`. Includes a correct "no" and
     /// a correct "that cannot be done" (docs/spec/README.md).
     Answer(Message),
-    /// A question back to the user. Not available in v0.1: the turn becomes
-    /// `Unhandled` with reason `cannot-ask`; answer a missing slot with a
-    /// usage hint as `Unable` instead.
+    /// A question back to the user: the message is the question, and the
+    /// expectation says what answers it. The turn is `Answered` with
+    /// `pending` set; the next message of the conversation is offered to
+    /// the expectation first.
     Ask(Expectation, Message),
     /// Recognised, but Talos cannot provide it: rendered, `Unhandled`, the
     /// intent kept.

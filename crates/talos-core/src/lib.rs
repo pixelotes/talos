@@ -12,6 +12,7 @@
 
 pub mod check;
 pub mod civil;
+mod dialog;
 mod engine;
 mod error;
 pub mod extract;
@@ -42,8 +43,9 @@ pub use outcome::{IntentId, Outcome, Reason, Status, Trace, TraceStep};
 pub use random::{Coin, Draw, Random};
 pub use safety::{DEFAULT_EMERGENCY, Emergency, SPAIN};
 pub use skill::{
-    Call, Context, Expectation, Message, Preferences, Registration, Skill, SkillError, SkillResult,
+    Call, Choice, Context, Expectation, Expects, Message, Preferences, Registration, Skill,
+    SkillError, SkillResult,
 };
 pub use state::ConversationState;
 pub use turn::{ConvId, Place, Timestamp, Turn};
-pub use value::{Number, Problem, SlotType, Slots, Value};
+pub use value::{Number, PlaceRef, Problem, SlotType, Slots, Value};

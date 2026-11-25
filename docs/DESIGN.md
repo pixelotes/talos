@@ -95,7 +95,8 @@ struct Outcome {
     slots: Slots,            // what was extracted: typed values by name
     confidence: f32,         // of the intent recognition, not of any fact
     reason: Option<Reason>,  // why a turn is Unhandled or which shape Deflected
-    pending: bool,           // Talos asked back and expects the next message
+    pending: bool,           // a question is open: the next message goes to it first
+    asks: Option<String>,    // the slot asked for, when the turn asked back
     generated: bool,         // true only if an external skill used a model
     trace: Option<Trace>,    // stage-by-stage decisions, if the turn asked
 }
@@ -103,13 +104,18 @@ struct Outcome {
 enum Value {                 // a slot value, typed by the manifest
     Text(String), Number(Number), Date { date: Date, year_given: bool },
     List { items: Vec<String>, uncertain: bool },
+    Duration { months: i64, seconds: i64 }, DateTime { date: Date, hour: u8, minute: u8 },
+    DateRange { start: Date, end: Date }, Place(PlaceRef), Language(&'static str),
+    Choice(String), Confirm(bool),
     Invalid { raw: String, problem: Problem },   // could not be read
 }
 ```
 
 `Reason` is an open set of lower-case, hyphenated names, not an enum: the
-engine's own (`empty`, `catch-all`, `cannot`, `cannot-ask`, `failed`) and the
-sentence shapes the reflector adds. `Number` is an exact decimal, so a number
+engine's own (`empty`, `catch-all`, `cannot`, `failed`; for dialog moves
+`acknowledgement`, `cancelled`, `hedge`, `nothing-pending`, `gave-up`; for
+commands `unknown-command`, `command-argument`) and the sentence shapes the
+reflector adds. `Number` is an exact decimal, so a number
 loses nothing between extractor and reply.
 
 Two rules follow from this shape:
@@ -171,7 +177,8 @@ result is sticky per conversation with hysteresis, so a single ambiguous word
 here, before anything else can claim it: a fixed reply that points to
 emergency help, with numbers taken from configuration for the user's place.
 The status is `Unhandled`, so a host with something better can step in. This
-runs ahead of the pending dialog so that an open yes/no can never swallow it.
+runs ahead of the pending dialog so that an open yes/no can never swallow it,
+and closes any open question. It does not run on a command line.
 
 **2. Pending dialog.** If the conversation has an open *expectation* (a slot
 to fill, a yes/no, a choice between senses), this message is offered to it
@@ -179,9 +186,22 @@ first. Expectations are typed, expire after a few turns, and can be cancelled
 by the user. An expectation that does not recognise the message releases it to
 the rest of the pipeline instead of swallowing it. This stage also answers the
 small dialog moves itself — an acknowledgement ("ok", "vale"), a cancellation,
-a hesitation — as `Answered` with no intent, since they belong to no skill.
+a hesitation — as `Answered` with no intent, since they belong to no skill,
+and a bare "sí"/"no" with nothing open as `Unhandled`. An answer completes
+the request that asked: the same handler is called again with the slot
+filled. A message a rule recognises as another request releases the question
+(it is closed, and the message routed normally); any other non-answer is
+asked about once more, then the question is dropped. It expires three turns
+or five minutes (by the turns' clock) after it was asked
+(docs/spec/conversation.md section 3).
 
-**3. Rules.** Patterns declared in skill manifests, compiled once into a
+**3. Rules.** The first check is for a command: a message whose first
+character is `/` goes straight to the intent whose manifest declares that
+name, with the rest of the line as its one slot, read by the same extractor
+as a capture; an unknown name is `Unhandled` and never reaches the rules or
+the reflector. A command line is no language evidence, skips the safety
+check and closes any open question ([ADR 0016](adr/0016-command-shortcuts.md)).
+Otherwise, patterns declared in skill manifests, compiled once into a
 per-language set. Ordered by explicit priority, then by specificity. A rule
 match is certain: it yields an intent and slots with confidence 1.0. An intent
 marked `courtesy` (a greeting, a thanks) may also open or close a message that
@@ -195,8 +215,8 @@ teaching Talos a phrase needs no retraining.
 offline from the same manifests. It returns a ranked list; the top candidate
 is accepted only above an absolute threshold *and* with a margin over the
 runner-up. Out-of-scope examples are a real class. Slots are then extracted by
-typed extractors (today: term, number, date; planned: duration, place,
-language).
+typed extractors (term, number, date, duration, datetime, daterange, place,
+language, choice, confirm; docs/SKILLS.md §3).
 ([ADR 0008](adr/0008-intent-classification.md))
 
 **5. Dispatch.** The intent's skill receives the turn, the slots and a context
@@ -232,8 +252,9 @@ Every stage records what it decided and why. `talos explain "…"` and the
 whose numbers were given), `rules` (candidates with priority, or the courtesy
 dropped), `slots`, `dispatch`, `render` (reply and variant), `reflector`
 (shape or guard, echo or why not, variant), `fallback` (an empty message),
-`random` (draws) and `state` (turn number, language, recent topic); the
-pending dialog and classifier join as they are built (v0.2 and later). This is the main debugging tool and the
+`random` (draws), `state` (turn number, language, recent topic), `dialog`
+(the open question: answered, kept, released, cancelled, expired) and
+`command`; the classifier joins as it is built. This is the main debugging tool and the
 reason the pipeline is a list of functions and not a graph of subscribers.
 
 ## 5. Knowledge
@@ -259,7 +280,7 @@ and [ADR 0013](adr/0013-external-skills.md).
 | State | Lives in | Survives restart |
 |---|---|---|
 | NLU model, compiled rules, skill registry | memory, immutable after start | rebuilt |
-| Dialog state (turn count, language, recent topic; expectations from v0.2) | memory, per conversation | no |
+| Dialog state (turn count, language, recent topic, the open question) | memory, per conversation | no |
 | Preferences, taught claims, corrections | `user.db` | yes |
 | Packs | `*.talospack`, read-only | yes |
 | Turn log | off by default; batched when on | optional |

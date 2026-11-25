@@ -6,8 +6,9 @@
 # arithmetic. Arithmetic rules only find the expression: the handler parses
 # it itself (precedence, spoken operators, number words) and declines text
 # that is not a calculation. Percentage rules fix the internal `shape` slot
-# that says which of the five questions was asked. v0.1 has no open
-# questions: a request missing something gets a usage hint.
+# that says which of the five questions was asked. A request missing what it
+# needs is asked for it (an expression, a percentage, an amount, a target
+# unit); "2 +" is asked to be completed.
 
 [skill]
 id = "calc"
@@ -22,6 +23,7 @@ help.en = ["what's 3 times 4", "15% of 80", "5 km in miles"]
 id = "calc.arithmetic"
 priority = 40
 courtesy = false
+command = { es = "/calc", en = "/calc", slot = "expression" }
 
   [intent.examples]
   es = ["cuánto es 2+2", "(3 + 4) * 5", "tres por cuatro", "calcula 2 + 3 * 4", "raíz cuadrada de 144", "2 elevado a 10", "cuánto da 10 entre 4"]
@@ -348,12 +350,12 @@ es = ["No sé calcular esa potencia."]
 en = ["I can't calculate that power."]
 
 [reply.arithmetic_usage]
-es = ["¿Qué quieres calcular? Prueba con «cuánto es 3 por 4»."]
-en = ["What should I calculate? Try \"what's 3 times 4\"."]
+es = ["¿Qué quieres calcular?"]
+en = ["What should I calculate?"]
 
 [reply.incomplete]
-es = ["Esa cuenta está incompleta: falta un número."]
-en = ["That calculation is incomplete: a number is missing."]
+es = ["La cuenta está incompleta: ¿cómo sigue «{expr}»?"]
+en = ["That calculation is incomplete: how does \"{expr}\" go on?"]
 
 [reply.implicit_multiplication]
 es = ["Escribe la multiplicación con un signo, por ejemplo 2 × (2 + 2)."]
@@ -419,17 +421,25 @@ en = ["A change from zero can't be expressed as a percentage."]
 es = ["Ningún número cumple eso: el 0 % de cualquier número es 0."]
 en = ["No number does: 0% of anything is 0."]
 
-[reply.pct_usage]
-es = ["Dime el porcentaje y la cantidad, por ejemplo «el 15% de 80»."]
-en = ["Give me the percentage and the amount, for example \"15% of 80\"."]
+[reply.pct_ask_percent]
+es = ["¿Qué porcentaje?"]
+en = ["What percentage?"]
+
+[reply.pct_ask_amount]
+es = ["¿De qué cantidad?"]
+en = ["Of what number?"]
+
+[reply.pct_ask_number]
+es = ["¿Qué número falta?"]
+en = ["Which number is missing?"]
 
 [reply.pct_needs_rate]
-es = ["Dime el porcentaje, por ejemplo «100 más el 21% de IVA»: no supongo ninguna tasa."]
-en = ["Tell me the percentage, for example \"100 plus 21% VAT\": I don't assume a rate."]
+es = ["¿Qué porcentaje de IVA?"]
+en = ["What VAT rate?"]
 
 [reply.pct_bad_number]
-es = ["No he podido leer «{raw}»."]
-en = ["I couldn't read \"{raw}\"."]
+es = ["No he podido leer «{raw}». ¿Qué número es?"]
+en = ["I couldn't read \"{raw}\". Which number is it?"]
 
 [reply.pct_too_large]
 es = ["Esos números son demasiado grandes para calcularlos."]
@@ -488,8 +498,8 @@ es = ["Dime qué convertir, por ejemplo «5 km a millas»."]
 en = ["Tell me what to convert, for example \"5 km in miles\"."]
 
 [reply.convert_target]
-es = ["¿A qué unidad? Por ejemplo «5 km a millas»."]
-en = ["Convert it to what? For example \"5 km in miles\"."]
+es = ["¿A qué unidad?"]
+en = ["Convert it to what?"]
 
 [reply.degrees_target]
 es = ["¿A qué unidad: Celsius, Fahrenheit o Kelvin?"]

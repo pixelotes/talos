@@ -33,13 +33,13 @@
 [en] U: thanks!
      T: You're welcome.                           → answered · smalltalk.thanks
 
-# "no, gracias" / "no thanks" are refusals, never "de nada". The spec's
-# `unhandled` reply needs the dialog layer; here nothing recognises them.
+# "no, gracias" / "no thanks" are refusals, never "de nada"; with nothing
+# open they are a bare "no" (docs/spec/conversation.md 3.8).
 [es] U: no, gracias
-     T: No te he entendido.                       → unhandled · catch-all
+     T: No tengo ninguna pregunta pendiente.      → unhandled · nothing-pending
 
 [en] U: no thanks
-     T: I didn't understand that.                 → unhandled · catch-all
+     T: There's no open question to answer.       → unhandled · nothing-pending
 
 # "gracias, qué hora es" and "cómo se dice gracias en inglés" belong to
 # clock.now and translate.word, which are not in this skill.

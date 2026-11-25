@@ -2,7 +2,7 @@
 
 use talos_core::extract;
 use talos_core::normalise::fold;
-use talos_core::{Call, Context, Lang, Message, SkillResult, Value};
+use talos_core::{Call, Context, Expectation, Lang, Message, SkillResult, Value};
 
 use super::numbers::{ReadError, canonical_number, echo_number, read_digits};
 use super::rat::{Rat, show_places};
@@ -56,6 +56,11 @@ fn unable(id: &'static str) -> SkillResult {
     SkillResult::Unable(Message::new(id))
 }
 
+/// Asks for the unit to convert to (docs/spec/basics.md, `calc.convert`).
+fn ask_target(id: &'static str) -> SkillResult {
+    SkillResult::Ask(Expectation::slot("to"), Message::new(id))
+}
+
 /// The reply for a unit that is not supported, if it is not.
 fn unsupported(raw: &str, resolved: Resolved) -> Option<SkillResult> {
     match resolved {
@@ -106,8 +111,8 @@ fn request(call: &Call<'_>) -> Result<Request, SkillResult> {
     let text = |name: &str| call.slots.get(name).and_then(Value::as_text);
     let (Some(from_raw), Some(to_raw)) = (text("from"), text("to")) else {
         return Err(match text("from").map(resolve) {
-            Some(Resolved::BareDegrees) => unable("degrees_target"),
-            Some(_) => unable("convert_target"),
+            Some(Resolved::BareDegrees) => ask_target("degrees_target"),
+            Some(_) => ask_target("convert_target"),
             None => unable("convert_usage"),
         });
     };
@@ -158,7 +163,7 @@ fn request(call: &Call<'_>) -> Result<Request, SkillResult> {
             )),
         },
         // A bare "degrees" as the target: ask which scale.
-        _ => Err(unable("degrees_target")),
+        _ => Err(ask_target("degrees_target")),
     }
 }
 

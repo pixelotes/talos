@@ -4,17 +4,19 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
+use crate::dialog::{self, CommandLine};
 use crate::extract;
+use crate::fallback::Move;
 use crate::language::{self, Decided, Evidence};
-use crate::manifest::{Intent, Manifest};
+use crate::manifest::{Intent, Manifest, SlotDecl};
 use crate::normalise::{Normalised, normalise};
 use crate::random::{Draw, Random, ScriptReport, turn_seed};
 use crate::reflector::Reflector;
 use crate::render;
 use crate::rules::{Candidate, Rules};
 use crate::safety::{self, DEFAULT_EMERGENCY, Emergency};
-use crate::skill::{Call, Context, Message, Registration, Skill, SkillResult};
-use crate::state::{ConversationState, Conversations, lock_state};
+use crate::skill::{Call, Context, Expects, Message, Registration, Skill, SkillResult};
+use crate::state::{ConversationState, Conversations, Open, lock_state};
 use crate::value::{SlotType, Slots, Value};
 use crate::{
     ConvId, Error, IntentId, Lang, Outcome, Reason, Status, Trace, TraceStep, Turn, fallback,
@@ -66,9 +68,39 @@ pub struct Engine {
     /// Skill id to position.
     by_id: BTreeMap<String, usize>,
     rules: Rules,
+    /// Command names (both languages) to (skill position, intent position).
+    commands: BTreeMap<String, (usize, usize)>,
     /// The fallback scripts, and the distress patterns.
     reflector: Reflector,
     conversations: Conversations,
+}
+
+/// How many turns after the one that asked an open question stays open,
+/// and for how long by the turns' clock (docs/spec/conversation.md 3.7).
+const OPEN_TURNS: u32 = 3;
+const OPEN_SECONDS: i64 = 5 * 60;
+
+/// What every stage of one turn reads: the message, its language, the
+/// turn's number and the turn itself.
+#[derive(Clone, Copy)]
+struct At<'a> {
+    message: &'a Normalised,
+    lang: Lang,
+    number: u32,
+    turn: &'a Turn,
+}
+
+/// What the pending-dialog stage decided.
+enum Pending {
+    /// It answered the turn.
+    Done(Handled),
+    /// The rest of the pipeline goes on: with the rule candidates it has
+    /// already found, if it looked, and the open question when the message
+    /// repeats the request that asked it (so asking again is counted).
+    Route {
+        candidates: Option<Vec<Candidate>>,
+        previous: Option<Open>,
+    },
 }
 
 impl std::fmt::Debug for Engine {
@@ -112,31 +144,56 @@ struct Handled {
     intent: Option<IntentId>,
     slots: Slots,
     internal: Slots,
+    /// The question left open for the next turn, if any.
+    open: Option<Open>,
+    /// The slot asked for, when the turn asked back.
+    asks: Option<String>,
 }
 
 impl Handled {
     /// An `Unhandled` result with the fixed reply for its reason.
     fn fallback(lang: Lang, reason: Reason, intent: Option<IntentId>) -> Self {
-        Self {
-            reply: fallback::reply(lang, &reason).to_owned(),
-            status: Status::Unhandled,
-            reason: Some(reason),
-            intent,
-            slots: Slots::new(),
-            internal: Slots::new(),
-        }
+        let reply = fallback::reply(lang, &reason).to_owned();
+        Self::fixed(reply, Status::Unhandled, reason, intent)
     }
 
     /// A reply of the reflector or of the safety check: no intent, the
     /// shape or the reason kept.
     fn reflected(reply: String, status: Status, reason: Reason) -> Self {
+        Self::fixed(reply, status, reason, None)
+    }
+
+    /// A dialog move's fixed reply.
+    fn dialog(lang: Lang, kind: Move, status: Status, reason: Reason) -> Self {
+        Self::fixed(
+            fallback::dialog(lang, kind).to_owned(),
+            status,
+            reason,
+            None,
+        )
+    }
+
+    /// An open question dropped after two failed answers (3.4).
+    fn gave_up(lang: Lang, intent: &IntentId) -> Self {
+        let reply = fallback::dialog(lang, Move::GaveUp).to_owned();
+        Self::fixed(
+            reply,
+            Status::Unhandled,
+            Reason::GAVE_UP,
+            Some(intent.clone()),
+        )
+    }
+
+    fn fixed(reply: String, status: Status, reason: Reason, intent: Option<IntentId>) -> Self {
         Self {
             reply,
             status,
             reason: Some(reason),
-            intent: None,
+            intent,
             slots: Slots::new(),
             internal: Slots::new(),
+            open: None,
+            asks: None,
         }
     }
 }
@@ -216,6 +273,7 @@ impl Engine {
             handlers.push(handler);
         }
         let rules = Rules::compile(&manifests)?;
+        let commands = command_table(&manifests)?;
         Ok(Self {
             conversations: Conversations::new(config.max_conversations, config.idle_expiry_seconds),
             config,
@@ -223,6 +281,7 @@ impl Engine {
             handlers,
             by_id,
             rules,
+            commands,
             reflector: Reflector::new()?,
         })
     }
@@ -272,6 +331,10 @@ impl Engine {
         clippy::needless_pass_by_value,
         reason = "the turn is an owned value handed to the pipeline (ADR 0004)"
     )]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the pipeline is written out in order in one function (ADR 0004)"
+    )]
     fn run(&self, turn: Turn, script: Option<Vec<Draw>>) -> (Outcome, Option<ScriptReport>) {
         let mut trace = Tracer(turn.trace.then(Vec::new));
         let entry = self.conversations.enter(&turn.conversation, turn.now);
@@ -288,15 +351,22 @@ impl Engine {
             }
         });
 
-        // 1. Language, sticky per conversation.
+        let command = dialog::command_line(&message);
+
+        // 1. Language, sticky per conversation. A command line is no
+        // evidence: the reply is in the conversation's language (ADR 0016).
+        let evidence = if command.is_some() { "" } else { &message.text };
         let (lang, decided) = language::decide(
             turn.lang,
-            &message.text,
+            evidence,
             state.lang_hold(),
             self.config.default_lang,
         );
         state.set_lang(lang, decided.hold());
         trace.note("language", || describe_language(lang, decided));
+
+        // The open question, if one is open and has not expired.
+        let mut open = Self::open_question(&mut state, number, turn.now, &mut trace);
 
         let random = match script {
             Some(draws) => Random::scripted(draws),
@@ -308,8 +378,8 @@ impl Engine {
             )),
         };
         // 1b. Safety check, ahead of everything that could claim the
-        // message (docs/spec/conversation.md 3.9).
-        let alarm = if message.is_empty() {
+        // message (docs/spec/conversation.md 3.9). Not on a command line.
+        let alarm = if message.is_empty() || command.is_some() {
             None
         } else {
             let alarm = safety::check(
@@ -334,28 +404,50 @@ impl Engine {
             &state,
             &self.manifests,
         );
+        let at = At {
+            message: &message,
+            lang,
+            number,
+            turn: &turn,
+        };
         let answered = if message.is_empty() || alarm.is_some() {
             None
+        } else if let Some(line) = &command {
+            // A command goes straight to its intent; it closes any open
+            // question, as an unrelated message would.
+            if open.take().is_some() {
+                trace.note("dialog", || {
+                    "a command line closes the open question".to_owned()
+                });
+            }
+            Some(self.command(&mut cx, at, line, &mut trace))
         } else {
-            // 2. Pending dialog: v0.2.
+            // 2. Pending dialog.
+            match self.pending(&mut cx, at, open.take(), &mut trace) {
+                Pending::Done(handled) => Some(handled),
+                Pending::Route {
+                    candidates: found,
+                    previous,
+                } => {
+                    // 3. Rules.
+                    let candidates =
+                        found.unwrap_or_else(|| self.recognise(lang, &message, &mut trace));
 
-            // 3. Rules.
-            let candidates = self.recognise(lang, &message, &mut trace);
+                    // 4. Classifier: v0.2.
 
-            // 4. Classifier: v0.2.
-
-            // 5. Dispatch and 6. render, candidate by candidate until one
-            // does not decline.
-            let mut handled = None;
-            for candidate in &candidates {
-                handled = self.dispatch(
-                    &mut cx, &message, lang, candidate, number, &turn, &mut trace,
-                );
-                if handled.is_some() {
-                    break;
+                    // 5. Dispatch and 6. render, candidate by candidate until
+                    // one does not decline.
+                    let mut handled = None;
+                    for candidate in &candidates {
+                        handled =
+                            self.dispatch(&mut cx, at, candidate, &mut trace, previous.as_ref());
+                        if handled.is_some() {
+                            break;
+                        }
+                    }
+                    handled
                 }
             }
-            handled
         };
         let (_, random) = cx.finish();
 
@@ -363,8 +455,15 @@ impl Engine {
             handled
         } else if message.is_empty() {
             trace.note("fallback", || "empty message".to_owned());
-            Handled::fallback(lang, Reason::EMPTY, None)
+            // An empty message leaves an open question as it was.
+            Handled {
+                open: open.take(),
+                ..Handled::fallback(lang, Reason::EMPTY, None)
+            }
         } else if let Some(alarm) = alarm {
+            if open.is_some() {
+                trace.note("dialog", || "distress closes the open question".to_owned());
+            }
             Handled::reflected(alarm.reply, alarm.status, alarm.reason)
         } else {
             // 7. The reflector.
@@ -378,6 +477,8 @@ impl Engine {
 
         state.set_last_intent(handled.intent.clone());
         state.remember_reply(&handled.reply, handled.status);
+        let pending = handled.open.is_some();
+        state.set_open(handled.open);
         trace.note("state", || describe_state(&turn.conversation, &state));
         let outcome = Outcome {
             reply: handled.reply,
@@ -387,7 +488,8 @@ impl Engine {
             intent: handled.intent,
             slots: handled.slots,
             reason: handled.reason,
-            pending: false,
+            pending,
+            asks: handled.asks,
             generated: false,
             trace: trace.finish(handled.internal),
         };
@@ -448,49 +550,337 @@ impl Engine {
             if original.trim().is_empty() {
                 continue;
             }
-            let invalid = |problem| Value::Invalid {
-                raw: original.trim().to_owned(),
-                problem,
-            };
-            let value = match decl.kind {
-                SlotType::Term if decl.repeated => extract::list(original),
-                SlotType::Term => extract::term(original),
-                SlotType::Number => {
-                    extract::number(folded, lang).map_or_else(invalid, Value::Number)
-                }
-                SlotType::Date => {
-                    extract::date(folded, lang, cx.now().date_or_utc()).unwrap_or_else(invalid)
-                }
-            };
+            let value = extract::slot(decl, original, folded, lang, cx.now());
             slots.insert(name.clone(), value);
         }
         slots
     }
 
+    /// The skill position and the intent for an intent id.
+    fn intent(&self, id: &IntentId) -> Option<(usize, &Intent)> {
+        let &index = self.by_id.get(id.skill())?;
+        let intent = self.manifests[index].intents.iter().find(|i| &i.id == id)?;
+        Some((index, intent))
+    }
+
+    /// The open question carried over from the last turn, unless it has
+    /// expired: more than [`OPEN_TURNS`] turns or [`OPEN_SECONDS`] seconds
+    /// after the turn that asked it (docs/spec/conversation.md 3.7).
+    fn open_question(
+        state: &mut ConversationState,
+        number: u32,
+        now: crate::Timestamp,
+        trace: &mut Tracer,
+    ) -> Option<Open> {
+        let open = state.take_open()?;
+        let turns = number.saturating_sub(open.turn);
+        let seconds = now.unix_seconds.saturating_sub(open.at);
+        if turns > OPEN_TURNS || seconds > OPEN_SECONDS {
+            trace.note("dialog", || {
+                format!(
+                    "the question for `{}` ({}) expired after {turns} turns and {seconds} s",
+                    open.expectation.slot, open.intent
+                )
+            });
+            return None;
+        }
+        Some(open)
+    }
+
+    /// Stage 2: the pending dialog (docs/spec/conversation.md section 3).
+    /// With a question open, the message may cancel it, hesitate, answer it
+    /// (and complete the original request), fail to answer it, or be
+    /// unrelated and release it. With none open, a bare acknowledgement or
+    /// yes/no is answered here.
+    fn pending(
+        &self,
+        cx: &mut Context<'_>,
+        at: At<'_>,
+        open: Option<Open>,
+        trace: &mut Tracer,
+    ) -> Pending {
+        let folded = at.message.folded.as_str();
+        let lang = at.lang;
+        let route = |candidates, previous| Pending::Route {
+            candidates,
+            previous,
+        };
+        let Some(open) = open else {
+            return Self::nothing_open(lang, folded, trace)
+                .map_or_else(|| route(None, None), Pending::Done);
+        };
+        let Some((_, intent)) = self.intent(&open.intent) else {
+            return route(None, None);
+        };
+        let Some(decl) = intent.slot(&open.expectation.slot) else {
+            return route(None, None);
+        };
+        let framed = dialog::frame(at.message, decl.kind == SlotType::Term);
+        let original = at.message.original_of(framed.clone());
+        let answer = &folded[framed];
+        let slot = open.expectation.slot.clone();
+
+        // A yes/no question takes "mejor no" or "vale" as its answer
+        // before anything else.
+        if open.expectation.expects == Expects::Confirm
+            && let Ok(yes) = extract::confirm(answer)
+        {
+            return self.fill(cx, at, open, Value::Confirm(yes), trace);
+        }
+        if dialog::is_cancel(folded) {
+            trace.note("dialog", || {
+                format!("the question for `{slot}` is cancelled")
+            });
+            return Pending::Done(Handled::dialog(
+                lang,
+                Move::Cancelled,
+                Status::Answered,
+                Reason::CANCELLED,
+            ));
+        }
+        if dialog::is_hedge(folded) || dialog::is_ack(folded) {
+            trace.note("dialog", || {
+                format!("a hesitation; the question for `{slot}` stays open")
+            });
+            let nth = at.number.saturating_sub(open.turn).saturating_sub(1);
+            return Pending::Done(Handled {
+                open: Some(open),
+                ..Handled::fixed(
+                    fallback::hedge(lang, nth).to_owned(),
+                    Status::Answered,
+                    Reason::HEDGE,
+                    None,
+                )
+            });
+        }
+        // An option, by position or by name.
+        if let Expects::Choice(options) = &open.expectation.expects {
+            let names: Vec<Vec<String>> = options.iter().map(|o| o.names.clone()).collect();
+            if let Ok(index) = extract::choice(answer, &names) {
+                let chosen = options[index].value.clone();
+                let value = Self::read(decl, &chosen, at, cx);
+                return self.fill(cx, at, open, value, trace);
+            }
+        }
+        // A value whose type is not free text is taken before the rules:
+        // "21" while a percentage is open.
+        if open.expectation.expects == Expects::Value && decl.kind != SlotType::Term {
+            let value = extract::slot(decl, original, answer, lang, cx.now());
+            if !matches!(value, Value::Invalid { .. }) {
+                return self.fill(cx, at, open, value, trace);
+            }
+        }
+        // A recognised request: the same one again, or another (3.6).
+        let candidates = self.recognise(lang, at.message, trace);
+        let completing = matches!(open.expectation.expects, Expects::Completion(_));
+        if let Some(first) = candidates.first()
+            && !(completing && first.intent == open.intent)
+        {
+            if first.intent == open.intent {
+                trace.note("dialog", || "the request is repeated".to_owned());
+                return route(Some(candidates), Some(open));
+            }
+            trace.note("dialog", || {
+                format!("not an answer: the question for `{slot}` is released and closed")
+            });
+            return route(Some(candidates), None);
+        }
+        // An answer of the expected kind, or a failed one. A bare yes or no
+        // is never a value.
+        let value = match &open.expectation.expects {
+            _ if extract::confirm(answer).is_ok() => None,
+            Expects::Value => Some(extract::slot(decl, original, answer, lang, cx.now())),
+            Expects::Completion(prefix) => {
+                let whole = normalise(&format!("{prefix} {original}"));
+                Some(extract::slot(
+                    decl,
+                    &whole.original,
+                    &whole.folded,
+                    lang,
+                    cx.now(),
+                ))
+            }
+            Expects::Choice(_) | Expects::Confirm => None,
+        }
+        .filter(|v| !matches!(v, Value::Invalid { .. }));
+        match value {
+            Some(value) => self.fill(cx, at, open, value, trace),
+            None => Pending::Done(self.not_understood(at, open, trace)),
+        }
+    }
+
+    /// With no question open: a bare acknowledgement, or a bare yes or no
+    /// (docs/spec/conversation.md 1.2, 3.5, 3.8).
+    fn nothing_open(lang: Lang, folded: &str, trace: &mut Tracer) -> Option<Handled> {
+        if dialog::is_ack(folded) || dialog::is_cancel(folded) {
+            trace.note("dialog", || "nothing open: an acknowledgement".to_owned());
+            return Some(Handled::dialog(
+                lang,
+                Move::Acknowledged,
+                Status::Answered,
+                Reason::ACKNOWLEDGEMENT,
+            ));
+        }
+        // "vale, gracias" is a thanks: an acknowledgement word is never a
+        // bare yes.
+        if extract::confirm(folded).is_ok() && !dialog::starts_with_ack(folded) {
+            trace.note("dialog", || "nothing open: a bare yes or no".to_owned());
+            return Some(Handled::dialog(
+                lang,
+                Move::NothingPending,
+                Status::Unhandled,
+                Reason::NOTHING_PENDING,
+            ));
+        }
+        None
+    }
+
+    /// Reads `text` as the slot's type, outside any message (a chosen
+    /// option's value).
+    fn read(decl: &SlotDecl, text: &str, at: At<'_>, cx: &Context<'_>) -> Value {
+        let n = normalise(text);
+        extract::slot(decl, &n.original, &n.folded, at.lang, cx.now())
+    }
+
+    /// An answer: the original request, completed with it, runs again.
+    fn fill(
+        &self,
+        cx: &mut Context<'_>,
+        at: At<'_>,
+        open: Open,
+        value: Value,
+        trace: &mut Tracer,
+    ) -> Pending {
+        trace.note("dialog", || {
+            format!(
+                "answers `{}` of {}: {value}",
+                open.expectation.slot, open.intent
+            )
+        });
+        let mut slots = open.slots.clone();
+        slots.insert(open.expectation.slot.clone(), value);
+        let handled = match self.intent(&open.intent) {
+            Some((index, decl)) => self.call(cx, at, index, decl, slots, trace, Some(&open)),
+            None => None,
+        };
+        // A handler that declines the completed request did not get an
+        // answer it can use.
+        Pending::Done(handled.unwrap_or_else(|| self.not_understood(at, open, trace)))
+    }
+
+    /// A message that is no answer to the open question: it is asked once
+    /// more, then dropped (3.4).
+    fn not_understood(&self, at: At<'_>, open: Open, trace: &mut Tracer) -> Handled {
+        if open.asked >= 2 {
+            trace.note("dialog", || {
+                format!("no answer for `{}` twice: dropped", open.expectation.slot)
+            });
+            return Handled::gave_up(at.lang, &open.intent);
+        }
+        trace.note("dialog", || {
+            format!("no answer for `{}`: asked again", open.expectation.slot)
+        });
+        let Some((index, intent)) = self.intent(&open.intent) else {
+            return Handled::gave_up(at.lang, &open.intent);
+        };
+        let question = Self::render(
+            &self.manifests[index],
+            at.lang,
+            at.turn,
+            at.number,
+            &open.question,
+            trace,
+        );
+        let Ok(question) = question else {
+            return Handled::gave_up(at.lang, &open.intent);
+        };
+        let (public, internal): (Slots, Slots) = open
+            .slots
+            .clone()
+            .into_iter()
+            .partition(|(name, _)| intent.slot(name).is_some_and(|s| !s.internal));
+        Handled {
+            reply: format!(
+                "{} {question}",
+                fallback::dialog(at.lang, Move::NotUnderstood)
+            ),
+            status: Status::Answered,
+            reason: None,
+            intent: Some(open.intent.clone()),
+            slots: public,
+            internal,
+            asks: Some(open.expectation.slot.clone()),
+            open: Some(Open { asked: 2, ..open }),
+        }
+    }
+
+    /// A command line (ADR 0016): no recognition, the argument through the
+    /// declared slot's extractor, then the ordinary dispatch.
+    fn command(
+        &self,
+        cx: &mut Context<'_>,
+        at: At<'_>,
+        line: &CommandLine,
+        trace: &mut Tracer,
+    ) -> Handled {
+        let lang = at.lang;
+        let shown = at.message.original_of(line.name_range.clone()).to_owned();
+        let Some(&(index, position)) = self.commands.get(&line.name) else {
+            trace.note("command", || {
+                format!("`{}` is not an installed command", line.name)
+            });
+            let help = [("/ayuda", Lang::Es), ("/help", Lang::En)]
+                .into_iter()
+                .find(|(name, l)| *l == lang && self.commands.contains_key(*name))
+                .map(|(name, _)| name);
+            let reply = fallback::unknown_command(lang, &shown, help);
+            return Handled::fixed(reply, Status::Unhandled, Reason::UNKNOWN_COMMAND, None);
+        };
+        let intent = &self.manifests[index].intents[position];
+        let slot = intent.command.as_ref().and_then(|c| c.slot.clone());
+        let captures = match (slot, line.argument.is_empty()) {
+            (Some(slot), false) => vec![(slot, line.argument.clone())],
+            (None, false) => {
+                trace.note("command", || format!("`{}` takes no argument", line.name));
+                let reply = fallback::command_argument(lang, &shown);
+                return Handled::fixed(
+                    reply,
+                    Status::Unhandled,
+                    Reason::COMMAND_ARGUMENT,
+                    Some(intent.id.clone()),
+                );
+            }
+            (_, true) => Vec::new(),
+        };
+        trace.note("command", || format!("`{}` → {}", line.name, intent.id));
+        let candidate = Candidate {
+            intent: intent.id.clone(),
+            priority: intent.priority,
+            lang,
+            pattern: line.name.clone(),
+            fixed: BTreeMap::new(),
+            captures,
+        };
+        self.dispatch(cx, at, &candidate, trace, None)
+            .unwrap_or_else(|| Handled::fallback(lang, Reason::CANNOT, Some(intent.id.clone())))
+    }
+
     /// Stages 5 and 6 for one candidate; `None` when its skill declines.
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "the pipeline passes each stage what it reads, explicitly (ADR 0004)"
-    )]
+    /// `previous` is the open question when the message repeats the
+    /// request that asked it.
     fn dispatch(
         &self,
         cx: &mut Context<'_>,
-        message: &Normalised,
-        lang: Lang,
+        at: At<'_>,
         candidate: &Candidate,
-        number: u32,
-        turn: &Turn,
         trace: &mut Tracer,
+        previous: Option<&Open>,
     ) -> Option<Handled> {
-        let intent_id = &candidate.intent;
-        let Some(&index) = self.by_id.get(intent_id.skill()) else {
-            trace.note("dispatch", || format!("no skill owns {intent_id}"));
+        let Some((index, intent)) = self.intent(&candidate.intent) else {
+            trace.note("dispatch", || format!("no skill owns {}", candidate.intent));
             return None;
         };
-        let manifest = &self.manifests[index];
-        let handler = &self.handlers[index];
-        let intent = manifest.intents.iter().find(|i| &i.id == intent_id)?;
-        let slots = Self::extract(intent, candidate, message, lang, cx);
+        let slots = Self::extract(intent, candidate, at.message, at.lang, cx);
         trace.note("slots", || {
             if slots.is_empty() {
                 "none".to_owned()
@@ -498,7 +888,38 @@ impl Engine {
                 describe_slots(&slots)
             }
         });
+        self.call(cx, at, index, intent, slots, trace, previous)
+    }
 
+    /// Calls the handler with typed slots and renders what it returns;
+    /// `None` when it declines.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "the pipeline passes each stage what it reads, explicitly (ADR 0004)"
+    )]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one handler result, checked and rendered in the order it is read"
+    )]
+    fn call(
+        &self,
+        cx: &mut Context<'_>,
+        at: At<'_>,
+        index: usize,
+        intent: &Intent,
+        slots: Slots,
+        trace: &mut Tracer,
+        previous: Option<&Open>,
+    ) -> Option<Handled> {
+        let At {
+            message,
+            lang,
+            number,
+            turn,
+        } = at;
+        let intent_id = &intent.id;
+        let manifest = &self.manifests[index];
+        let handler = &self.handlers[index];
         let call = Call {
             intent: intent_id,
             lang,
@@ -519,16 +940,23 @@ impl Engine {
                 Some(intent_id.clone()),
             ))
         };
+        let mut question = None;
         let (message, status, reason) = match result {
             SkillResult::Decline => return None,
             SkillResult::Answer(message) => (message, Status::Answered, None),
             SkillResult::Unable(message) => (message, Status::Unhandled, Some(Reason::CANNOT)),
-            SkillResult::Ask(..) => {
-                return Some(Handled::fallback(
-                    lang,
-                    Reason::CANNOT_ASK,
-                    Some(intent_id.clone()),
-                ));
+            SkillResult::Ask(expectation, message) => {
+                if intent.slot(&expectation.slot).is_none_or(|s| s.internal) {
+                    return failed(
+                        trace,
+                        format!(
+                            "asks for `{}`, which is not a declared, public slot of {intent_id}",
+                            expectation.slot
+                        ),
+                    );
+                }
+                question = Some(expectation);
+                (message, Status::Answered, None)
             }
             SkillResult::Fail(error) => return failed(trace, error.0),
         };
@@ -550,21 +978,61 @@ impl Engine {
                 format!("reported slot `{name}` is not a declared, public slot of {intent_id}"),
             );
         }
+        // Asking the same question a third time is giving up (3.4).
+        let again = previous.filter(|p| {
+            question
+                .as_ref()
+                .is_some_and(|q| p.intent == *intent_id && p.expectation.slot == q.slot)
+        });
+        let asked = again.map_or(1, |p| p.asked.saturating_add(1));
+        if question.is_some() && asked > 2 {
+            trace.note("dialog", || "asked twice already: dropped".to_owned());
+            return Some(Handled::gave_up(lang, intent_id));
+        }
+        let mut stored = slots.clone();
         let (mut public, internal): (Slots, Slots) = slots
             .into_iter()
             .partition(|(name, _)| intent.slot(name).is_some_and(|s| !s.internal));
         public.extend(reported);
-        match Self::render(manifest, lang, turn, number, &message, trace) {
-            Ok(reply) => Some(Handled {
-                reply,
-                status,
-                reason,
-                intent: Some(intent_id.clone()),
-                slots: public,
-                internal,
-            }),
-            Err(error) => failed(trace, error.to_string()),
-        }
+        let reply = match Self::render(manifest, lang, turn, number, &message, trace) {
+            Ok(reply) => reply,
+            Err(error) => return failed(trace, error.to_string()),
+        };
+        let (reply, open, asks) = match question {
+            None => (reply, None, None),
+            Some(expectation) => {
+                stored.remove(&expectation.slot);
+                let reply = if asked == 2 {
+                    format!("{} {reply}", fallback::dialog(lang, Move::NotUnderstood))
+                } else {
+                    reply
+                };
+                let asks = expectation.slot.clone();
+                trace.note("dialog", || {
+                    format!("asks for `{asks}`; the question stays open")
+                });
+                let open = Open {
+                    intent: intent_id.clone(),
+                    expectation,
+                    slots: stored,
+                    question: message,
+                    turn: again.map_or(number, |p| p.turn),
+                    at: again.map_or(turn.now.unix_seconds, |p| p.at),
+                    asked,
+                };
+                (reply, Some(open), Some(asks))
+            }
+        };
+        Some(Handled {
+            reply,
+            status,
+            reason,
+            intent: Some(intent_id.clone()),
+            slots: public,
+            internal,
+            open,
+            asks,
+        })
     }
 
     /// Stage 6: looks the message up in its skill's manifest, picks the
@@ -610,6 +1078,40 @@ impl Engine {
     }
 }
 
+/// Every command name to its (skill position, intent position).
+///
+/// # Errors
+///
+/// [`Error::Manifest`] when two intents declare the same name.
+fn command_table(manifests: &[Manifest]) -> Result<BTreeMap<String, (usize, usize)>, Error> {
+    let mut table: BTreeMap<String, (usize, usize)> = BTreeMap::new();
+    for (s, manifest) in manifests.iter().enumerate() {
+        for (i, intent) in manifest.intents.iter().enumerate() {
+            let Some(command) = &intent.command else {
+                continue;
+            };
+            for name in [&command.names.es, &command.names.en] {
+                match table.get(name) {
+                    Some(&(ts, ti)) if (ts, ti) != (s, i) => {
+                        let other = &manifests[ts].intents[ti].id;
+                        return Err(Error::manifest(
+                            &manifest.id,
+                            format!(
+                                "intent `{}`: command `{name}` is already `{other}`'s",
+                                intent.id
+                            ),
+                        ));
+                    }
+                    _ => {
+                        table.insert(name.clone(), (s, i));
+                    }
+                }
+            }
+        }
+    }
+    Ok(table)
+}
+
 fn describe_candidates(lang: Lang, candidates: &[Candidate]) -> String {
     let list = candidates
         .iter()
@@ -647,7 +1149,7 @@ fn describe_state(conversation: &ConvId, state: &ConversationState) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::skill::{Expectation, SkillError};
+    use crate::skill::{Choice, Expectation, SkillError};
     use crate::{Number, Timestamp};
 
     /// A skill whose behaviour per intent is fixed by the test.
@@ -659,20 +1161,49 @@ mod tests {
         }
 
         fn replies(&self) -> &'static [&'static str] {
-            &["echo", "count", "no_such_reply"]
+            &["echo", "count", "question", "no_such_reply"]
         }
 
         fn handle(&self, cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
+            let given = call.slots.values().next().map(ToString::to_string);
+            let echo = |x: String| SkillResult::Answer(Message::new("echo").var("x", x));
             match call.intent.as_str() {
                 "t.decline" => SkillResult::Decline,
                 "t.answer" => SkillResult::Answer(Message::new("echo").var("x", "uno")),
                 "t.unable" => SkillResult::Unable(Message::new("echo").var("x", "dos")),
-                "t.ask" => SkillResult::Ask(
-                    Expectation {
-                        slot: "x".to_owned(),
-                    },
-                    Message::new("echo"),
-                ),
+                "t.ask" => match call.slots.get("x") {
+                    Some(Value::Number(n)) => echo(n.to_string()),
+                    // Asked again while the answer is not a number.
+                    _ => SkillResult::Ask(Expectation::slot("x"), Message::new("question")),
+                },
+                "t.confirm" => match given {
+                    Some(answer) => echo(answer),
+                    None => SkillResult::Ask(Expectation::confirm("ok"), Message::new("question")),
+                },
+                "t.choose" => match given {
+                    Some(answer) => echo(answer),
+                    None => SkillResult::Ask(
+                        Expectation::choice(
+                            "pick",
+                            vec![
+                                Choice::new("rojo", ["rojo", "red"]),
+                                Choice::new("verde", ["verde", "green"]),
+                            ],
+                        ),
+                        Message::new("question"),
+                    ),
+                },
+                "t.sum" => match given {
+                    Some(answer) if answer.contains('+') => echo(answer),
+                    Some(answer) => SkillResult::Ask(
+                        Expectation::completing("expr", answer),
+                        Message::new("question"),
+                    ),
+                    None => SkillResult::Ask(Expectation::slot("expr"), Message::new("question")),
+                },
+                "t.internal" => {
+                    SkillResult::Ask(Expectation::slot("mode"), Message::new("question"))
+                }
                 "t.fail" => SkillResult::Fail(SkillError("boom".to_owned())),
                 "t.roll" => {
                     let n = call.slots.get("n").and_then(Value::as_number);
@@ -720,7 +1251,38 @@ pattern = [{ lang = "es", regex = '^no puedes$' }]
 id = "t.ask"
 priority = 50
 examples = { es = ["x"], en = ["x"] }
-pattern = [{ lang = "es", regex = '^pregunta$' }]
+slot = [{ name = "x", type = "number", required = true }]
+command = { es = "/pregunta", en = "/ask", slot = "x" }
+pattern = [{ lang = "es", regex = '^pregunta(?: (?<x>.+))?$' }]
+
+[[intent]]
+id = "t.confirm"
+priority = 50
+examples = { es = ["x"], en = ["x"] }
+slot = [{ name = "ok", type = "confirm", required = true }]
+pattern = [{ lang = "es", regex = '^confirma$' }]
+
+[[intent]]
+id = "t.choose"
+priority = 50
+examples = { es = ["x"], en = ["x"] }
+slot = [{ name = "pick", type = "term", required = true }]
+pattern = [{ lang = "es", regex = '^escoge$' }]
+
+[[intent]]
+id = "t.sum"
+priority = 50
+examples = { es = ["x"], en = ["x"] }
+slot = [{ name = "expr", type = "term", required = true }]
+pattern = [{ lang = "es", regex = '^suma(?: (?<expr>.+))?$' }]
+
+[[intent]]
+id = "t.internal"
+priority = 50
+examples = { es = ["x"], en = ["x"] }
+slot = [{ name = "mode", type = "term", internal = true }]
+command = { es = "/interno", en = "/internal" }
+pattern = [{ lang = "es", regex = '^interna$' }]
 
 [[intent]]
 id = "t.fail"
@@ -761,6 +1323,10 @@ en = ["Echo {x}."]
 [reply.count]
 es = ["Sale {n}.", "Ha salido {n}."]
 en = ["{n}.", "Rolled {n}."]
+
+[reply.question]
+es = ["¿Cuántos?"]
+en = ["How many?"]
 "#;
 
     fn engine() -> Engine {
@@ -809,9 +1375,9 @@ en = ["{n}.", "Rolled {n}."]
     }
 
     #[test]
-    fn ask_fail_and_handler_mistakes_do_not_panic() {
+    fn fail_and_handler_mistakes_do_not_panic() {
         for (text, reason) in [
-            ("pregunta", Reason::CANNOT_ASK),
+            ("interna", Reason::FAILED),
             ("falla", Reason::FAILED),
             ("rota", Reason::FAILED),
             ("indeclarada", Reason::FAILED),
@@ -824,6 +1390,206 @@ en = ["{n}.", "Rolled {n}."]
             assert!(intent(&outcome).is_some());
             assert_ne!(outcome.reply, "");
         }
+    }
+
+    /// One conversation, turn by turn: (reply, outcome line, pending).
+    fn talk(e: &Engine, texts: &[&str]) -> Vec<(String, String, bool)> {
+        texts
+            .iter()
+            .map(|text| {
+                let o = e.respond(turn(text, Some(Lang::Es)));
+                (o.reply.clone(), o.line(None), o.pending)
+            })
+            .collect()
+    }
+
+    fn line(text: &str, outcome: &str, pending: bool) -> (String, String, bool) {
+        (text.to_owned(), outcome.to_owned(), pending)
+    }
+
+    #[test]
+    fn an_open_question_takes_the_next_message() {
+        let e = engine();
+        assert_eq!(
+            talk(&e, &["pregunta", "pues 3, por favor"]),
+            [
+                line("¿Cuántos?", "asks · t.ask · x", true),
+                line("Eco 3.", "answered · t.ask · x=3", false),
+            ]
+        );
+        // The request repeated with the value is an answer too.
+        assert_eq!(
+            talk(&e, &["pregunta", "pregunta 4"])[1],
+            line("Eco 4.", "answered · t.ask · x=4", false)
+        );
+        let outcome = e.respond(turn("pregunta", None));
+        assert_eq!(outcome.status, Status::Answered);
+        assert_eq!(outcome.asks.as_deref(), Some("x"));
+        assert_eq!(
+            e.respond(turn("cinco", None)).line(None),
+            "answered · t.ask · x=5"
+        );
+    }
+
+    #[test]
+    fn cancelling_releasing_and_giving_up() {
+        let e = engine();
+        assert_eq!(
+            talk(&e, &["pregunta", "déjalo, da igual", "3"])[1..],
+            [
+                line("Vale, lo dejo.", "answered · cancelled", false),
+                line("No te he entendido.", "unhandled · noise", false),
+            ]
+        );
+        // An unrelated request is handled and closes the question.
+        assert_eq!(
+            talk(&e, &["pregunta", "responde", "3"])[1..],
+            [
+                line("Eco uno.", "answered · t.answer", false),
+                line("No te he entendido.", "unhandled · noise", false),
+            ]
+        );
+        // Asked once more, then dropped.
+        assert_eq!(
+            talk(&e, &["pregunta", "azul", "verde"])[1..],
+            [
+                line("No te he entendido. ¿Cuántos?", "asks · t.ask · x", true),
+                line(
+                    "No he conseguido entenderlo, así que lo dejo.",
+                    "unhandled · t.ask",
+                    false
+                ),
+            ]
+        );
+        // The handler asking again counts the same way.
+        assert_eq!(
+            talk(&e, &["pregunta", "pregunta", "pregunta"])[1..],
+            [
+                line("No te he entendido. ¿Cuántos?", "asks · t.ask · x", true),
+                line(
+                    "No he conseguido entenderlo, así que lo dejo.",
+                    "unhandled · t.ask",
+                    false
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn hedges_keep_it_open_until_it_expires() {
+        let e = engine();
+        assert_eq!(
+            talk(&e, &["pregunta", "mmm", "a ver", "espera", "3"])[1..],
+            [
+                line("Tómate tu tiempo.", "answered · hedge", true),
+                line("Vale.", "answered · hedge", true),
+                line("Aquí sigo.", "answered · hedge", true),
+                line("No te he entendido.", "unhandled · noise", false),
+            ]
+        );
+        // By the clock: five minutes.
+        let e = engine();
+        let at = |text: &str, seconds| {
+            e.respond(Turn::new(
+                text,
+                ConvId::new("c"),
+                Timestamp::from_unix(seconds),
+            ))
+            .line(None)
+        };
+        assert_eq!(at("pregunta", 0), "asks · t.ask · x");
+        assert_eq!(at("", 100), "unhandled · empty");
+        assert_eq!(at("3", 200), "answered · t.ask · x=3");
+        assert_eq!(at("pregunta", 1_000), "asks · t.ask · x");
+        assert_eq!(at("3", 1_301), "unhandled · noise");
+    }
+
+    #[test]
+    fn distress_and_commands_close_the_question() {
+        let e = engine();
+        let replies = talk(&e, &["pregunta", "no quiero seguir viviendo", "3"]);
+        assert_eq!(replies[1].1, "unhandled · distress");
+        assert_eq!(replies[2].1, "unhandled · noise");
+        let replies = talk(&e, &["pregunta", "/ask 7", "3"]);
+        assert_eq!(replies[1], line("Eco 7.", "answered · t.ask · x=7", false));
+        assert_eq!(replies[2].1, "unhandled · noise");
+    }
+
+    #[test]
+    fn yes_no_choices_and_completions() {
+        let e = engine();
+        assert_eq!(
+            talk(&e, &["confirma", "mejor no"])[1],
+            line("Eco no.", "answered · t.confirm · ok=no", false)
+        );
+        assert_eq!(
+            talk(&e, &["confirma", "vale"])[1],
+            line("Eco yes.", "answered · t.confirm · ok=yes", false)
+        );
+        assert_eq!(
+            talk(&e, &["escoge", "la segunda"])[1],
+            line("Eco verde.", "answered · t.choose · pick=verde", false)
+        );
+        assert_eq!(
+            talk(&e, &["escoge", "red"])[1],
+            line("Eco rojo.", "answered · t.choose · pick=rojo", false)
+        );
+        assert_eq!(talk(&e, &["escoge", "no"])[1].1, "asks · t.choose · pick");
+        assert_eq!(
+            talk(&e, &["suma 2", "+ 3"])[1],
+            line("Eco 2 + 3.", "answered · t.sum · expr=2 + 3", false)
+        );
+    }
+
+    #[test]
+    fn nothing_open() {
+        let e = engine();
+        assert_eq!(
+            talk(&e, &["sí", "no, gracias", "vale", "olvídalo"]),
+            [
+                line(
+                    "No tengo ninguna pregunta pendiente.",
+                    "unhandled · nothing-pending",
+                    false
+                ),
+                line(
+                    "No tengo ninguna pregunta pendiente.",
+                    "unhandled · nothing-pending",
+                    false
+                ),
+                line("Vale.", "answered · acknowledgement", false),
+                line("Vale.", "answered · acknowledgement", false),
+            ]
+        );
+    }
+
+    #[test]
+    fn commands() {
+        let e = engine();
+        // Both names work; the reply keeps the conversation's language.
+        let o = e.respond(turn("/pregunta 3", Some(Lang::En)));
+        assert_eq!((o.reply.as_str(), o.lang), ("Echo 3.", Lang::En));
+        assert_eq!(o.line(None), "answered · t.ask · x=3");
+        assert_eq!(e.respond(turn("/ASK three", None)).reply, "Echo 3.");
+        // Missing argument: asked, as for a sentence.
+        assert_eq!(e.respond(turn("/ask", None)).line(None), "asks · t.ask · x");
+        // Unknown: never the reflector; no help command is installed here.
+        let o = e.respond(turn("/pregnta 3", Some(Lang::Es)));
+        assert_eq!(o.reply, "No conozco el comando /pregnta.");
+        assert_eq!(o.line(None), "unhandled · unknown-command");
+        let o = e.respond(turn("/interno algo", Some(Lang::Es)));
+        assert_eq!(o.reply, "El comando /interno no lleva nada detrás.");
+        assert_eq!(o.line(None), "unhandled · t.internal");
+        // A command does not switch the language.
+        let o = e.respond(turn("/ask the number please, thank you", None));
+        assert_eq!(o.lang, Lang::Es);
+        // Duplicate names are refused.
+        let twice = MANIFEST.replace("en = \"/internal\"", "en = \"/ask\"");
+        let manifest = Manifest::parse("t", &twice).unwrap();
+        assert!(matches!(
+            Engine::new(Config::default(), vec![(manifest, Box::new(Fixed))]),
+            Err(Error::Manifest { .. })
+        ));
     }
 
     #[test]

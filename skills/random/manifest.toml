@@ -32,6 +32,7 @@ help.en = ["roll two dice", "flip a coin", "pick between tea and coffee", "a num
 id = "random.dice"
 priority = 50
 courtesy = false
+command = { es = "/dado", en = "/roll" }
 
   [intent.examples]
   es = ["tira un dado", "2d6", "3d8+2", "lanza dos dados", "tira 4 dados de 6 caras", "tírame un d20", "tira los dados", "tira un dado de 7 caras"]
@@ -128,6 +129,7 @@ courtesy = false
 id = "random.coin"
 priority = 50
 courtesy = false
+command = { es = "/moneda", en = "/coin", slot = "count" }
 
   [intent.examples]
   es = ["tira una moneda", "cara o cruz", "echa una moneda al aire", "lanza una moneda", "tira 3 monedas", "moneda"]
@@ -152,6 +154,7 @@ courtesy = false
 id = "random.pick"
 priority = 60
 courtesy = false
+command = { es = "/elige", en = "/pick", slot = "options" }
 
   [intent.examples]
   es = ["elige entre pizza, sushi y tacos", "escoge uno: rojo, verde, azul", "decide por mí: cine o casa", "sortea a Ana, Luis y Marta", "ayúdame a elegir entre pizza o sushi", "tira una moneda para decidir entre pizza o sushi"]
@@ -185,7 +188,7 @@ courtesy = false
   lang = "en"
   regex = '^[\s]*(?:please\s+)?(?:[^,.;:!?]*[,.;]\s+)?(?:help\s+me\s+)?(?:pick|choose|decide|select)(?:\s+(?:one|something|for\s+me|an?\s+\w+(?:\s+\w+)?))?(?:\s+(?:between|from|among|of)\s+|\s*:\s*)(?<options>.+?)[\s?.!]*$'
 
-  # A verb of choosing with no options: recognised, answered with a hint.
+  # A verb of choosing with no options: recognised, and the options are asked for.
   [[intent.pattern]]
   lang = "es"
   regex = '^[¿¡\s]*(?:ayudame\s+a\s+)?(?:elige|escoge|decide|elegir|escoger|decidir)(?:\s+(?:uno|una|algo|por\s+mi))?[\s?.!]*$'
@@ -200,6 +203,7 @@ courtesy = false
 id = "random.number"
 priority = 70
 courtesy = false
+command = { es = "/numero", en = "/number" }
 
   [intent.examples]
   es = ["dame un número del 1 al 10", "número aleatorio entre 1 y 100", "un número al azar", "dime un número entre -5 y 5", "5 números del 1 al 49 sin repetir", "del uno al seis", "un número aleatorio hasta 50"]
@@ -374,8 +378,12 @@ es = ["Puedo elegir entre 1000 opciones como mucho."]
 en = ["I can choose among 1000 options at most."]
 
 [reply.pick_usage]
-es = ["Dime entre qué opciones elegir, por ejemplo: elige entre pizza, sushi y tacos."]
-en = ["Tell me the options, for example: pick between pizza, sushi and tacos."]
+es = ["¿Entre qué opciones?"]
+en = ["Pick among what?"]
+
+[reply.pick_which]
+es = ["¿Cuáles son? Dime sus nombres."]
+en = ["Which ones? Tell me their names."]
 
 # Numbers.
 [reply.number_one]
@@ -407,8 +415,8 @@ es = ["Prueba con: un número del 1 al 10."]
 en = ["Try: a number between 1 and 10."]
 
 [reply.number_incomplete]
-es = ["Falta el otro extremo del rango. Prueba con: un número del 1 al 10."]
-en = ["The other end of the range is missing. Try: a number between 1 and 10."]
+es = ["¿Entre el {low} y cuál?"]
+en = ["Between {low} and what?"]
 
 # Words the handler reads from here (never answered as a message).
 [reply.word_heads]

@@ -60,15 +60,60 @@ pub struct SlotDecl {
     pub name: String,
     /// What it holds; its extractor turns a capture into a typed value.
     pub kind: SlotType,
-    /// The intent cannot be answered without it. Informational in v0.1: a
-    /// handler answers a missing required slot with a usage hint; from v0.2
-    /// the engine asks back.
+    /// The intent cannot be answered without it: when it is missing, the
+    /// handler asks for it (`SkillResult::Ask`). Documentation for authors
+    /// and reviewers; the engine does not act on it.
     pub required: bool,
     /// A list of terms ("té, café o agua"); only for `term` slots.
     pub repeated: bool,
     /// Steers the handler only: left out of the outcome and of golden
     /// comparison (e.g. which greeting was used).
     pub internal: bool,
+    /// For a `choice` slot, the options, in order; empty otherwise.
+    pub options: Vec<ChoiceOption>,
+}
+
+/// One option of a `choice` slot.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChoiceOption {
+    /// What the slot holds when this option is chosen.
+    pub id: String,
+    /// How a user may name it, in the match form, both languages together
+    /// (the id first).
+    pub names: Vec<String>,
+}
+
+/// A command shortcut (ADR 0016): `/calc 1 + 2` goes straight to its
+/// intent, and the rest of the line fills one slot.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Command {
+    /// The name in each language, with its slash (`/tiempo`, `/weather`).
+    /// Both work whatever the conversation's language.
+    pub names: PerLang<String>,
+    /// The slot that receives the rest of the line; `None` for a command
+    /// that takes no argument.
+    pub slot: Option<String>,
+}
+
+impl Command {
+    /// Whether `name` (with its slash, lower case) is one of this
+    /// command's names.
+    #[must_use]
+    pub fn is_named(&self, name: &str) -> bool {
+        self.names.es == name || self.names.en == name
+    }
+}
+
+/// Whether a command name is well formed: a slash, then lower-case ASCII
+/// letters, digits or underscores, starting with a letter.
+#[must_use]
+pub fn is_command_name(name: &str) -> bool {
+    name.strip_prefix('/').is_some_and(|rest| {
+        rest.starts_with(|c: char| c.is_ascii_lowercase())
+            && rest
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+    })
 }
 
 /// One thing a user can want from a skill.
@@ -89,6 +134,8 @@ pub struct Intent {
     /// on its own, this part is dropped (docs/spec/basics.md, "Greeting
     /// prefixes").
     pub courtesy: bool,
+    /// Its command shortcut, if it declares one.
+    pub command: Option<Command>,
 }
 
 impl Intent {
@@ -157,6 +204,17 @@ struct RawIntent {
     slot: Vec<RawSlot>,
     #[serde(default)]
     courtesy: bool,
+    #[serde(default)]
+    command: Option<RawCommand>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawCommand {
+    es: String,
+    en: String,
+    #[serde(default)]
+    slot: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -171,6 +229,18 @@ struct RawSlot {
     repeated: bool,
     #[serde(default)]
     internal: bool,
+    #[serde(default)]
+    options: Vec<RawOption>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawOption {
+    id: String,
+    #[serde(default)]
+    es: Vec<String>,
+    #[serde(default)]
+    en: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -259,9 +329,12 @@ fn slots(skill: &str, intent: &str, raw: Vec<RawSlot>) -> Result<Vec<SlotDecl>, 
             return Err(at(format!("slot `{}` declared twice", slot.name)));
         }
         let kind = SlotType::parse(&slot.kind).ok_or_else(|| {
+            let known: Vec<&str> = SlotType::ALL.iter().map(|t| t.as_str()).collect();
             at(format!(
-                "slot `{}` has unknown type `{}` (expected term, number or date)",
-                slot.name, slot.kind
+                "slot `{}` has unknown type `{}` (expected one of {})",
+                slot.name,
+                slot.kind,
+                known.join(", ")
             ))
         })?;
         if slot.repeated && kind != SlotType::Term {
@@ -270,15 +343,84 @@ fn slots(skill: &str, intent: &str, raw: Vec<RawSlot>) -> Result<Vec<SlotDecl>, 
                 slot.name
             )));
         }
+        if (kind == SlotType::Choice) == slot.options.is_empty() {
+            return Err(at(format!(
+                "slot `{}`: a `choice` slot, and only a `choice` slot, lists its `options`",
+                slot.name
+            )));
+        }
+        let mut options: Vec<ChoiceOption> = Vec::with_capacity(slot.options.len());
+        for option in slot.options {
+            if !is_identifier(&option.id) || options.iter().any(|o| o.id == option.id) {
+                return Err(at(format!(
+                    "slot `{}`: option `{}` is badly formed or repeated",
+                    slot.name, option.id
+                )));
+            }
+            if option.es.is_blank() || option.en.is_blank() {
+                return Err(at(format!(
+                    "slot `{}`: option `{}` needs names in both languages",
+                    slot.name, option.id
+                )));
+            }
+            let mut names = vec![option.id.replace('_', " ")];
+            for name in option.es.iter().chain(&option.en) {
+                let folded = crate::normalise::normalise(name).folded;
+                if !names.contains(&folded) {
+                    names.push(folded);
+                }
+            }
+            options.push(ChoiceOption {
+                id: option.id,
+                names,
+            });
+        }
         out.push(SlotDecl {
             name: slot.name,
             kind,
             required: slot.required,
             repeated: slot.repeated,
             internal: slot.internal,
+            options,
         });
     }
     Ok(out)
+}
+
+/// Validates an intent's command: well-formed names, and a slot the intent
+/// declares as public.
+fn command(
+    skill: &str,
+    intent: &str,
+    raw: RawCommand,
+    declared: &[SlotDecl],
+) -> Result<Command, Error> {
+    let at = |message: String| Error::manifest(skill, format!("intent `{intent}`: {message}"));
+    for name in [&raw.es, &raw.en] {
+        if !is_command_name(name) {
+            return Err(at(format!(
+                "command name `{name}` must be `/` and lower-case ASCII letters, digits or `_`"
+            )));
+        }
+    }
+    if let Some(slot) = &raw.slot {
+        match declared.iter().find(|s| &s.name == slot) {
+            Some(s) if !s.internal => {}
+            Some(_) => return Err(at(format!("command slot `{slot}` is internal"))),
+            None => {
+                return Err(at(format!(
+                    "command slot `{slot}` is not a slot the intent declares"
+                )));
+            }
+        }
+    }
+    Ok(Command {
+        names: PerLang {
+            es: raw.es,
+            en: raw.en,
+        },
+        slot: raw.slot,
+    })
 }
 
 fn is_identifier(s: &str) -> bool {
@@ -296,6 +438,10 @@ impl Manifest {
     /// [`Error::Manifest`] if the TOML is malformed, a key is unknown, an id
     /// is badly formed or repeated, a template is malformed, or any summary,
     /// example list or reply lacks one of the two languages.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "validation reads top to bottom, in the order of the file"
+    )]
     pub fn parse(source: &str, toml_text: &str) -> Result<Self, Error> {
         let raw: RawManifest =
             toml::from_str(toml_text).map_err(|e| Error::manifest(source, e.to_string()))?;
@@ -368,6 +514,10 @@ impl Manifest {
                     })
                 })
                 .collect::<Result<Vec<_>, Error>>()?;
+            let command = intent
+                .command
+                .map(|c| command(&id, &intent.id, c, &declared))
+                .transpose()?;
             intents.push(Intent {
                 id: IntentId(intent.id),
                 priority: intent.priority,
@@ -375,6 +525,7 @@ impl Manifest {
                 patterns,
                 slots: declared,
                 courtesy: intent.courtesy,
+                command,
             });
         }
 
@@ -467,9 +618,16 @@ en = ["Pong."]
         assert!(
             error(&GOOD.replace(
                 "type = \"term\"\n  internal",
-                "type = \"place\"\n  internal"
+                "type = \"address\"\n  internal"
             ))
-            .contains("unknown type `place`")
+            .contains("unknown type `address`")
+        );
+        assert!(
+            error(&GOOD.replace(
+                "type = \"term\"\n  internal",
+                "type = \"choice\"\n  internal"
+            ))
+            .contains("lists its `options`")
         );
         assert!(error(&GOOD.replace("slots = { kind", "slots = { other")).contains("not declared"));
         assert!(error(&GOOD.replace("slots = { kind", "slots = { items")).contains("not a single"));
@@ -485,6 +643,49 @@ en = ["Pong."]
             error(&GOOD.replace("names.es", "capabilities = [\"teleport\"]\nnames.es"))
                 .contains("teleport")
         );
+    }
+
+    #[test]
+    fn commands_and_choices() {
+        let with = |command: &str| {
+            GOOD.replace(
+                "  [intent.examples]",
+                &format!("  [intent.command]\n  {command}\n\n  [intent.examples]"),
+            )
+        };
+        let m = Manifest::parse(
+            "test",
+            &with("es = \"/eco\"\n  en = \"/echo\"\n  slot = \"items\""),
+        )
+        .unwrap();
+        let command = m.intents[0].command.as_ref().unwrap();
+        assert!(command.is_named("/eco") && command.is_named("/echo"));
+        assert!(!command.is_named("/ping"));
+        assert_eq!(command.slot.as_deref(), Some("items"));
+        let m = Manifest::parse("test", &with("es = \"/eco\"\n  en = \"/echo\"")).unwrap();
+        assert_eq!(m.intents[0].command.as_ref().unwrap().slot, None);
+        assert!(
+            error(&with("es = \"/eco\"\n  en = \"/echo\"\n  slot = \"nope\""))
+                .contains("not a slot")
+        );
+        assert!(
+            error(&with("es = \"/eco\"\n  en = \"/echo\"\n  slot = \"kind\"")).contains("internal")
+        );
+        assert!(error(&with("es = \"/Eco\"\n  en = \"/echo\"")).contains("lower-case"));
+        assert!(error(&with("es = \"eco\"\n  en = \"/echo\"")).contains("must be `/`"));
+        assert!(error(&with("es = \"/eco\"")).contains("en"));
+
+        let choice = GOOD.replace(
+            "  [[intent.slot]]\n  name = \"items\"",
+            "  [[intent.slot]]\n  name = \"units\"\n  type = \"choice\"\n  options = [\
+             { id = \"metric\", es = [\"métrico\"], en = [\"metric\"] }, \
+             { id = \"imperial\", es = [\"imperial\"], en = [\"imperial\"] }]\n\n  \
+             [[intent.slot]]\n  name = \"items\"",
+        );
+        let m = Manifest::parse("test", &choice).unwrap();
+        let units = m.intents[0].slot("units").unwrap();
+        assert_eq!(units.options[0].names, ["metric", "metrico"]);
+        assert!(error(&choice.replace("es = [\"métrico\"], ", "")).contains("both languages"));
     }
 
     #[test]

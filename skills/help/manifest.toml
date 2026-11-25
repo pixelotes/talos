@@ -21,6 +21,7 @@ capabilities = []
 id = "help.capabilities"
 priority = 50
 courtesy = false
+command = { es = "/ayuda", en = "/help" }
 
   [intent.examples]
   es = ["qué sabes hacer", "qué puedes hacer", "ayuda", "para qué sirves", "qué comandos tienes", "lista de funciones", "ayúdame"]
@@ -48,7 +49,7 @@ courtesy = false
   type = "term"
   required = true
 
-  # Bare "cómo se usa" names nothing: the handler gives a usage hint.
+  # Bare "cómo se usa" names nothing: the handler asks which skill.
   [[intent.pattern]]
   lang = "es"
   regex = '^[¿¡\s]*como (?:funciona|se usa|se utiliza|uso|puedo usar)(?: esto| eso)?[\s?!.]*$'
@@ -109,7 +110,7 @@ en = ["{name}: {summary}."]
 es = ["No sé hacer eso."]
 en = ["I can't do that."]
 
-# No topic given (v0.1 cannot ask back): a usage hint with the skills' names.
+# No topic given: asks which skill, naming a few.
 [reply.which]
 es = ["¿El qué? Dime de cuál quieres saber, por ejemplo: {names}."]
 en = ["Which one? Tell me what you want to know about, for example: {names}."]

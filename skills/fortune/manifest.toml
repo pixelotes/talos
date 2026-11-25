@@ -22,6 +22,7 @@ capabilities = []
 id = "fortune.tell"
 priority = 50
 courtesy = false
+command = { es = "/refran", en = "/fortune" }
 
   [[intent.slot]]
   name = "again"

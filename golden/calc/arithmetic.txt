@@ -325,22 +325,27 @@ Given: hint = en
 
 [en] U: 8 / 2(2+2)
      T: Write the multiplication with a sign, for example 2 × (2 + 2).
-                                                  → unhandled · calc.arithmetic · expression=8 / 2(2+2)
-     (implicit multiplication is not guessed (v0.1: a hint instead of a question))
+                                                  → asks · calc.arithmetic · expression
+     (implicit multiplication is not guessed: the expression is asked again)
+[en] U: 8 / (2 * (2 + 2))
+     T: 8 ÷ (2 × (2 + 2)) = 1.                    → answered · calc.arithmetic · expression=8/(2*(2+2))
 
 Given: hint = none
 
 [es] U: calcula
-     T: ¿Qué quieres calcular? Prueba con «cuánto es 3 por 4».
-                                                  → unhandled · calc.arithmetic
-     (nothing to calculate (v0.1: a usage hint instead of a question))
+     T: ¿Qué quieres calcular?                     → asks · calc.arithmetic · expression
+[es] U: 12 por 12
+     T: 12 × 12 = 144.                            → answered · calc.arithmetic · expression=12*12
+     (nothing to calculate: asked, and the next message answers)
 
 Given: hint = en
 
 [en] U: 2 +
-     T: That calculation is incomplete: a number is missing.
-                                                  → unhandled · calc.arithmetic · expression=2 +
-     (incomplete (v0.1: a hint instead of a question))
+     T: That calculation is incomplete: how does "2 +" go on?
+                                                  → asks · calc.arithmetic · expression
+[en] U: 3
+     T: 2 + 3 = 5.                                → answered · calc.arithmetic · expression=2+3
+     (incomplete: the answer completes what was written)
 
 Given: hint = none
 
