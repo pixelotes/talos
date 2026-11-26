@@ -15,7 +15,8 @@ include!(concat!(env!("OUT_DIR"), "/manifests.rs"));
 
 // Shared by `timezones` and `preferences`: the place table and its zones.
 mod places;
-// Shared by `define`, `translate` and `teach`: wording pieces, lists, words.
+// Shared by `define`, `translate`, `teach` and `wikipedia`: wording pieces,
+// lists, words.
 mod dict;
 
 /// Declares the built-in skills: each entry is `module::Handler`, where
@@ -46,6 +47,7 @@ skills! {
     define::Define,
     teach::Teach,
     translate::Translate,
+    wikipedia::Wikipedia,
     preferences::Memory,
 }
 

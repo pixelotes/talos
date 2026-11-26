@@ -6,6 +6,8 @@
 
 pub mod clock;
 pub mod data;
+#[cfg(feature = "net")]
+pub mod net;
 #[cfg(feature = "knowledge")]
 pub mod packs;
 #[cfg(feature = "server")]

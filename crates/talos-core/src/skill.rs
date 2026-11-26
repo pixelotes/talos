@@ -386,6 +386,8 @@ pub struct Context<'a> {
     skills: &'a [Manifest],
     #[cfg(feature = "knowledge")]
     knowledge: Option<&'a crate::knowledge::Knowledge>,
+    /// How to read a page, when the front end allows the network.
+    network: Option<&'a dyn crate::net::Fetch>,
     /// The user-correction table as of the turn's start.
     corrections: &'a [Correction],
     /// The engine, to read a text as a message ([`Context::understand`]).
@@ -420,6 +422,7 @@ impl<'a> Context<'a> {
             skills,
             #[cfg(feature = "knowledge")]
             knowledge: None,
+            network: None,
             corrections: &[],
             engine: None,
             reported: Slots::new(),
@@ -482,6 +485,24 @@ impl<'a> Context<'a> {
     #[must_use]
     pub const fn knowledge(&self) -> Option<&'a crate::knowledge::Knowledge> {
         self.knowledge
+    }
+
+    /// The same context with a way to read pages: what the engine passes
+    /// when it has one ([`crate::Engine::use_network`]), and what a
+    /// handler's unit tests pass (recorded pages).
+    #[must_use]
+    pub fn with_network(mut self, network: &'a dyn crate::net::Fetch) -> Self {
+        self.network = Some(network);
+        self
+    }
+
+    /// The network, for a skill that declares the `network` capability:
+    /// `None` when the front end has not allowed it; a handler then says
+    /// that it cannot look things up. A read may take seconds and may
+    /// fail: ask once per page, never in a loop.
+    #[must_use]
+    pub const fn network(&self) -> Option<&'a dyn crate::net::Fetch> {
+        self.network
     }
 
     /// The same context as for a request the classifier recognised, for a

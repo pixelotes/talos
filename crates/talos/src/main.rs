@@ -28,6 +28,10 @@ usage: talos [options] ask <text>        answer one message, then exit
        talos --version
 
 options: --lang es|en   the caller's language hint
+         --net          let the skills that need it use the network (or TALOS_NET=1);
+                        without it they say they cannot look things up. Set
+                        TALOS_CONTACT (an address or a page) to name yourself to
+                        the sites asked, as Wikipedia's policy requests
          --seed N       the random source's seed (default 0)
          --json         print the full outcome object (ask, explain) or the report (eval)
          --dir PATH     the batteries' directory (eval; default `evals`)
@@ -53,6 +57,8 @@ struct Options {
     lang: Option<Lang>,
     seed: u64,
     json: bool,
+    /// Whether the skills may use the network (`--net`).
+    net: bool,
 }
 
 /// What the command line asked for.
@@ -139,6 +145,7 @@ fn parse_args(args: &[String]) -> Result<Command, String> {
                 serve.token = Some(value("a token")?.to_owned());
                 serve_flags = true;
             }
+            "--net" => options.net = true,
             "--lang" => {
                 options.lang = Some(
                     value("es or en")?
@@ -509,6 +516,14 @@ fn main() -> ExitCode {
         for warning in talos::data::attach_knowledge(&mut engine) {
             eprintln!("talos: {warning}");
         }
+        if options.net || std::env::var("TALOS_NET").is_ok_and(|v| v == "1") {
+            #[cfg(feature = "net")]
+            engine.use_network(Box::new(talos::net::Client::new(
+                std::env::var("TALOS_CONTACT").ok().as_deref(),
+            )));
+            #[cfg(not(feature = "net"))]
+            eprintln!("talos: this build has no network client; rebuild with `--features net`");
+        }
     }
     match command {
         Command::Ask(options, text) => one_shot(&engine, options, text, false),
@@ -587,7 +602,8 @@ mod tests {
                 Options {
                     lang: None,
                     seed: 7,
-                    json: true
+                    json: true,
+                    net: false
                 },
                 "hola".to_owned()
             ))

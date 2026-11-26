@@ -91,6 +91,8 @@ pub struct Engine {
     /// [`Engine::use_knowledge`].
     #[cfg(feature = "knowledge")]
     knowledge: Option<crate::knowledge::Knowledge>,
+    /// How handlers read a page; none until [`Engine::use_network`].
+    network: Option<Box<dyn crate::net::Fetch>>,
 }
 
 /// How many turns after the one that asked an open question stays open,
@@ -322,7 +324,14 @@ impl Engine {
             store: Box::new(MemoryStore::default()),
             #[cfg(feature = "knowledge")]
             knowledge: None,
+            network: None,
         })
+    }
+
+    /// Lets handlers read pages through `fetch` ([`Context::network`]).
+    /// Until this is called they have no network, and say so.
+    pub fn use_network(&mut self, fetch: Box<dyn crate::net::Fetch>) {
+        self.network = Some(fetch);
     }
 
     /// Gives handlers this knowledge store (`user.db` and the packs, or a
@@ -530,6 +539,9 @@ impl Engine {
             None => cx,
         };
         let mut cx = cx;
+        if let Some(network) = &self.network {
+            cx = cx.with_network(network.as_ref());
+        }
         let at = At {
             message: &message,
             lang,

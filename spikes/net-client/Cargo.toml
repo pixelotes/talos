@@ -1,0 +1,38 @@
+[package]
+name = "net-client"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Independent of the root workspace. Measures what an HTTPS client costs the
+# binary and the process, for the `net` feature (docs/ROADMAP.md, v0.5): the
+# same GET of a Wikipedia summary through `ureq` with rustls, through the
+# system's `curl`, and a baseline that fetches nothing. Run ./measure.sh.
+[workspace]
+
+[features]
+ureq = ["dep:ureq"]
+
+[dependencies]
+ureq = { version = "3", optional = true, default-features = false, features = ["rustls"] }
+
+[[bin]]
+name = "baseline"
+path = "src/bin/baseline.rs"
+
+[[bin]]
+name = "with-curl"
+path = "src/bin/with_curl.rs"
+
+[[bin]]
+name = "with-ureq"
+path = "src/bin/with_ureq.rs"
+required-features = ["ureq"]
+
+# The root workspace's release profile.
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"

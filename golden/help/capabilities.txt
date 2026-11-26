@@ -21,6 +21,7 @@
         · decirte qué significa una palabra (/definir)
         · aprender tus propias frases para lo que ya sé hacer
         · traducir palabras y frases hechas entre español e inglés (/traduce)
+        · contarte lo que dice Wikipedia sobre algo o alguien (/wiki)
         · recordar tu nombre, dónde vives y tus unidades
                                                   → answered · help.capabilities
 
@@ -37,6 +38,7 @@
         · tell you what a word means (/define)
         · learn your own phrases for what I can already do
         · translate words and set phrases between Spanish and English (/translate)
+        · tell you what Wikipedia says about something or someone (/wiki)
         · remember your name, where you live and your units
                                                   → answered · help.capabilities
 

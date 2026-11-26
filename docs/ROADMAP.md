@@ -196,8 +196,12 @@ Talos stands on its own ([ADR 0013](adr/0013-external-skills.md), amended).
 - `wikipedia` (the article for a subject, in the conversation's language:
   its opening and an **extractive** summary — sentences chosen from the
   article and quoted as written, with the link). It is also what `define`
-  falls back to when the store has no entry and the network is allowed. To
-  be specified before it is built.
+  falls back to when the store has no entry and the network is allowed.
+  **Built, first version (2026-11-26):** the opening only, from Wikipedia's
+  own API, with the `net` feature and its client
+  ([ADR 0018](adr/0018-outbound-https-client.md)). Still to do: the
+  summary of the whole article; trying it from the cloud server, where
+  Wikipedia's limits may be stricter; its section of the specification.
 - Shared by `search`, `news` and `wikipedia`: reading a web page down to its
   text, and choosing sentences from it. The owner's Dédalo project already
   does both without a model and is the reference to reimplement from: a

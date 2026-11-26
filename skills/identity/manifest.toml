@@ -82,12 +82,12 @@ courtesy = false
   # Introduction.
   [[intent.pattern]]
   lang = "es"
-  regex = '^[¿¡\s]*(?:tu\s+)?(?:quien eres|que eres(?:\s+exactamente)?|presentate)(?:\s+tu)?[\s?.!]*$'
+  regex = '^[¿¡\s]*(?:tu\s+)?(?:quien eres|que eres(?:\s+exactamente)?|presentate|(?:quien|que)\s+es\s+talos(?:\s+exactamente)?)(?:\s+tu)?[\s?.!]*$'
   slots = { topic = "intro" }
 
   [[intent.pattern]]
   lang = "en"
-  regex = '^(?:and\s+)?(?:who\s+are\s+you|what\s+are\s+you(?:\s+exactly)?|you\s+are|introduce\s+yourself|tell\s+me\s+about\s+yourself)[\s?.!]*$'
+  regex = '^(?:and\s+)?(?:who\s+are\s+you|what\s+are\s+you(?:\s+exactly)?|you\s+are|introduce\s+yourself|tell\s+me\s+about\s+yourself|(?:who|what)\s+is\s+talos(?:\s+exactly)?)[\s?.!]*$'
   slots = { topic = "intro" }
 
   # Who made it: the configured identity line.

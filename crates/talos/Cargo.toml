@@ -9,7 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 [features]
-default = ["server", "knowledge"]
+default = ["server", "knowledge", "net"]
 # user.db, knowledge packs and `talos packs` (docs/KNOWLEDGE.md). Off, the
 # user's data stays in user.toml, no pack is read, and `define` and
 # `translate` say there is no dictionary.
@@ -18,7 +18,14 @@ knowledge = ["talos-core/knowledge", "talos-skills/knowledge"]
 # server is written on `std` (ADR 0017). Off, the binary has no listener.
 server = []
 
+# The HTTPS client the network skills read pages with (`wikipedia`), given
+# to the engine only when the network is allowed (`--net`, `TALOS_NET=1`).
+# Off, the binary links no network client and those skills say they cannot
+# look things up. Measured in docs/DEVELOPMENT.md.
+net = ["dep:ureq"]
+
 [dependencies]
+ureq = { workspace = true, optional = true }
 talos-core.workspace = true
 talos-skills.workspace = true
 serde_json.workspace = true

@@ -291,3 +291,183 @@ fn a_word_of_many_senses_is_answered_as_an_entry() {
         format!("\"ran\" is a form of \"run\".\n{entry}")
     );
 }
+
+/// Pages recorded for the tests of the network skills: the first whose
+/// marker the address contains answers; an address with none fails.
+#[derive(Debug)]
+struct Recorded(Vec<(&'static str, &'static str)>);
+
+impl talos_core::net::Fetch for Recorded {
+    fn get(&self, url: &str) -> Result<String, talos_core::net::FetchError> {
+        self.0
+            .iter()
+            .find(|(marker, _)| url.contains(marker))
+            .map(|(_, body)| (*body).to_owned())
+            .ok_or_else(|| talos_core::net::FetchError::Failed(format!("not recorded: {url}")))
+    }
+}
+
+const VALENCIA: &str = r#"{"batchcomplete":true,"query":{"pages":[
+  {"pageid":1,"title":"Valencia","index":1,
+   "extract":"Valencia es un municipio y una ciudad de España,\u200b capital de la Comunidad Valenciana.\nSegundo párrafo.",
+   "fullurl":"https://es.wikipedia.org/wiki/Valencia"},
+  {"pageid":2,"title":"Valencia Club de Fútbol","index":2,"extract":"El Valencia es un club.",
+   "fullurl":"https://es.wikipedia.org/wiki/Valencia_Club_de_F%C3%BAtbol"}]}}"#;
+const MERCURIO: &str = r#"{"query":{"pages":[
+  {"title":"Mercurio","index":1,"extract":"Mercurio puede referirse a:","pageprops":{"disambiguation":""},
+   "fullurl":"https://es.wikipedia.org/wiki/Mercurio"},
+  {"title":"Mercurio (planeta)","index":3,"extract":"Mercurio es el planeta más próximo al Sol.",
+   "fullurl":"https://es.wikipedia.org/wiki/Mercurio_(planeta)"},
+  {"title":"Mercurio (elemento)","index":2,"extract":"El mercurio es un elemento químico.",
+   "fullurl":"https://es.wikipedia.org/wiki/Mercurio_(elemento)"}]}}"#;
+const PLANETA: &str = r#"{"query":{"pages":[
+  {"title":"Mercurio (elemento)","index":1,"extract":"El mercurio es un elemento químico.",
+   "fullurl":"https://es.wikipedia.org/wiki/Mercurio_(elemento)"},
+  {"title":"Mercurio (planeta)","index":2,"extract":"Mercurio es el planeta más próximo al Sol.",
+   "fullurl":"https://es.wikipedia.org/wiki/Mercurio_(planeta)"}]}}"#;
+const NOTHING: &str = r#"{"batchcomplete":true}"#;
+const LOVELACE: &str = r#"{"query":{"pages":[
+  {"title":"Ada Lovelace","index":1,"extract":"Ada Lovelace was an English mathematician.",
+   "fullurl":"https://en.wikipedia.org/wiki/Ada_Lovelace"}]}}"#;
+const BRUTALISMO: &str = r#"{"query":{"pages":[
+  {"title":"Arquitectura brutalista","index":1,"extract":"El brutalismo es un estilo arquitectónico.",
+   "fullurl":"https://es.wikipedia.org/wiki/Arquitectura_brutalista"}]}}"#;
+
+fn online() -> Engine {
+    let mut e = engine();
+    e.use_network(Box::new(Recorded(vec![
+        ("es.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&redirects=1&generator=search&gsrnamespace=0&gsrlimit=5&gsrsearch=Valencia&", VALENCIA),
+        ("gsrsearch=Segunda%20Guerra&", VALENCIA),
+        ("gsrsearch=Mercurio%20%28planeta%29&", PLANETA),
+        ("gsrsearch=Mercurio&", MERCURIO),
+        ("es.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&redirects=1&generator=search&gsrnamespace=0&gsrlimit=5&gsrsearch=Ada%20Lovelace&", NOTHING),
+        ("en.wikipedia.org/w/api.php?action=query&format=json&formatversion=2&redirects=1&generator=search&gsrnamespace=0&gsrlimit=5&gsrsearch=Ada%20Lovelace&", LOVELACE),
+        ("gsrsearch=xyzzy&", NOTHING),
+        ("gsrsearch=brutalismo&", BRUTALISMO),
+    ])));
+    e
+}
+
+#[test]
+fn wikipedia_says_it_has_no_network_until_it_is_given_one() {
+    use talos_core::Status;
+
+    let e = engine();
+    let outcome = e.respond(turn("háblame de Valencia"));
+    assert_eq!(outcome.status, Status::Unhandled);
+    assert_eq!(
+        outcome.intent.as_ref().map(talos_core::IntentId::as_str),
+        Some("wikipedia.about")
+    );
+    assert_eq!(
+        outcome.reply,
+        "No tengo acceso a la red, así que no puedo consultar Wikipedia."
+    );
+}
+
+#[test]
+fn wikipedia_answers_with_the_opening_as_written_and_its_source() {
+    use talos_core::Status;
+
+    let e = online();
+    let ask = |text: &str| {
+        e.end(&ConvId::new("test"));
+        e.respond(turn(text))
+    };
+    let valencia = "Valencia es un municipio y una ciudad de España, capital de la Comunidad \
+                    Valenciana.\n\
+                    Fuente: Wikipedia, «Valencia»: https://es.wikipedia.org/wiki/Valencia";
+    for text in [
+        "háblame de Valencia",
+        "cuéntame lo que sepas de Valencia",
+        "quiero saber más acerca de Valencia",
+        "¿Qué sabes de Valencia?",
+        "/wiki Valencia",
+    ] {
+        let outcome = ask(text);
+        assert_eq!(outcome.status, Status::Answered, "{text}");
+        assert_eq!(outcome.reply, valencia, "{text}");
+        assert_eq!(outcome.fallback, None, "{text}");
+    }
+    // The article it was said with is not part of the search.
+    assert!(
+        ask("háblame de la Segunda Guerra")
+            .reply
+            .starts_with("Valencia es")
+    );
+    // Not in the conversation's Wikipedia: the other one, saying so.
+    let ada = ask("quién fue Ada Lovelace");
+    assert_eq!(
+        ada.reply,
+        "No lo encuentro en la Wikipedia en español; esto dice la inglesa.\n\
+         Ada Lovelace was an English mathematician.\n\
+         Fuente: Wikipedia, «Ada Lovelace»: https://en.wikipedia.org/wiki/Ada_Lovelace"
+    );
+    assert_eq!(
+        ada.fallback.as_ref().map(ToString::to_string).as_deref(),
+        Some("other-language")
+    );
+    // In neither; and a page that was not recorded stands for a failure.
+    let none = ask("háblame de xyzzy");
+    assert_eq!(none.status, Status::Unhandled);
+    assert_eq!(none.reply, "No encuentro nada sobre «xyzzy» en Wikipedia.");
+    assert_eq!(
+        ask("háblame de Zaragoza").reply,
+        "No he podido consultar Wikipedia ahora mismo. Prueba dentro de un rato."
+    );
+    // Who Talos is stays `identity`'s.
+    assert!(ask("quién eres").reply.starts_with("Soy Talos"));
+}
+
+#[test]
+fn wikipedia_asks_which_when_a_name_is_several_things() {
+    let e = online();
+    let question = e.respond(turn("háblame de Mercurio"));
+    assert!(question.pending);
+    assert_eq!(
+        question.reply,
+        "«Mercurio» puede ser varias cosas. ¿Cuál: Mercurio (elemento) o Mercurio (planeta)?"
+    );
+    assert_eq!(
+        e.respond(turn("el planeta")).reply,
+        "Mercurio es el planeta más próximo al Sol.\n\
+         Fuente: Wikipedia, «Mercurio (planeta)»: https://es.wikipedia.org/wiki/Mercurio_(planeta)"
+    );
+}
+
+/// A word no dictionary has is looked up in the encyclopedia when the
+/// network is allowed, and the reply says where it comes from.
+#[cfg(feature = "knowledge")]
+#[test]
+fn define_falls_back_to_wikipedia_for_a_word_no_dictionary_has() {
+    use talos_core::{Knowledge, Status};
+
+    let mut e = online();
+    e.use_knowledge(Knowledge::from_source(include_str!("../../../knowledge/seed.toml")).unwrap());
+    let outcome = e.respond(turn("qué significa brutalismo"));
+    assert_eq!(outcome.status, Status::Answered);
+    assert_eq!(
+        outcome.reply,
+        "No tengo «brutalismo» en el diccionario; esto dice Wikipedia.\n\
+         El brutalismo es un estilo arquitectónico.\n\
+         Fuente: Wikipedia, «Arquitectura brutalista»: \
+         https://es.wikipedia.org/wiki/Arquitectura_brutalista"
+    );
+    assert_eq!(
+        outcome
+            .fallback
+            .as_ref()
+            .map(ToString::to_string)
+            .as_deref(),
+        Some("encyclopedia")
+    );
+    // With the network off, as before.
+    let mut offline = engine();
+    offline.use_knowledge(
+        Knowledge::from_source(include_str!("../../../knowledge/seed.toml")).unwrap(),
+    );
+    assert_eq!(
+        offline.respond(turn("qué significa brutalismo")).reply,
+        "No conozco la palabra «brutalismo»."
+    );
+}

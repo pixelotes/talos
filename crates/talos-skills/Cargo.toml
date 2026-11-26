@@ -21,3 +21,6 @@ knowledge = ["talos-core/knowledge"]
 
 [dependencies]
 talos-core.workspace = true
+# Reads what Wikipedia's API answers (`wikipedia`); the binary links it
+# already for the outcome's wire form.
+serde_json.workspace = true

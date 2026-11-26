@@ -21,6 +21,10 @@ talos-core = { path = "crates/talos-core", version = "0.3.2" }
 # Without its default `knowledge` feature: each dependent turns it on
 # through its own `knowledge` feature (the binary does by default).
 talos-skills = { path = "crates/talos-skills", version = "0.3.2", default-features = false }
+# Outbound HTTPS for the network skills, only in the binary and behind its
+# `net` feature: blocking, no async runtime; rustls with ring and the
+# Mozilla roots compiled in, so the static binary needs no system TLS.
+ureq = { version = "3.5", default-features = false, features = ["rustls"] }
 # Derive for the manifest model; the de facto standard, needed by `toml`.
 serde = { version = "1.0.228", default-features = false, features = ["std", "derive"] }
 # Parses skill manifests (ADR 0007); parse-only, no writer or display code.

@@ -312,6 +312,10 @@ en = ["\"{form}\" is a form of \"{word}\", and also of {others}."]
 es = ["Fuente: {name}."]
 en = ["Source: {name}."]
 
+[reply.p_encyclopedia]
+es = ["No tengo «{word}» en el diccionario; esto dice Wikipedia."]
+en = ["I don't have \"{word}\" in the dictionary; this is what Wikipedia says."]
+
 [reply.p_quoted]
 es = ["«{word}»"]
 en = ["\"{word}\""]

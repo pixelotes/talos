@@ -386,7 +386,7 @@ candidate dependency:
 | Serialisation | `serde`, `toml`, `serde_json` | in use: `serde` + `toml` for manifests, `serde_json` in the binary only |
 | Normalisation | `unicode-normalization` | in use (NFKC and diacritic folding) |
 | Dates and zones | `chrono`, `chrono-tz`, `jiff` | not used: `Timestamp` and `Date` are own code, and `timezones` carries an in-tree table of IANA rules (measured in [DEVELOPMENT.md](DEVELOPMENT.md#zone-data)) |
-| Outbound HTTP | `ureq` | undecided; behind a `net` feature |
+| Outbound HTTP | `ureq` with rustls | in use, in the binary only, behind its `net` feature and off until allowed (`--net`): +0.85 MB ([ADR 0018](adr/0018-outbound-https-client.md)) |
 | Arithmetic | own parser, or `fasteval` | undecided; exact decimals are own code (`Number`) |
 | Chess rules | permissively licensed crate + own search | undecided; no GPL in the binary |
 

@@ -53,7 +53,7 @@ Given: draw = option 2
 
 # A missing argument is a missing slot: asked, and the next message answers.
 [es] U: /calc
-     T: ¿Qué quieres calcular?                     → asks · calc.arithmetic · expression
+     T: ¿Qué quieres calcular?                    → asks · calc.arithmetic · expression
 [es] U: 6 por 7
      T: 6 × 7 = 42.                               → answered · calc.arithmetic · expression=6*7
 
@@ -102,7 +102,7 @@ Given: draw = 6, 2
 # A command closes an open question, as an unrelated message would.
 Given: hint = none
 [es] U: elige uno
-     T: ¿Entre qué opciones?                       → asks · random.pick · options
+     T: ¿Entre qué opciones?                      → asks · random.pick · options
 [es] U: /calc 2 * 3
      T: 2 × 3 = 6.                                → answered · calc.arithmetic · expression=2*3
 
@@ -121,5 +121,6 @@ Given: hint = en
         · tell you what a word means (/define)
         · learn your own phrases for what I can already do
         · translate words and set phrases between Spanish and English (/translate)
+        · tell you what Wikipedia says about something or someone (/wiki)
         · remember your name, where you live and your units
                                                   → answered · help.capabilities

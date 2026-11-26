@@ -7,7 +7,7 @@ time, and says so when a message is outside what it knows. It is built to run
 on small hardware: one static binary of a few megabytes, a SQLite file, and
 under 10 MB of memory.
 
-> **Status: early, working.** Twelve skills, a command line and an
+> **Status: early, working.** Thirteen skills, a command line and an
 > OpenAI-compatible server run today, in Spanish and English. Recognition is
 > at about 84 % on its evaluation batteries, short of its target; the dictionary
 > works but its Spanish side is rough. See [Where it stands](#where-it-stands).
@@ -22,6 +22,7 @@ under 10 MB of memory.
 | `random` | "tira dos dados de 8 caras", "flip a coin", "elige entre pizza y sushi" | `/dado` `/roll`, `/moneda` `/coin` |
 | `define` | "qué significa guitarra", "what does bank mean" | `/definir` `/define` |
 | `translate` | "cómo se dice perro en inglés", "translate good morning to Spanish" | `/traduce` `/translate` |
+| `wikipedia` | "háblame de Valencia", "quién fue Ramón y Cajal", "tell me about Lisbon" | `/wiki` |
 | `teach` | "cuando digo peli quiero decir dime un refrán" | |
 | `preferences` | "me llamo Ana", "I live in Lisbon", "olvida mi nombre" | |
 | `fortune` | "dime un refrán", "tell me a saying" | `/refran` `/fortune` |
@@ -36,10 +37,12 @@ not handled.
 
 - **Deterministic.** Same input, same state and same clock give the same
   answer, byte for byte. No sampling, no model in the answer path.
-- **Light.** A 3.6 MB binary; 8 to 10 MB of memory; a turn in microseconds to
+- **Light.** A 4.5 MB binary; 8 to 10 MB of memory; a turn in microseconds to
   about a millisecond.
 - **Bilingual.** Spanish and English, each written natively.
-- **Standalone.** Every skill is built in. Nothing else has to be running.
+- **Standalone.** Every skill is built in. Nothing else has to be running,
+  and nothing leaves the machine unless the network is allowed (`--net`),
+  which only `wikipedia` uses.
 - **Honest.** Every answer carries a status — `answered`, `deflected` or
   `unhandled` — so a host can pass the turn on to something else.
 
@@ -61,6 +64,7 @@ cargo build --release -p talos
 ./target/release/talos ask "qué hora es"   # one question
 ./target/release/talos explain "hola"      # how a message is answered, stage by stage
 ./target/release/talos serve --port 8765   # the server
+./target/release/talos --net chat          # with the network: Wikipedia lookups
 ```
 
 The server speaks the OpenAI chat-completions interface, so an existing chat
@@ -127,9 +131,9 @@ in [evals/BASELINE.md](evals/BASELINE.md) and
 
 | | Now | Target |
 |---|---|---|
-| Intents recognised, on the evaluation batteries | 84 % (es), 81 % (en) | 92 %, 95 % |
+| Intents recognised, on the evaluation batteries | 82 % (es), 82 % (en) | 92 %, 95 % |
 | Wrongly accepted, of 99 messages that should not be | 4 (es), 1 (en) | at most 3 |
-| Binary, stripped | 3.6 MB | 6 MB |
+| Binary, stripped | 4.5 MB (3.7 MB without the network client) | 6 MB |
 | Memory, a conversation with the dictionary attached | about 9 to 10 MB | 20 MB |
 | A dictionary lookup, p99 | 1.3 ms | 10 ms |
 
@@ -141,11 +145,14 @@ Known to be rough:
   answers `define` instead and has none of the three problems; translation
   still reads the vocabulary pack.
 - **Recognition of the newest skills** (`define`, `teach`) is the weakest.
+- **Wikipedia's limits.** A dozen requests in a few minutes got 429 for
+  a while; questions asked at a person's pace pass. Its policy asks
+  automated clients to name a contact: set `TALOS_CONTACT`. Not yet tried
+  from a cloud server.
 - **Platforms.** Developed on macOS; the Linux builds are produced by CI and
   have had little use.
 
-Next, in order: tools that need the network (weather, news, Wikipedia,
-search), then reasoning over what the dictionary already holds. The plan is in
+Next: the other tools that need the network (weather, news, search). The plan is in
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Documentation

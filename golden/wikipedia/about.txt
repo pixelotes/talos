@@ -1,0 +1,62 @@
+# wikipedia.about. Golden files have no network, so these cover what does
+# not need one: which phrasings reach the skill, what it says without
+# network access, and what it leaves to other skills. Its answers from
+# recorded pages are tested in crates/talos-skills/tests/engine.rs.
+
+[es] U: háblame de Valencia
+     T: No tengo acceso a la red, así que no puedo consultar Wikipedia.
+                                                  → unhandled · wikipedia.about · subject=Valencia
+
+[es] U: ¿Quién fue Ramón y Cajal?
+     T: No tengo acceso a la red, así que no puedo consultar Wikipedia.
+                                                  → unhandled · wikipedia.about · subject=Ramón y Cajal
+
+[es] U: cuéntame lo que sepas de los agujeros negros
+     T: No tengo acceso a la red, así que no puedo consultar Wikipedia.
+                                                  → unhandled · wikipedia.about · subject=los agujeros negros
+
+[es] U: quiero saber más acerca de la fotosíntesis
+     T: No tengo acceso a la red, así que no puedo consultar Wikipedia.
+                                                  → unhandled · wikipedia.about · subject=la fotosíntesis
+
+[es] U: qué fue el Renacimiento
+     T: No tengo acceso a la red, así que no puedo consultar Wikipedia.
+                                                  → unhandled · wikipedia.about · subject=el Renacimiento
+
+[es] U: /wiki
+     T: ¿Sobre qué quieres que busque?            → asks · wikipedia.about · subject
+[es] U: Marte
+     T: No tengo acceso a la red, así que no puedo consultar Wikipedia.
+                                                  → unhandled · wikipedia.about · subject=Marte
+
+[en] U: tell me about Lisbon
+     T: I have no network access, so I can't look that up on Wikipedia.
+                                                  → unhandled · wikipedia.about · subject=Lisbon
+
+[en] U: who was Ada Lovelace?
+     T: I have no network access, so I can't look that up on Wikipedia.
+                                                  → unhandled · wikipedia.about · subject=Ada Lovelace
+
+[en] U: what do you know about black holes
+     T: I have no network access, so I can't look that up on Wikipedia.
+                                                  → unhandled · wikipedia.about · subject=black holes
+
+# Who Talos is belongs to `identity`.
+[es] U: quién eres
+     T: Soy Talos, un asistente que responde en español e inglés sin usar un modelo de lenguaje.
+                                                  → answered · identity.who
+
+[es] U: ¿Quién es Talos?
+     T: Soy Talos, un asistente que responde en español e inglés sin usar un modelo de lenguaje.
+                                                  → answered · identity.who
+
+[en] U: who are you
+     T: I'm Talos, a small assistant that answers in English and Spanish without a language model.
+                                                  → answered · identity.who
+
+# About the speakers, or an opinion: not an article's.
+[es] U: háblame de ti
+     T: No te he entendido.                       → unhandled · catch-all
+
+[en] U: who is the best footballer in the world
+     T: I don't know that.                        → unhandled · unknown-fact

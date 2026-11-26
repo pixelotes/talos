@@ -1,0 +1,1 @@
+{"rustc":4106920547260086991,"features":"[]","declared_features":"[\"ureq\"]","target":13763568383530764359,"profile":431270315006770079,"path":14730876393056203872,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"release/build/net-client/776f0a8a7d28bc54/fingerprint/dep-bin-with-curl","fingerprint":"mtime"}}],"rustflags":[],"config":9396254390672932401,"compile_kind":0}

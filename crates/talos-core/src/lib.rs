@@ -24,6 +24,7 @@ pub mod knowledge;
 mod lang;
 pub mod language;
 pub mod manifest;
+pub mod net;
 pub mod normalise;
 mod outcome;
 mod patterns;

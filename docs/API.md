@@ -23,7 +23,11 @@ Built today: `ask`, `chat`, `explain`, `skills list | check`, `eval` and
 `serve`; the rest of the list is planned. Flags, before or after the subcommand: `--lang es|en`
 (the caller's hint), `--seed N` (the random source's seed, default 0) and
 `--json` (for `ask` and `explain`: print the full outcome object instead of
-the reply text). `--config PATH` and `--data-dir PATH` are planned with
+the reply text) and `--net` (let the skills that need the network use it;
+the same as `TALOS_NET=1`. Without it they answer that they have no network
+access. `TALOS_CONTACT`, an address or a page, is added to the client's
+User-Agent, `talos/<version>`, when set: Wikipedia's policy for automated
+clients asks for one and limits clients without it). `--config PATH` and `--data-dir PATH` are planned with
 `talos.toml`. `serve` also takes `--bind ADDR` (an IP address or
 `localhost`), `--port N` (`0` picks a free port) and `--token TOKEN`; with
 `serve`, `--lang` is the hint for requests that give none.
@@ -189,7 +193,7 @@ another engine uses the same chat-completions call as any client and reads the
 | `status` | `answered`, `deflected` or `unhandled` — whether to show the reply or pass the turn on |
 | `pending` | a question is open after this turn: Talos asked one back (the status is then `answered` and `intent` the request being completed), or the user hesitated and it stays open. Send the next message of this conversation to Talos first: it may answer, cancel or replace the question. It closes after three more turns or five minutes |
 | `generated` | true only when the answer came from an external skill that declares it uses a model; every other outcome is reproducible |
-| `fallback` | present only when the reply rests on a cheaper source because the best one had nothing ([DESIGN.md](DESIGN.md) principle 8): `word-pairs` (a translation from the word-pair lexicon, `answered`, hedged in the reply), `word-by-word` (a phrase rendered word by word, `unhandled`), `relations` (no definition in the conversation's language; what the word's claims say instead, `unhandled`), `other-language` (the other language's definition, given because it was asked for). The reply always says so in words too. An open set: later skills add their own (a cached value, an article's opening). A host with something better — a translator, an encyclopedia — can step in. `talos explain` and golden outcome lines end with `· fallback <name>` |
+| `fallback` | present only when the reply rests on a cheaper source because the best one had nothing ([DESIGN.md](DESIGN.md) principle 8): `word-pairs` (a translation from the word-pair lexicon, `answered`, hedged in the reply), `word-by-word` (a phrase rendered word by word, `unhandled`), `relations` (no definition in the conversation's language; what the word's claims say instead, `unhandled`), `other-language` (the other language's definition, given because it was asked for; or the other language's Wikipedia, because the conversation's has no such article), `encyclopedia` (a word no dictionary has, answered with the opening of its Wikipedia article). The reply always says so in words too. An open set: later skills add their own (a cached value, an article's opening). A host with something better — a translator, an encyclopedia — can step in. `talos explain` and golden outcome lines end with `· fallback <name>` |
 | `intent`, `slots`, `confidence`, `language` | what was recognised, for logging and routing decisions; `intent` is kept when the status is `unhandled` |
 | `reason` | why a turn is `unhandled` (unknown, cannot, generative, noise, other language, `nothing-pending` for a bare yes/no with no question open, `unknown-command`, `command-argument`, `gave-up` for a question dropped after two failed answers…) or which shape was `deflected`; on an `answered` turn with no intent, the dialog move: `acknowledgement`, `cancelled`, `hedge` |
 

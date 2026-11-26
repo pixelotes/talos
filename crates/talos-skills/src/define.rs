@@ -64,6 +64,7 @@ const REPLIES: &[&str] = &[
     "p_entry_form_also",
     "p_entry_source",
     "word_and",
+    "p_encyclopedia",
     "p_quoted",
     "pos_n",
     "pos_v",
@@ -290,6 +291,19 @@ pub(crate) mod imp {
                 ));
             }
             cx.report("word", Value::Text(word.clone()));
+            // No dictionary has it: the encyclopedia, when the network is
+            // allowed, said to be one and marked as the cheaper source.
+            if let crate::wikipedia::Found::Article(page) =
+                crate::wikipedia::find(cx, &word, None, lang)
+            {
+                cx.mark_fallback(Fallback::new("encyclopedia"));
+                let text = [
+                    p(cx, lang, "p_encyclopedia", &[("word", &word)]),
+                    crate::wikipedia::article_text(cx, lang, &page),
+                ]
+                .join("\n");
+                return Ok(SkillResult::Answer(Message::new("defined").var("text", text)));
+            }
             return Ok(SkillResult::Unable(Message::new("unknown").var("word", word)));
         };
         let foreign = found.lang != lang;

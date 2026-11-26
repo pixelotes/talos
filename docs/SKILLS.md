@@ -240,12 +240,14 @@ acknowledgement ("vale", "ok", "olvídalo") is `answered · acknowledgement`.
 Planned for the first major version; built so far: `smalltalk`, `identity`,
 `help`, `clock`, `timezones`, `calc`, `random`, `fortune`, `define`,
 `translate`, `teach` (the user's phrases only: `teach.phrase`, and
-`teach.list` / `teach.forget` for them; facts wait until after 1.0) and `preferences`.
+`teach.list` / `teach.forget` for them; facts wait until after 1.0),
+`preferences` and `wikipedia`.
 `define` and `translate` read the knowledge store: in a build without the
 `knowledge` feature, or with no store, they are installed all the same (the
 same manifests, so the same classifier) and answer that there is no
-dictionary (`unhandled`). Network skills are disabled until enabled in
-configuration.
+dictionary (`unhandled`). A network skill reads pages only when the front
+end was started with `--net` (or `TALOS_NET=1`); without it, it is installed
+all the same and answers that it has no network access (`unhandled`).
 
 | Skill | Does | Network |
 |---|---|---|
@@ -266,7 +268,7 @@ configuration.
 | `weather` | current and forecast for a place | yes |
 | `search` | a short factual summary from a configured source | yes |
 | `news` | today's headlines from a configured source | yes |
-| `wikipedia` | an article's opening and an extractive summary, with its link | yes |
+| `wikipedia` | the opening of the article about a subject, as written, with its title and address ("háblame de…", "quién fue…", "tell me about…", `/wiki`); asks which when a name is several things; also what `define` falls back to for a word no dictionary has. An extractive summary of the whole article is planned | yes |
 
 Notes:
 

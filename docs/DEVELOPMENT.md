@@ -639,6 +639,22 @@ were not measured.
 | English | no dictionary pack | the vocabulary pack's English definitions are real and ordered by frequency; what read badly was `define`'s wording, not the source. The English file of the same project is 67 MB |
 | A word of many senses, from the concept packs | more than four senses and nothing in the conversation to choose by (no words of the turn, no remembered sense, no recent concept): the entry, like a dictionary pack's, by part of speech in rank order, with no source line | "run" gave its first sense and a list of 55 labels of the others, "better" asked which of 46. Up to four senses the specification's wording stands (the first sense and "it can also mean", or the question), so its examples and the golden files are unchanged. A word typed as a headword is answered as that headword ("better" the noun, not "good"); an inflected form names the word it belongs to |
 
+## Decisions taken with `wikipedia` (the first network skill)
+
+| Question | Taken | Note |
+|---|---|---|
+| The client | `ureq` with rustls in the binary, behind `net`; the engine sees a trait | [ADR 0018](adr/0018-outbound-https-client.md), with the measurements |
+| What is asked | one request: a search of the conversation's Wikipedia that returns, for its five best matches, the plain-text opening, the address and whether the page is a list of subjects of that name (`generator=search` with `extracts`, `pageprops`, `info`) | a search, not a title: "ramón y cajal" finds "Santiago Ramón y Cajal". A second request, to the other language's Wikipedia, only when the first finds nothing |
+| What is answered | the opening as written, cut at a sentence end within 480 characters, then the title and the address | the words are Wikipedia's; nothing is rephrased (ADR 0012). Footnote marks leave zero-width spaces in the plain text, which are removed |
+| The article said with the subject | dropped before searching ("la Segunda Guerra Mundial") | with it, the search preferred a book titled exactly so over the war |
+| A name that is several things | the question "which one?", with the other matches as options | answered by a title or by what it has in brackets ("el planeta") |
+| "Qué es X" | stays `define`'s; `define` asks Wikipedia only for a word no dictionary has, marked `encyclopedia` | a dictionary answers a word better than an encyclopedia does |
+| Not subjects | "quién eres", "háblame de ti", "quién es tu cantante favorito", "who is the best…": declined (pronouns, possessives, superlatives as the first word), and "quién es Talos" is `identity`'s by rule | they are about the speakers or ask for an opinion |
+| `relations.about` | the phrasings the specification gave it ("qué sabes de X") are now `wikipedia.about` | reasoning over relations moved to after 1.0; an encyclopedia answers them today |
+| The out-of-scope corpus | eighteen questions about people, places and subjects moved out of it | they are in scope now |
+| Recognition | Spanish 82.4 % (was 84.4 %), English 81.7 % (was 81.4 %); false accepts unchanged (4 and 1) | five Spanish rows the classifier had accepted at 0.62 to 0.63 fell under its threshold with a thirteenth class; none went to the new skill. The Spanish floors were lowered to 0.82 and 0.79 |
+| Tests | recorded pages through the trait (`tests/engine.rs`); golden files cover the phrasings and the reply without network | nothing in the suite or CI opens a connection |
+
 ## Server
 
 `talos serve` (docs/API.md §2, [ADR 0017](adr/0017-http-stack.md)) is in

@@ -1,0 +1,206 @@
+# wikipedia: what an encyclopedia says about a subject, read from Wikipedia
+# when the network is allowed.
+#
+# The subject is whatever follows "háblame de", "quién fue", "tell me
+# about": a person, a place, a thing. The handler searches the Wikipedia of
+# the conversation's language, and answers with the opening of the best
+# match, quoted as written, its title and its address. The words are
+# Wikipedia's, never Talos's: nothing is summarised or rephrased.
+#
+# "Qué es X" and "what is X" belong to `define`, which asks here only when
+# no dictionary has the word. "Quién eres", "tell me about yourself" belong
+# to `identity`, whose priority is higher; a subject that is only "ti" or
+# "you" is declined.
+#
+# Slots:
+# - `subject`: what to look up, as typed; asked for when missing.
+# - `article`: the title chosen in answer to "which one?", when the best
+#   match is a page that only lists several subjects of that name.
+#
+# The `p_*` replies are pieces the handler composes a reply from.
+
+[skill]
+id = "wikipedia"
+summary.es = "contarte lo que dice Wikipedia sobre algo o alguien"
+summary.en = "tell you what Wikipedia says about something or someone"
+names.es = ["wikipedia", "enciclopedia"]
+names.en = ["wikipedia", "encyclopedia"]
+help.es = ["háblame de Valencia", "¿quién fue Ramón y Cajal?", "quiero saber más sobre los volcanes"]
+help.en = ["tell me about Lisbon", "who was Ada Lovelace?", "I want to know more about volcanoes"]
+capabilities = ["network"]
+
+[[intent]]
+id = "wikipedia.about"
+priority = 40
+courtesy = false
+command = { es = "/wiki", en = "/wiki", slot = "subject" }
+
+  [intent.examples]
+  es = ["háblame de Valencia", "háblame de la Segunda Guerra Mundial", "hablame de los volcanes", "háblame sobre Marie Curie",
+    "háblame un poco de Japón", "cuéntame algo de Roma", "cuéntame algo sobre los agujeros negros", "cuéntame lo que sepas de Napoleón",
+    "cuéntame todo lo que sepas sobre los dinosaurios", "dime lo que sepas de la Revolución Francesa", "dime algo sobre Picasso",
+    "quiero saber más acerca de los pingüinos", "quiero saber más sobre el Imperio Romano", "quiero saber algo de Mozart",
+    "quisiera saber más sobre la fotosíntesis", "me gustaría saber más de Islandia", "me gustaría saber quién fue Cervantes",
+    "necesito saber más sobre el cambio climático", "qué sabes de Albert Einstein", "qué sabes sobre el Titanic",
+    "qué sabes de la Gran Muralla China", "qué sabes acerca de Marte", "quién es Rafael Nadal", "quién era Cleopatra",
+    "quién fue Ramón y Cajal", "quién fue Isabel la Católica", "quiénes fueron los Reyes Católicos", "quiénes eran los vikingos",
+    "quién es el presidente de Francia", "sabes quién fue Gaudí", "sabes quién es Shakira", "qué fue la Guerra Fría",
+    "qué fue el Renacimiento", "qué era la Unión Soviética", "qué fueron las cruzadas", "busca a Frida Kahlo en Wikipedia",
+    "busca Lisboa en la wikipedia", "búscame los Beatles en wikipedia", "mira en Wikipedia quién fue Sócrates",
+    "qué dice Wikipedia de Goya", "qué dice la wikipedia sobre el Amazonas", "wikipedia Júpiter", "info sobre Barcelona",
+    "información sobre el río Nilo", "dame información sobre los Juegos Olímpicos", "dame información de Velázquez",
+    "explícame quién fue Colón", "cuéntame quién era Julio César", "cuéntame sobre la Edad Media", "cuéntame de Machu Picchu",
+    "háblame de Lorca", "háblame del sistema solar", "hablame de messi", "quien fue newton", "quien es elon musk",
+    "kien fue franco", "q sabes de bitcoin", "cuentame algo de egipto", "y quién fue Goya", "y qué sabes de Dalí",
+    "me cuentas algo sobre Sevilla", "me hablas de la Alhambra", "puedes hablarme de Tesla", "podrías contarme algo de Buda",
+    "sabes algo de los mayas", "sabes algo sobre la Sagrada Familia", "tienes información sobre el Everest",
+    "quiero información sobre Leonardo da Vinci", "quiero que me hables de Grecia", "quiero que me cuentes algo de Chopin",
+    "dime quién fue Hipatia", "dime quién es el autor del Quijote", "sabrías decirme quién fue Magallanes",
+    "me interesa saber más sobre la Antártida", "tengo curiosidad por los samuráis", "hablemos de la Luna",
+    "qué puedes contarme de Mozart", "qué me puedes decir de Canadá", "qué me cuentas de Australia"]
+  en = ["tell me about Lisbon", "tell me about the Second World War", "tell me about volcanoes", "tell me more about Marie Curie",
+    "tell me something about Japan", "tell me a bit about Rome", "tell me what you know about Napoleon",
+    "tell me everything you know about dinosaurs", "tell me all you know about black holes", "talk to me about Picasso",
+    "i want to know more about penguins", "i want to know about the Roman Empire", "i'd like to know more about Mozart",
+    "i would like to learn about photosynthesis", "i'd like to hear about Iceland", "i want to learn more about climate change",
+    "what do you know about Albert Einstein", "what do you know about the Titanic", "what do you know of Mars",
+    "who is Serena Williams", "who was Cleopatra", "who was Ada Lovelace", "who was Queen Victoria", "who were the Vikings",
+    "who are the Beatles", "who is the president of France", "do you know who Gaudí was", "do you know who Shakira is",
+    "what was the Cold War", "what was the Renaissance", "what was the Soviet Union", "what were the Crusades",
+    "look up Frida Kahlo on Wikipedia", "search Wikipedia for Lisbon", "look Socrates up on wikipedia",
+    "what does Wikipedia say about Goya", "what does wikipedia say about the Amazon", "wikipedia Jupiter",
+    "info on Barcelona", "information about the Nile", "give me information about the Olympic Games",
+    "give me some info on Velázquez", "explain who Columbus was", "tell me who Julius Caesar was", "tell me about the Middle Ages",
+    "tell me about Machu Picchu", "tell me about lorca", "who was newton", "who is elon musk", "who's Taylor Swift",
+    "who's the author of Don Quixote", "whats the deal with bitcoin", "tell me about egypt", "and who was Goya",
+    "and what do you know about Dalí", "can you tell me about Seville", "could you tell me something about the Alhambra",
+    "can you talk about Tesla", "do you know anything about the Maya", "do you know anything about the Sagrada Familia",
+    "do you have information on Everest", "i want information about Leonardo da Vinci", "i want you to tell me about Greece",
+    "tell me who Hypatia was", "could you tell me who Magellan was", "i am really interested in Antarctica, what is it like",
+    "let's talk about the Moon", "what can you tell me about Mozart",
+    "what can you tell me about Canada", "anything on Australia", "who was Shakespeare", "who is Messi",
+    "tell me about the French Revolution",
+    "give me a rundown on quantum computing", "fill me in on the Byzantine Empire", "what's the story of Pompeii"]
+
+  [[intent.slot]]
+  name = "subject"
+  type = "term"
+  required = true
+  guess = { after = ["hablame de", "hablame del", "hablame sobre", "cuentame algo de", "cuentame algo sobre", "lo que sepas de", "lo que sepas sobre", "saber mas acerca de", "saber mas sobre", "saber mas de", "que sabes de", "que sabes sobre", "quien es", "quien era", "quien fue", "quienes fueron", "quienes eran", "que fue", "que era", "informacion sobre", "informacion de", "tell me about", "tell me more about", "you know about", "know more about", "to know about", "learn about", "learn more about", "who is", "who was", "who were", "who are", "who's", "what was", "what were", "information about", "info on"] }
+
+  [[intent.slot]]
+  name = "article"
+  type = "term"
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y\s+)?(?:me\s+)?(?:hablame|hablanos|hablas|hablemos|cuentame|cuentanos|cuentas)(?:\s+(?:algo|un\s+poco|mas|mas\s+cosas))?\s+(?:de|del|sobre|acerca\s+de|acerca\s+del)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:cuentame|cuentanos|dime|explicame)\s+(?:todo\s+)?lo\s+que\s+(?:sepas|sabes)\s+(?:de|del|sobre|acerca\s+de|acerca\s+del)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:quiero|quisiera|querria|me\s+gustaria|necesito)\s+saber\s+(?:mas|algo|mas\s+cosas|algo\s+mas)?\s*(?:de|del|sobre|acerca\s+de|acerca\s+del)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y\s+)?que\s+sabes\s+(?:de|del|sobre|acerca\s+de|acerca\s+del)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y\s+)?(?:(?:sabes|dime|explicame|cuentame)\s+)?quien(?:es)?\s+(?:es|era|fue|son|eran|fueron)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:y\s+)?que\s+(?:era|fue|eran|fueron)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:busca(?:me)?|mira|consulta)\s+(?:a\s+)?(?<subject>.+?)\s+en\s+(?:la\s+)?wikipedia[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:que\s+dice\s+)?(?:la\s+)?wikipedia\s+(?:de\s+|del\s+|sobre\s+)?(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "es"
+  regex = '^[¿¡\s]*(?:(?:dame|quiero|tienes)\s+)?info(?:rmacion)?\s+(?:de|del|sobre|acerca\s+de|acerca\s+del)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and\s+)?(?:(?:can|could)\s+you\s+)?(?:tell\s+me|talk\s+to\s+me|talk)\s+(?:more\s+|something\s+|a\s+bit\s+|a\s+little\s+)?about\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^tell\s+me\s+(?:everything|all|what)\s+you\s+know\s+(?:about|of)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and\s+)?what\s+do\s+you\s+know\s+(?:about|of)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^i(?:\s+would|.d)?\s+(?:want|like)\s+to\s+(?:know|learn|hear)\s+(?:more\s+|something\s+)?about\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and\s+)?(?:who\s+(?:is|was|are|were)|who.s)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:and\s+)?what\s+(?:was|were)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:look\s+up|search\s+for|find)\s+(?<subject>.+?)\s+(?:on|in)\s+wikipedia[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:what\s+does\s+wikipedia\s+say\s+about|search\s+wikipedia\s+for|wikipedia)\s+(?<subject>.+?)[\s?.!]*$'
+
+  [[intent.pattern]]
+  lang = "en"
+  regex = '^(?:give\s+me\s+)?(?:some\s+)?info(?:rmation)?\s+(?:on|about)\s+(?<subject>.+?)[\s?.!]*$'
+
+[reply.about]
+es = ["{text}"]
+en = ["{text}"]
+
+[reply.ask_subject]
+es = ["¿Sobre qué quieres que busque?"]
+en = ["What should I look up?"]
+
+[reply.ask_article]
+es = ["«{subject}» puede ser varias cosas. ¿Cuál: {options}?"]
+en = ["\"{subject}\" can be several things. Which one: {options}?"]
+
+[reply.ambiguous]
+es = ["«{subject}» puede ser varias cosas en Wikipedia y no sé cuál quieres. Dímelo con más detalle."]
+en = ["\"{subject}\" can be several things on Wikipedia and I can't tell which you mean. Tell me more precisely."]
+
+[reply.not_found]
+es = ["No encuentro nada sobre «{subject}» en Wikipedia."]
+en = ["I can't find anything about \"{subject}\" on Wikipedia."]
+
+[reply.no_network]
+es = ["No tengo acceso a la red, así que no puedo consultar Wikipedia."]
+en = ["I have no network access, so I can't look that up on Wikipedia."]
+
+[reply.failed]
+es = ["No he podido consultar Wikipedia ahora mismo. Prueba dentro de un rato."]
+en = ["I couldn't reach Wikipedia just now. Try again in a while."]
+
+# The opening as Wikipedia writes it, then where it comes from.
+[reply.p_article]
+es = ["{extract}\nFuente: Wikipedia, «{title}»: {url}"]
+en = ["{extract}\nSource: Wikipedia, \"{title}\": {url}"]
+
+[reply.p_other_language]
+es = ["No lo encuentro en la Wikipedia en español; esto dice la inglesa."]
+en = ["I can't find it on the English Wikipedia; this is what the Spanish one says."]
+
+[reply.word_or]
+es = ["o"]
+en = ["or"]
