@@ -485,7 +485,7 @@ dependencies = [
 
 [[package]]
 name = "talos"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "serde_json",
  "talos-core",
@@ -495,7 +495,7 @@ dependencies = [
 
 [[package]]
 name = "talos-core"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "regex",
  "regex-automata",
@@ -508,7 +508,7 @@ dependencies = [
 
 [[package]]
 name = "talos-pack"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "flate2",
  "quick-xml",
@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "talos-skills"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "serde_json",
  "talos-core",
@@ -527,7 +527,7 @@ dependencies = [
 
 [[package]]
 name = "talos-train"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "talos-core",
  "talos-skills",

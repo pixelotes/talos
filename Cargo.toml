@@ -7,7 +7,7 @@ members = ["crates/*", "tools/*"]
 exclude = ["spikes"]
 
 [workspace.package]
-version = "0.3.2"
+version = "0.4.0"
 edition = "2024"
 license = "MIT"
 rust-version = "1.99"
@@ -17,10 +17,10 @@ publish = false
 # Every third-party dependency is justified on its own line (DESIGN.md s.9:
 # prefer no dependency, then a small one, then a feature-gated one).
 [workspace.dependencies]
-talos-core = { path = "crates/talos-core", version = "0.3.2" }
+talos-core = { path = "crates/talos-core", version = "0.4.0" }
 # Without its default `knowledge` feature: each dependent turns it on
 # through its own `knowledge` feature (the binary does by default).
-talos-skills = { path = "crates/talos-skills", version = "0.3.2", default-features = false }
+talos-skills = { path = "crates/talos-skills", version = "0.4.0", default-features = false }
 # Outbound HTTPS for the network skills, only in the binary and behind its
 # `net` feature: blocking, no async runtime; rustls with ring and the
 # Mozilla roots compiled in, so the static binary needs no system TLS.
