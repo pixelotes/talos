@@ -3,7 +3,7 @@
 > **Built in two steps** (owner's ruling, 2026-11-25). v0.3 builds the store,
 > the packs and what a dictionary needs: words, concepts, glosses,
 > translation. Reasoning over relations, teaching facts, confidence and
-> contradiction are v0.6, on the same schema. See [ROADMAP.md](ROADMAP.md).
+> contradiction are deferred until after 1.0, on the same schema. See [ROADMAP.md](ROADMAP.md).
 
 The knowledge store is what makes Talos semantic instead of a command bot. It
 holds what words mean, how concepts relate, where each fact came from and how
@@ -125,7 +125,7 @@ start-up on `user.db`; packs declare the schema version they were built for.
 ### As built (schema version 1, v0.3)
 
 The tables above are in `talos-core/src/knowledge/schema.rs`, as written,
-relations and audit included although nothing queries them before v0.6, with
+relations and audit included although nothing reasons over them before 1.0, with
 these settlements:
 
 - **No `gloss_fts` yet.** Full-text search is not part of v0.3 and FTS5 is
@@ -404,7 +404,7 @@ vocabulary pack". In short:
   (`i46360`; the 3 213 synsets without one keep their own id); 161 814
   English and 93 694 Spanish lexemes; 357 882 senses; 155 315 claims
   (`is_a`, `instance_of`, `part_of`, `member_of`, `substance_of`, `causes`,
-  `similar_to`, `antonym_of`), which nothing queries until v0.6.
+  `similar_to`, `antonym_of`), which nothing reasons over until after 1.0.
 - **The join** keeps 78 215 of the 78 417 Spanish synsets (99.7 %): 202
   name a CILI id that Open English WordNet no longer carries.
 - **Glosses by source.** Every English sense has its synset's definition

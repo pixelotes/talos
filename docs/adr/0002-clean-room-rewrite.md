@@ -21,7 +21,7 @@ That is a fact to manage, not to hide.
 ### What the owner added to the earlier Talos
 
 Several ideas central to this design did not come from NOVA AI. They were the
-owner's own additions when he repurposed it, and are recorded here so their
+owner's own additions when repurposing it, and are recorded here so their
 origin is not misattributed:
 
 - concepts and relations stored in SQLite (the original kept them in JSON);
@@ -57,12 +57,12 @@ Talos is written from scratch against a behavioural specification.
    the old source open alongside.
 
 Before reusing any corpus file, check its history for phrases inherited from
-the original project and drop them. The owner's audit of his corpus is kept
+the original project and drop them. The owner's audit of that corpus is kept
 outside this repository. In the event no corpus file was reused: every
 training example here was written anew.
 
 The same test applies to text the owner wrote inside the old code base, such
-as his Spanish and English reply wording or fallback patterns: it may be
+as the owner's Spanish and English reply wording or fallback patterns: it may be
 consulted and reused only where history shows the owner added it and it is not
 an adaptation of upstream text. The surrounding code is never carried over.
 

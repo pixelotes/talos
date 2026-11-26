@@ -1,6 +1,6 @@
 # Roadmap
 
-Eight milestones from an empty repository to a 1.0 that replaces the Talos
+Seven milestones from an empty repository to a 1.0 that replaces the Talos
 inside Tomos. Each one ends in something that runs and can be measured.
 
 The rule for the whole plan: **a milestone is done when its exit criteria are
@@ -10,7 +10,7 @@ confirmed or revised by the first real measurement.
 ```
 M0 Foundations ─▶ v0.1 Talks ─▶ v0.2 Understands ─▶ v0.3 Dictionary
                                                         │
-   v1.0 Small hardware ◀─ v0.6 Knows ◀─ v0.5 Tools ◀─ v0.4 Serves
+                       v1.0 Small hardware ◀─ v0.5 Tools ◀─ v0.4 Serves
 ```
 
 No dates: the order and the exit criteria are the plan. Sequence can bend
@@ -112,12 +112,12 @@ Recognition that generalises, and multi-turn exchanges.
 The store and its first two uses: defining a word and translating one. Split
 from the original v0.3 by the owner on 2026-11-25: the assistant is used for
 direct requests, and reasoning over relations and teaching facts are not
-among them yet. They are milestone v0.6, on the same store.
+among them yet. They are noted under "After 1.0", on the same store.
 
 **Scope**
 
 - Schema, migrations, connection handling, `user.db` — the schema as designed
-  in [KNOWLEDGE.md](KNOWLEDGE.md), relations included, so that v0.6 adds
+  in [KNOWLEDGE.md](KNOWLEDGE.md), relations included, so that reasoning later adds
   queries and not a new store. Preferences and corrections move from
   `user.toml` into it.
 - Query layer for what this milestone asks: a word to its concepts, a
@@ -134,7 +134,7 @@ among them yet. They are milestone v0.6, on the same store.
   concepts) and Wikidata's Spanish descriptions for 18 516 more (48 % in
   all). For the rest, the cheap fallbacks, each marked as such: the
   English gloss, and from v0.5 the opening of the Wikipedia article.
-  Hand-written and build-time-translated glosses wait for v0.6.
+  Hand-written and build-time-translated glosses are not planned before 1.0.
 - An evaluation battery for definitions and translations.
 
 **Exit criteria**
@@ -219,35 +219,6 @@ Talos stands on its own ([ADR 0013](adr/0013-external-skills.md), amended).
 
 ---
 
-## v0.6 — Knows things
-
-The rest of the semantic store: what the original design called the
-milestone that makes it Talos. It can move after 1.0 if the owner so rules.
-
-**Scope**
-
-- Query layer: is-a, part-of, kinds-of, causes, neighbourhood; bounded
-  reasoning with paths; confidence aggregation.
-- Teaching: teach, correct, forget, list, export/import; contradiction
-  detection; audit.
-- Skills: `relations`, and the rest of `teach`.
-- A measured trial of inducing Spanish senses from the word-pair lexicon
-  (precision on a reviewed sample decides whether induced senses ship).
-- Spanish glosses: hand-written for the core subset; build-time translation
-  of English glosses for the rest, sampled and reviewed, stored as a separate
-  lower-confidence source.
-- A semantic evaluation battery (questions with expected answers and paths).
-
-**Exit criteria**
-
-- Something taught in one language is answerable in the other.
-- Derived answers state their path; negative answers distinguish
-  "contradicted" from "unknown".
-- Semantic battery ≥ 90 % (*target*).
-- No disk write on a turn that does not teach.
-
----
-
 ## v1.0 — Small hardware
 
 Prove the claim the project exists for, and freeze the interfaces.
@@ -282,6 +253,24 @@ Prove the claim the project exists for, and freeze the interfaces.
 
 Not planned, only noted so they have somewhere to live:
 
+- **Knowing things** — reasoning over the relations the vocabulary pack
+  already holds, and teaching facts. Moved here by the owner on 2026-11-26:
+  what the owner asks of Talos is direct requests and lookups, and none of them
+  needs it. The relations stay in the pack and are used as data (naming a
+  sense by its class, the "it is a kind of…" fallback of `define`); what
+  waits is the machinery. Its scope, kept for when it is taken up:
+
+  - Query layer: is-a, part-of, kinds-of, causes, neighbourhood; bounded
+    reasoning with paths; confidence aggregation.
+  - Teaching: teach, correct, forget, list, export/import; contradiction
+    detection; audit.
+  - Skills: `relations`, and the rest of `teach`.
+  - A measured trial of inducing Spanish senses from the word-pair lexicon
+    (precision on a reviewed sample decides whether induced senses ship).
+  - Spanish glosses: hand-written for the core subset; build-time translation
+    of English glosses for the rest, sampled and reviewed, stored as a separate
+    lower-confidence source.
+  - A semantic evaluation battery (questions with expected answers and paths).
 - **An entities pack from Wikidata** — places, people, works. The model
   already accommodates it; it is a pack to build, not a redesign.
 - **Speaking first** — timers, alarms and reminders ("avísame en diez

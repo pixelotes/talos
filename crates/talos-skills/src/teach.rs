@@ -1,6 +1,6 @@
 //! `teach`: the user's own phrases (docs/spec/knowledge.md, `teach.phrase`,
 //! and the phrase parts of `teach.list` and `teach.forget`). Teaching facts
-//! is v0.6 and not here.
+//! waits until after 1.0 and is not here.
 //!
 //! "Cuando diga «tira», quiero decir «tira un dado»": the meaning is read as
 //! a message would be ([`Context::understand`]); a request Talos
@@ -426,7 +426,7 @@ fn list(cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
         cx.report("count", Value::Number(Number::from_int(0)));
         return SkillResult::Answer(Message::new("list_facts"));
     }
-    // Only taught facts have a topic, and they are v0.6.
+    // Only taught facts have a topic, and they wait until after 1.0.
     if let Some(topic) = text(call.slots, "topic").map(strip_quotes) {
         cx.report("count", Value::Number(Number::from_int(0)));
         return SkillResult::Answer(Message::new("list_topic").var("topic", topic));
@@ -511,7 +511,7 @@ fn forget(cx: &mut Context<'_>, call: &Call<'_>) -> SkillResult {
         }
         return SkillResult::Answer(Message::new("forget_all_done").var("count", shown));
     }
-    // The claim of the last answer is a fact; facts are v0.6.
+    // The claim of the last answer is a fact; facts wait until after 1.0.
     if target == "that" {
         return SkillResult::Unable(Message::new("forget_fact"));
     }

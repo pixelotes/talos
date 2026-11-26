@@ -240,7 +240,7 @@ acknowledgement ("vale", "ok", "olvídalo") is `answered · acknowledgement`.
 Planned for the first major version; built so far: `smalltalk`, `identity`,
 `help`, `clock`, `timezones`, `calc`, `random`, `fortune`, `define`,
 `translate`, `teach` (the user's phrases only: `teach.phrase`, and
-`teach.list` / `teach.forget` for them; facts are v0.6) and `preferences`.
+`teach.list` / `teach.forget` for them; facts wait until after 1.0) and `preferences`.
 `define` and `translate` read the knowledge store: in a build without the
 `knowledge` feature, or with no store, they are installed all the same (the
 same manifests, so the same classifier) and answer that there is no

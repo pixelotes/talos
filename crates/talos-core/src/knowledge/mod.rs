@@ -3,7 +3,7 @@
 //!
 //! - [`schema`]: the tables and their forward-only migrations.
 //! - [`UserDb`]: `user.db`, where preferences and corrections are kept (and,
-//!   from v0.6, what the user teaches); imports `user.toml` once.
+//!   later, what the user teaches); imports `user.toml` once.
 //! - [`Knowledge`]: `user.db` and the attached packs, read-only, queried as
 //!   one: a word to its senses through its inflected forms, glosses and
 //!   words per language, sense choice, stock phrases, the word-pair

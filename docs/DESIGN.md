@@ -343,7 +343,7 @@ user teaches, corrects, or sets a preference.
 
 What is kept about the user lives in `user.db` in the data directory (§10):
 the preferences (name, place, units) and the correction table as rows, next
-to the knowledge tables (what the user teaches, from v0.6). The engine keeps
+to the knowledge tables (what the user teaches, after 1.0). The engine keeps
 the preferences and corrections in memory and hands every change to a store
 (`talos_core::user::UserStore`): the front ends' store (`UserDb`) writes
 `user.db` in one transaction, and only when a turn's changes differ from what
@@ -467,7 +467,7 @@ read in place from the executable's image, never copied to the heap
    [ADR 0012](adr/0012-no-language-model.md), sit behind a feature that is
    off by default, and mark their outcomes `generated`. An online service
    also sends the user's text off the machine. A fourth route, the owner's
-   current leaning: sentence translation as a skill served by his Dédalo
+   current leaning: sentence translation as a skill served by the owner's Dédalo
    workflow engine and reached as an external skill
    ([ADR 0013](adr/0013-external-skills.md)), declared `generated`; Talos
    stays model-free and keeps word-by-word translation from the lexicon for
