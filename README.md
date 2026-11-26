@@ -105,6 +105,20 @@ The pack holds about 120,000 concepts, 162,000 English and 94,000 Spanish
 words, in 78 MB. It carries its sources' licences, which are not this
 project's: see the `vocabulary.NOTICE` written beside it.
 
+`define` answers better from a real dictionary. Talos ships none, but it
+converts one in the format e-readers use (Kobo's `dicthtml`) into a pack:
+
+```sh
+cargo run --release -p talos-pack -- kobo dicthtml-es-es.zip \
+  --lang es --name Wikcionario --license "CC BY-SA 4.0"
+cp target/packs/dictionary-es.talospack ~/.local/share/talos/packs/
+```
+
+With one installed, "qué significa fui" answers with the entry for "ir":
+its part of speech, its first definitions and the dictionary's name. The
+dictionary is yours to choose, and its licence is its own. Details in
+[docs/KNOWLEDGE.md](docs/KNOWLEDGE.md#dictionary-packs).
+
 ## Where it stands
 
 Measured on the development machine; the figures and how they were taken are
@@ -121,9 +135,13 @@ in [evals/BASELINE.md](evals/BASELINE.md) and
 
 Known to be rough:
 
-- **Spanish in the dictionary.** Three Spanish concepts in four have no
-  Spanish definition; the Spanish source does not order senses, so a rare one
-  can come first; irregular Spanish verb forms are not found.
+- **Spanish in the vocabulary pack.** Half of its Spanish concepts have no
+  Spanish definition, the Spanish source does not order senses, and
+  irregular Spanish verb forms are not found. A dictionary pack (above)
+  answers `define` instead and has none of the three problems; translation
+  still reads the vocabulary pack.
+- **English definitions** of common words end in a long list of other
+  senses, or ask which of dozens is meant.
 - **Recognition of the newest skills** (`define`, `teach`) is the weakest.
 - **Platforms.** Developed on macOS; the Linux builds are produced by CI and
   have had little use.

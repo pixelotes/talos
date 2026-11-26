@@ -7,7 +7,7 @@ members = ["crates/*", "tools/*"]
 exclude = ["spikes"]
 
 [workspace.package]
-version = "0.3.1"
+version = "0.3.2"
 edition = "2024"
 license = "MIT"
 rust-version = "1.99"
@@ -17,10 +17,10 @@ publish = false
 # Every third-party dependency is justified on its own line (DESIGN.md s.9:
 # prefer no dependency, then a small one, then a feature-gated one).
 [workspace.dependencies]
-talos-core = { path = "crates/talos-core", version = "0.3.1" }
+talos-core = { path = "crates/talos-core", version = "0.3.2" }
 # Without its default `knowledge` feature: each dependent turns it on
 # through its own `knowledge` feature (the binary does by default).
-talos-skills = { path = "crates/talos-skills", version = "0.3.1", default-features = false }
+talos-skills = { path = "crates/talos-skills", version = "0.3.2", default-features = false }
 # Derive for the manifest model; the de facto standard, needed by `toml`.
 serde = { version = "1.0.228", default-features = false, features = ["std", "derive"] }
 # Parses skill manifests (ADR 0007); parse-only, no writer or display code.

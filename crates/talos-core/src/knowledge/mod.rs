@@ -22,7 +22,9 @@ mod userdb;
 
 pub use inflect::{key, plural};
 pub use pack::{Checked, Counts, PackInfo, Refusal, Source};
-pub use query::{ConceptId, Gloss, Lookup, PhraseText, Sense, StockPhrase, Word, WordPairs};
+pub use query::{
+    ConceptId, Entry, Gloss, Lookup, PhraseText, Section, Sense, StockPhrase, Word, WordPairs,
+};
 pub use senses::{Cues, Label, Relation, SenseChoice, SenseOption, Step};
 pub use store::{Knowledge, PACK_CACHE_KIB, pack_files};
 pub use userdb::{FILE_NAME as USER_DB, MIGRATED_NAME, UserDb};

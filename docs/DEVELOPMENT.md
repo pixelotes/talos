@@ -27,6 +27,7 @@ cargo run --release -- eval                              # score the batteries, 
 cargo run -p talos-pack                                  # build the seed pack (knowledge/seed.toml) into target/packs/core.talospack
 cargo run -p talos -- packs check target/packs/core.talospack   # verify a pack whole
 cargo run --release -p talos-pack -- wordnet DIR         # the vocabulary pack from the wordnets in DIR ("The vocabulary pack")
+cargo run --release -p talos-pack -- kobo FILE --lang es --name NAME --license LICENSE   # a dictionary pack from an e-reader dictionary (KNOWLEDGE.md, "Dictionary packs")
 ```
 
 Lints are shared through `[workspace.lints]` in `Cargo.toml`
@@ -622,6 +623,20 @@ were not measured.
 | Free-text answers | `Expects::Text` (`Expectation::text`): the answer taken as written even when it reads as a request; `Expectation::keeping` carries slots worked out before asking | "What do you mean by it?" → "toss a coin" must not toss a coin; «¿te refieres a «guitarra»?» → "sí" must still know the word |
 | Wording | definitions read «Guitarra: instrumento de cuerda…» / "Guitar: a string instrument…" | the store has no grammatical gender, so Spanish articles cannot be chosen; the dictionary form needs none |
 | `teach.forget` and `teach.list` | phrases only, plus honest "not yet" for facts («olvida que la ballena…», «eso no es verdad, olvídalo») and "nothing about X" for a topic | taught facts are after 1.0; `teach.assert` stays out of scope (out-of-scope corpus) |
+
+## Decisions taken after v0.3.1 (dictionary packs)
+
+| Question | Taken | Note |
+|---|---|---|
+| Where `define` gets Spanish definitions | a dictionary pack, when one is installed; the vocabulary pack otherwise | the wordnets define half of the Spanish concepts, order no senses and know no irregular verb form. A dictionary made for e-readers has all three, in 12.6 MB |
+| Read the e-reader file, or convert it | **converted** to a pack by `talos-pack kobo` | the deciding measure was memory: a pack adds 0.4 MB to the process (a 256 KiB page cache), where reading the file means gunzipping a fragment of up to 3.7 MB for each word and holding its index. The binary gains no ZIP, gzip or HTML code. The price is disk: 80 MB for a 12.6 MB file |
+| ZIP reader | written by hand over `flate2`, in the tool | stored and deflated entries from the central directory is all such a file needs; no new crate |
+| Schema | unchanged (version 1); a pack says `role = dictionary` in its manifest | a definition is stored as a sense with a concept row of its own (`kind = sense`), so the pack passes the same checks as any other |
+| Kept apart from concepts | dictionary packs are not among the stores the concept queries ask | a definition is not a concept: mixed in, every Spanish word would gain dozens of senses with no word in English, and translation and sense choice would read them |
+| No choosing, no asking | the entry as the dictionary has it: three definitions for each of two parts of speech, and the count of the rest | "correr" has 37 definitions; "which one?" is not a question to ask |
+| Forms of a locution | dropped when the entry has another number of words than the form | "irse al mazo" lists every form of "ir", which sent "fui" to the locution |
+| The dictionary itself | not in the repository, not in a release; named, with its licence, on the command line | Talos stays MIT and ships nobody's content; the pack records the licence and the answer names the source |
+| English | no dictionary pack yet | the vocabulary pack's English definitions are real and ordered by frequency; what reads badly is the list of other senses, which is `define`'s wording, not the source. The English file of the same project is 67 MB |
 
 ## Server
 

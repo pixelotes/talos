@@ -283,6 +283,39 @@ en = ["In English it's \"{other}\"."]
 es = ["Solo tengo la definición en inglés."]
 en = ["I only have a Spanish definition."]
 
+# A dictionary pack's entry: a line per part of speech, then the source.
+[reply.p_entry]
+es = ["{word}, {pos}: {definitions}"]
+en = ["{word}, {pos}: {definitions}"]
+
+[reply.p_entry_bare]
+es = ["{word}: {definitions}"]
+en = ["{word}: {definitions}"]
+
+[reply.p_entry_more]
+es = ["(y {n} más)"]
+en = ["(and {n} more)"]
+
+[reply.p_entry_also]
+es = ["También figura como {others}."]
+en = ["Also listed as {others}."]
+
+[reply.p_entry_form]
+es = ["«{form}» es una forma de «{word}»."]
+en = ["\"{form}\" is a form of \"{word}\"."]
+
+[reply.p_entry_form_also]
+es = ["«{form}» es una forma de «{word}», y también de {others}."]
+en = ["\"{form}\" is a form of \"{word}\", and also of {others}."]
+
+[reply.p_entry_source]
+es = ["Fuente: {name}."]
+en = ["Source: {name}."]
+
+[reply.word_and]
+es = ["y"]
+en = ["and"]
+
 [reply.word_or]
 es = ["o"]
 en = ["or"]

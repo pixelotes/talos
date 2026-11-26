@@ -481,6 +481,70 @@ A plain bilingual lexicon fills the rest.
   candidates). It needs a cleaning pass before release, and the pack must
   carry the source's MIT notice.
 
+### Dictionary packs
+
+A dictionary pack is a whole dictionary of one language: for each headword,
+its definitions under each part of speech, and its inflected forms. It is
+what `define` answers from when one is installed for the conversation's
+language; the vocabulary pack stays the source for translation, and for
+definitions in a language with no dictionary pack.
+
+It is a pack like the others (same schema, same checks, `talos packs`), told
+apart by `role = dictionary` in its manifest:
+
+| Table | Holds |
+|---|---|
+| `lexeme` | one row per headword and part of speech; `pos` is the dictionary's own name ("sustantivo", "verbo") |
+| `sense` | one row per definition, `rank` its position in the entry, `gloss` its text |
+| `concept` | one row per definition (`kind = sense`), only so references resolve: a definition is a sense of one word, not a concept shared between languages |
+| `form` | the headword (features `NULL`) and the inflected forms the dictionary lists (features `form`), on the headword's first lexeme |
+
+A dictionary pack is attached apart from the concept packs: it is not among
+the stores the concept queries ask (`Knowledge::stores`), so sense choice,
+relations and translation never see its rows. One query reads it,
+`Knowledge::entries(word, lang)`:
+
+- the headwords spelt as typed, without regard to case or accents, the one
+  typed letter for letter first ("papá" before "papa");
+- else the headwords the word is a listed form of, and the ones the rules
+  for nouns and adjectives read it as (a dictionary does not list every
+  plural), the shortest first ("fui": "ir", then "ser"; "mejores": "mejor",
+  then "mejorar"). A pronominal verb is folded into its verb ("irse" into
+  "ir"): they repeat each other's forms.
+
+`define` gives the first headword's entry: three definitions for each of
+its first two parts of speech, how many more there are, and the
+dictionary's name. Nothing is chosen or asked.
+
+**Making one.** `talos-pack kobo FILE --lang es --name NAME --license
+LICENSE [--url URL] [OUT]` converts a dictionary in the format e-readers
+use (Kobo's `dicthtml`: a ZIP of gzipped HTML fragments). Definitions are
+copied without change of wording; synonym lists, pronunciations and
+etymologies are left out; a form listed by an entry of a different number
+of words is dropped, because a locution lists every form of its verb. The
+conversion needs nothing new in the binary, which reads the result with
+SQLite. A hand-written pack source becomes one with `role = "dictionary"`
+in `[pack]` (`knowledge/test-dictionary.toml`, for tests).
+
+Talos ships no dictionary and none is in this repository: whoever installs
+one chooses it and answers for its licence, which the pack records and
+`talos packs info` shows. The name, licence and address are given on the
+command line because the file does not carry them.
+
+Measured with the Spanish dictionary built from Wiktionary by reader.dict
+(snapshot 2026-11-01, a 12.6 MB file): 111,227 headwords, 176,600
+definitions, 636,805 inflected forms; an 80 MB pack (18.5 MB under zstd),
+built in 3 s. Half of the pack is the forms and their two indexes. Peak
+resident memory of a conversation with fifteen definitions: 9.2 MB with no
+pack, 9.5 MB with the dictionary, 9.6 MB with the dictionary and the
+vocabulary pack. Of 69 everyday, learned and inflected Spanish words, 69
+were answered from it.
+
+Known limits: senses come in the dictionary's order, which is not always
+the commonest first ("dinero" gives the old coin first); a plural with an
+entry of its own ("casas") is answered by that entry; definitions keep the
+dictionary's subject labels ("Mamíferos, perros: …").
+
 ### The Spanish gloss gap
 
 The research in [wordnet-sources.md](research/wordnet-sources.md) found that

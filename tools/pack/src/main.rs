@@ -10,6 +10,9 @@
 //!                                     and the Wikidata snapshot (default
 //!                                     knowledge/sources/wikidata-p8814-es.tsv), by default into
 //!                                     target/packs/vocabulary.talospack
+//! talos-pack kobo FILE --lang es|en --name NAME --license LICENSE [--url URL] [OUT]
+//!                                     a dictionary pack from an e-reader dictionary (kobo.rs),
+//!                                     by default into target/packs/dictionary-LANG.talospack
 //! ```
 //!
 //! The same source always gives the same bytes (`build_file`, `wordnet::build`).
@@ -27,11 +30,13 @@ use rusqlite::{Connection, params};
 use talos_core::knowledge::build::build_file;
 use talos_core::knowledge::schema::{self, DbKind};
 
+mod kobo;
 mod wikidata;
 mod wordnet;
 
 const USAGE: &str = "usage: talos-pack [build SOURCE OUT | synthetic N OUT | \
-                     wordnet DIR [OUT] [--unverified] [--wikidata FILE | --no-wikidata]]";
+                     wordnet DIR [OUT] [--unverified] [--wikidata FILE | --no-wikidata] | \
+                     kobo FILE --lang es|en --name NAME --license LICENSE [--url URL] [OUT]]";
 
 /// `talos-pack wordnet`: builds the vocabulary pack, prints what it counted
 /// and dropped, and writes that report beside the pack (`*.report.txt`),
@@ -263,6 +268,64 @@ fn wordnet_command(dir: &str, rest: &[&str]) -> Result<(), String> {
     }
 }
 
+/// `kobo FILE --lang L --name NAME --license LICENSE [--url URL] [OUT]`.
+fn kobo_command(file: &str, rest: &[&str]) -> Result<(), String> {
+    let (mut lang, mut name, mut license, mut url) = (None, None, None, None);
+    let mut outs = Vec::new();
+    let mut args = rest.iter();
+    while let Some(&arg) = args.next() {
+        let slot = match arg {
+            "--lang" => &mut lang,
+            "--name" => &mut name,
+            "--license" => &mut license,
+            "--url" => &mut url,
+            flag if flag.starts_with("--") => {
+                return Err(format!("unknown option {flag}\n{USAGE}"));
+            }
+            out => {
+                outs.push(out);
+                continue;
+            }
+        };
+        let value = args
+            .next()
+            .ok_or_else(|| format!("{arg} needs a value\n{USAGE}"))?;
+        *slot = Some((*value).to_owned());
+    }
+    let need =
+        |v: Option<String>, flag: &str| v.ok_or_else(|| format!("{flag} is required\n{USAGE}"));
+    let lang = need(lang, "--lang")?;
+    if lang != "es" && lang != "en" {
+        return Err(format!("--lang is es or en, not `{lang}`"));
+    }
+    let options = kobo::Options {
+        name: need(name, "--name")?,
+        license: need(license, "--license")?,
+        url,
+        lang,
+    };
+    let default = root().join(format!(
+        "target/packs/dictionary-{}.talospack",
+        options.lang
+    ));
+    let out = match outs.as_slice() {
+        [] => default.as_path(),
+        [out] => Path::new(out),
+        _ => return Err(USAGE.to_owned()),
+    };
+    let started = std::time::Instant::now();
+    let report = kobo::build(Path::new(file), out, &options)?;
+    print!("{}", report.text());
+    let size = std::fs::metadata(out).map_or(0, |m| m.len());
+    println!(
+        "{} ({size} bytes) in {:.1} s; notice in {}",
+        out.display(),
+        started.elapsed().as_secs_f64(),
+        out.with_extension("NOTICE").display()
+    );
+    Ok(())
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
@@ -277,6 +340,7 @@ fn main() -> ExitCode {
             Err(_) => Err(format!("`{n}` is not a number\n{USAGE}")),
         },
         ["wordnet", dir, rest @ ..] => wordnet_command(dir, rest),
+        ["kobo", file, rest @ ..] => kobo_command(file, rest),
         _ => Err(USAGE.to_owned()),
     };
     match result {

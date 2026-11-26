@@ -1,0 +1,62 @@
+# A dictionary pack of four entries, hand-written, for tests of what
+# `define` answers from a dictionary pack (docs/KNOWLEDGE.md, "Dictionary
+# packs"). A real one is made from an e-reader dictionary by
+# `talos-pack kobo`; this one has the same shape: a concept per definition,
+# the parts of speech under the dictionary's own names, the inflected forms
+# on the first lexeme of each headword.
+
+[pack]
+id = "test-dictionary"
+version = "1"
+title = "four entries for tests"
+languages = ["es"]
+license = "MIT"
+notice = "Hand-written for Talos's tests; MIT licence, like the code."
+date = "2026-11-26"
+source = "Diccionario de prueba"
+role = "dictionary"
+
+[[source]]
+name = "Diccionario de prueba"
+kind = "pack"
+license = "MIT"
+
+[[concept]]
+id = "td:1"
+es = [{ lemma = "ir", pos = "verbo", forms = { fui = "form", voy = "form" } }]
+gloss.es = "Desplazarse de un lugar a otro."
+
+[[concept]]
+id = "td:2"
+es = [{ lemma = "ir", pos = "verbo", rank = 1 }]
+gloss.es = "Extenderse algo de un punto a otro"
+
+[[concept]]
+id = "td:3"
+es = [{ lemma = "ir", pos = "verbo", rank = 2 }]
+gloss.es = "Combinar una cosa con otra."
+
+[[concept]]
+id = "td:4"
+es = [{ lemma = "ir", pos = "verbo", rank = 3 }]
+gloss.es = "Funcionar un aparato."
+
+[[concept]]
+id = "td:5"
+es = [{ lemma = "ser", pos = "verbo", forms = { fui = "form" } }]
+gloss.es = "Existir."
+
+[[concept]]
+id = "td:6"
+es = [{ lemma = "ser", pos = "sustantivo" }]
+gloss.es = "Cualquier cosa que existe."
+
+[[concept]]
+id = "td:7"
+es = [{ lemma = "irse", pos = "verbo", forms = { fui = "form" } }]
+gloss.es = "Marcharse."
+
+[[concept]]
+id = "td:8"
+es = [{ lemma = "lentamente", pos = "adverbio" }]
+gloss.es = "De un modo lento"

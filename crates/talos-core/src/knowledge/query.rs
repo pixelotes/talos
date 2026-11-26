@@ -181,6 +181,29 @@ fn parse_lang(code: &str) -> Option<Lang> {
     code.parse().ok()
 }
 
+/// The definitions a dictionary gives a word under one part of speech.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Section {
+    /// The part of speech as the dictionary names it ("sustantivo").
+    pub pos: Option<String>,
+    /// The definitions, in the dictionary's order.
+    pub definitions: Vec<String>,
+}
+
+/// A word's entry in a dictionary pack ([`Knowledge::entries`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Entry {
+    /// The headword, as the dictionary writes it.
+    pub lemma: String,
+    /// Whether what was typed is an inflected form of the headword
+    /// ("fui" for "ir"), not the headword itself.
+    pub inflected: bool,
+    /// One per part of speech, in the dictionary's order.
+    pub sections: Vec<Section>,
+    /// The dictionary.
+    pub source: Source,
+}
+
 /// A lexeme found for a typed form, before its senses are read.
 struct Found {
     db: usize,
@@ -260,6 +283,135 @@ impl Knowledge {
             }
         }
         Ok(found)
+    }
+
+    /// The headwords of one dictionary a typed form may be: the headwords
+    /// spelt that way when there are any (the one typed letter for letter
+    /// first: "papá" before "papa"), else the headwords it is an inflected
+    /// form of, shortest first ("mejor" before "mejorar").
+    fn headwords(
+        conn: &Connection,
+        db: &Db,
+        typed: &str,
+        form: &str,
+        lang: Lang,
+    ) -> rusqlite::Result<(Vec<String>, bool)> {
+        let rows = Self::stored_forms(conn, db, form, lang)?;
+        let exact = rows.iter().any(|(_, _, features)| features.is_none());
+        let mut lemmas: Vec<String> = Vec::new();
+        for (_, word, features) in rows {
+            if features.is_none() == exact && !lemmas.contains(&word.lemma) {
+                lemmas.push(word.lemma);
+            }
+        }
+        if exact {
+            lemmas.sort_by_key(|l| l.to_lowercase() != typed);
+        } else {
+            // A dictionary does not list every plural ("mejores" is given
+            // under "mejorar" and not under "mejor"): the headwords the
+            // rules for nouns and adjectives read the form as count too.
+            for analysis in analyses(form, lang) {
+                if analysis.class == Class::Verb {
+                    continue;
+                }
+                for (_, word, features) in Self::stored_forms(conn, db, &analysis.lemma, lang)? {
+                    if features.is_none() && !lemmas.contains(&word.lemma) {
+                        lemmas.push(word.lemma);
+                    }
+                }
+            }
+            // A pronominal verb repeats the forms of its verb ("irse"
+            // beside "ir"): one headword for both.
+            let plain = lemmas.clone();
+            lemmas.retain(|l| {
+                l.strip_suffix("se")
+                    .is_none_or(|stem| !plain.iter().any(|p| p == stem))
+            });
+            lemmas.sort_by(|a, b| {
+                (a.chars().count(), a.as_str()).cmp(&(b.chars().count(), b.as_str()))
+            });
+        }
+        Ok((lemmas, !exact))
+    }
+
+    /// A headword's sections in one dictionary.
+    fn sections(
+        conn: &Connection,
+        db: &Db,
+        lemma: &str,
+        lang: Lang,
+    ) -> rusqlite::Result<(Vec<Section>, Option<Source>)> {
+        let mut statement = conn.prepare_cached(&format!(
+            "SELECT l.id, l.pos, s.gloss, {SOURCE_COLUMNS} FROM {s}.lexeme l \
+             JOIN {s}.sense s ON s.lexeme_id = l.id \
+             JOIN {s}.source src ON src.id = s.source_id \
+             WHERE l.lang = ?1 AND l.lemma = ?2 AND s.gloss IS NOT NULL \
+             ORDER BY l.id, s.rank, s.id",
+            s = db.schema
+        ))?;
+        let mut rows = statement.query(params![lang.code(), lemma])?;
+        let mut sections: Vec<(i64, Section)> = Vec::new();
+        let mut source = None;
+        while let Some(row) = rows.next()? {
+            let id: i64 = row.get(0)?;
+            if sections.last().is_none_or(|(last, _)| *last != id) {
+                sections.push((
+                    id,
+                    Section {
+                        pos: row.get(1)?,
+                        definitions: Vec::new(),
+                    },
+                ));
+            }
+            if let Some((_, section)) = sections.last_mut() {
+                section.definitions.push(row.get(2)?);
+            }
+            if source.is_none() {
+                source = Some(source_at(row, 3, &db.name)?);
+            }
+        }
+        Ok((sections.into_iter().map(|(_, s)| s).collect(), source))
+    }
+
+    /// A word's entries in the dictionary packs: what a dictionary of
+    /// `lang` says under the word as typed, or, when it is not a headword,
+    /// under the words it is an inflected form of ("fui": "ir", then
+    /// "ser"). Case and accents do not matter for finding it. From the
+    /// first dictionary that has the word; empty when none does or none is
+    /// attached.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Knowledge`] when a database cannot be read.
+    pub fn entries(&self, text: &str, lang: Lang) -> Result<Vec<Entry>, Error> {
+        let form = key(text);
+        if form.is_empty() || self.dictionaries.is_empty() {
+            return Ok(Vec::new());
+        }
+        let typed = text.trim().to_lowercase();
+        self.with(|conn| {
+            for db in &self.dictionaries {
+                let (lemmas, inflected) =
+                    Self::headwords(conn, db, &typed, &form, lang).map_err(|e| sql_error(&e))?;
+                let mut entries = Vec::new();
+                for lemma in lemmas {
+                    let (sections, source) =
+                        Self::sections(conn, db, &lemma, lang).map_err(|e| sql_error(&e))?;
+                    if let Some(source) = source {
+                        entries.push(Entry {
+                            lemma,
+                            inflected,
+                            sections,
+                            source,
+                        });
+                    }
+                }
+                if !entries.is_empty() {
+                    return Ok(entries);
+                }
+            }
+            Ok(Vec::new())
+        })
     }
 
     /// The senses of a lexeme of database `db`, in that database.

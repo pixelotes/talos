@@ -184,3 +184,53 @@ fn a_manifest_missing_a_language_is_rejected() {
         "manifest `smalltalk`: reply `hello` lacks `en`: both languages are required"
     );
 }
+
+/// What `define` answers from a dictionary pack: the entry as the
+/// dictionary has it, not a concept chosen among senses.
+#[cfg(feature = "knowledge")]
+#[test]
+fn a_dictionary_pack_answers_define_with_its_entry() {
+    use talos_core::Knowledge;
+    use talos_core::Status;
+
+    let mut k = Knowledge::from_source(include_str!("../../../knowledge/seed.toml")).unwrap();
+    k.attach_source(include_str!("../../../knowledge/test-dictionary.toml"))
+        .unwrap();
+    assert_eq!(k.stores(), ["core"], "a dictionary is not a concept store");
+    let mut e = engine();
+    e.use_knowledge(k);
+    let ask = |text: &str| {
+        e.end(&ConvId::new("test"));
+        e.respond(turn(text))
+    };
+
+    // An inflected form: the headwords it belongs to, the shortest first,
+    // the pronominal verb folded into its verb; three definitions, each
+    // closed as a sentence, and how many are left.
+    let fui = ask("qué significa fui");
+    assert_eq!(fui.status, Status::Answered);
+    assert_eq!(
+        fui.reply,
+        "«fui» es una forma de «ir», y también de «ser».\n\
+         Ir, verbo: 1. Desplazarse de un lugar a otro. 2. Extenderse algo de un punto a otro. \
+         3. Combinar una cosa con otra. (y 1 más)\n\
+         Fuente: Diccionario de prueba."
+    );
+    // A headword with two parts of speech: a line each.
+    assert_eq!(
+        ask("define ser").reply,
+        "Ser, verbo: Existir.\nSer, sustantivo: Cualquier cosa que existe.\n\
+         Fuente: Diccionario de prueba."
+    );
+    assert_eq!(
+        ask("qué significa lentamente").reply,
+        "Lentamente, adverbio: De un modo lento.\nFuente: Diccionario de prueba."
+    );
+    // A word the dictionary lacks is answered from the concept packs, as
+    // before; so is an English conversation, which this dictionary is not
+    // for.
+    let guitarra = ask("qué significa guitarra").reply;
+    assert!(guitarra.starts_with("Guitarra: instrumento"), "{guitarra}");
+    let guitar = ask("what does guitar mean").reply;
+    assert!(guitar.starts_with("Guitar: "), "{guitar}");
+}

@@ -257,7 +257,7 @@ configuration.
 | `calc` | arithmetic, percentages, unit conversion | no |
 | `random` | dice, coin, pick one, random number | no |
 | `fortune` | a saying from a bundled list | no |
-| `define` | what a word means; sense disambiguation | no |
+| `define` | what a word means: a dictionary pack's entry when one is installed, else a concept's definition with sense disambiguation | no |
 | `relations` | is-a, part-of, kinds-of, cause queries | no |
 | `teach` | teach, correct, forget, list what was taught (v0.3: the user's phrases) | no |
 | `translate` | words and stock phrases between es and en | no |

@@ -46,6 +46,10 @@ struct RawPack {
     notice: String,
     date: String,
     source: String,
+    /// `dictionary` for a dictionary pack: whole entries of one language's
+    /// words, asked only by `Knowledge::entries`. Its parts of speech are
+    /// the dictionary's own names.
+    role: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -234,6 +238,18 @@ pub fn build_into(conn: &mut Connection, schema: &str, source: &str) -> Result<(
         ("license", pack.license.as_str()),
         ("notice", pack.notice.as_str()),
     ];
+    let dictionary = match pack.role.as_deref() {
+        None => false,
+        Some("dictionary") => true,
+        Some(other) => return Err(invalid(format!("[pack] unknown role `{other}`"))),
+    };
+    if dictionary {
+        tx.execute(
+            &format!("INSERT INTO {s}.meta (key, value) VALUES ('role', 'dictionary')"),
+            [],
+        )
+        .map_err(|e| sql_error(&e))?;
+    }
     for (k, v) in meta {
         if v.trim().is_empty() {
             return Err(invalid(format!("[pack] `{k}` is empty")));
@@ -325,7 +341,7 @@ pub fn build_into(conn: &mut Connection, schema: &str, source: &str) -> Result<(
                 if lemma.trim().is_empty() || key(&lemma).is_empty() {
                     return Err(invalid(format!("an empty word in `{}`", c.id)));
                 }
-                if !POS.contains(&pos.as_str()) {
+                if !dictionary && !POS.contains(&pos.as_str()) {
                     return Err(invalid(format!("unknown part of speech `{pos}`")));
                 }
                 let next =

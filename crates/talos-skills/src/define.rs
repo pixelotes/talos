@@ -12,6 +12,13 @@
 //! `relations`; the other language's gloss is given only when asked for,
 //! marked `other-language`.
 //!
+//! A dictionary pack (a whole dictionary of one language, made from an
+//! e-reader dictionary by `talos-pack kobo`) is asked first, when the
+//! definition is wanted in the conversation's language: its entry is given
+//! as the dictionary has it, the first definitions of each part of speech,
+//! with the dictionary named. Nothing is chosen or asked: an entry is not a
+//! concept. The steps above are for a word no dictionary pack has.
+//!
 //! Without the `knowledge` feature, or without a store, every request is
 //! answered with "no dictionary" (`Unhandled`).
 
@@ -48,6 +55,15 @@ const REPLIES: &[&str] = &[
     "p_said_here",
     "p_other_def",
     "word_or",
+    // Pieces of a dictionary pack's entry.
+    "p_entry",
+    "p_entry_bare",
+    "p_entry_more",
+    "p_entry_also",
+    "p_entry_form",
+    "p_entry_form_also",
+    "p_entry_source",
+    "word_and",
 ];
 
 impl Skill for Define {
@@ -250,6 +266,11 @@ pub(crate) mod imp {
                 Message::new("ask_word"),
             ));
         };
+        if gloss_lang.is_none_or(|l| l == lang)
+            && let Some(answer) = entry(cx, k, &raw, lang)?
+        {
+            return Ok(answer);
+        }
         let (word, context) = split(k, &raw, lang)?;
         let Some(found) = k.lookup(&word, lang)? else {
             let near = k.near_misses(&word, lang)?;
@@ -338,6 +359,116 @@ pub(crate) mod imp {
             text.push_str(&p(cx, lang, "p_others", &[("others", &join(&others, &or))]));
         }
         Ok(SkillResult::Answer(Message::new("defined").var("text", text)))
+    }
+
+    /// How many definitions of a part of speech, and how many parts of
+    /// speech, an answer gives: an entry may have forty definitions.
+    const DEFINITIONS: usize = 3;
+    const SECTIONS: usize = 2;
+
+    /// The word's entry in a dictionary pack, as an answer: the longest run
+    /// of leading words a dictionary has ("perro" in "perro en español"),
+    /// each part of speech on a line with its first definitions, and the
+    /// dictionary's name. `None` when no dictionary pack has the word.
+    fn entry(
+        cx: &mut Context<'_>,
+        k: &Knowledge,
+        raw: &str,
+        lang: Lang,
+    ) -> Result<Option<SkillResult>, Error> {
+        let words: Vec<&str> = raw.split_whitespace().collect();
+        let mut found = None;
+        for n in (1..=words.len().min(6)).rev() {
+            let head = unquote(&words[..n].join(" "));
+            if head.is_empty() {
+                continue;
+            }
+            let entries = k.entries(&head, lang)?;
+            if !entries.is_empty() {
+                found = Some((head, entries));
+                break;
+            }
+        }
+        let Some((typed, entries)) = found else {
+            return Ok(None);
+        };
+        let first = &entries[0];
+        let and = p(cx, lang, "word_and", &[]);
+        let mut lines = Vec::new();
+        if first.inflected {
+            let others: Vec<String> = entries[1..]
+                .iter()
+                .map(|e| format!("«{}»", e.lemma))
+                .collect();
+            let vars = [
+                ("form", typed.as_str()),
+                ("word", first.lemma.as_str()),
+                ("others", &join(&others, &and)),
+            ];
+            let id = if others.is_empty() {
+                "p_entry_form"
+            } else {
+                "p_entry_form_also"
+            };
+            lines.push(p(cx, lang, id, &vars));
+        }
+        let word = capitalise(&first.lemma);
+        for section in first.sections.iter().take(SECTIONS) {
+            let shown = &section.definitions[..section.definitions.len().min(DEFINITIONS)];
+            let mut definitions = if let [only] = shown {
+                closed(only)
+            } else {
+                shown
+                    .iter()
+                    .enumerate()
+                    .map(|(i, d)| format!("{}. {}", i + 1, closed(d)))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            };
+            let more = section.definitions.len() - shown.len();
+            if more > 0 {
+                definitions.push(' ');
+                definitions.push_str(&p(cx, lang, "p_entry_more", &[("n", &more.to_string())]));
+            }
+            lines.push(match &section.pos {
+                Some(pos) => p(
+                    cx,
+                    lang,
+                    "p_entry",
+                    &[("word", &word), ("pos", pos), ("definitions", &definitions)],
+                ),
+                None => p(
+                    cx,
+                    lang,
+                    "p_entry_bare",
+                    &[("word", &word), ("definitions", &definitions)],
+                ),
+            });
+        }
+        let others: Vec<String> = first
+            .sections
+            .iter()
+            .skip(SECTIONS)
+            .filter_map(|s| s.pos.clone())
+            .collect();
+        if !others.is_empty() {
+            lines.push(p(cx, lang, "p_entry_also", &[("others", &join(&others, &and))]));
+        }
+        lines.push(p(cx, lang, "p_entry_source", &[("name", &first.source.name)]));
+        cx.report("word", Value::Text(first.lemma.clone()));
+        cx.set_topic(first.lemma.clone());
+        Ok(Some(SkillResult::Answer(
+            Message::new("defined").var("text", lines.join("\n")),
+        )))
+    }
+
+    /// A definition ending as a sentence does.
+    fn closed(definition: &str) -> String {
+        if definition.ends_with(['.', '!', '?', '…', ')']) {
+            definition.to_owned()
+        } else {
+            format!("{definition}.")
+        }
     }
 
     /// The definition: "Word: gloss.", "Word (class): gloss." when context

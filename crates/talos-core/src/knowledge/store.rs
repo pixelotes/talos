@@ -14,7 +14,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use rusqlite::{Connection, OpenFlags};
+use rusqlite::{Connection, OpenFlags, OptionalExtension};
 
 use super::pack::{EXTENSION, PackInfo, Refusal, file_uri, read_info};
 use super::schema::{self, SCHEMA_VERSION, sql_error};
@@ -50,6 +50,11 @@ pub(crate) struct Db {
 pub struct Knowledge {
     conn: Mutex<Connection>,
     pub(crate) dbs: Vec<Db>,
+    /// The attached dictionary packs (their manifest says `role =
+    /// dictionary`): whole entries of one language's words, asked only by
+    /// [`Knowledge::entries`]. They are not among `dbs`, so no concept
+    /// query, sense choice or translation sees their rows.
+    pub(crate) dictionaries: Vec<Db>,
     packs: Vec<PackInfo>,
     refused: Vec<Refusal>,
     next_alias: usize,
@@ -69,6 +74,7 @@ impl Knowledge {
         Ok(Self {
             conn: Mutex::new(conn),
             dbs,
+            dictionaries: Vec::new(),
             packs: Vec::new(),
             refused: Vec::new(),
             next_alias: 1,
@@ -166,14 +172,28 @@ impl Knowledge {
             }
             conn.execute_batch(&format!("PRAGMA {alias}.cache_size = -{PACK_CACHE_KIB}"))
                 .map_err(|e| sql_error(&e))?;
-            Ok(info)
+            let dictionary = conn
+                .query_row(
+                    &format!("SELECT value = 'dictionary' FROM {alias}.meta WHERE key = 'role'"),
+                    [],
+                    |row| row.get::<_, bool>(0),
+                )
+                .optional()
+                .map_err(|e| sql_error(&e))?
+                .unwrap_or(false);
+            Ok((info, dictionary))
         });
         match checked {
-            Ok(info) => {
-                self.dbs.push(Db {
+            Ok((info, dictionary)) => {
+                let db = Db {
                     schema: alias,
                     name: info.id.clone(),
-                });
+                };
+                if dictionary {
+                    self.dictionaries.push(db);
+                } else {
+                    self.dbs.push(db);
+                }
                 self.packs.push(info);
                 Ok(())
             }
