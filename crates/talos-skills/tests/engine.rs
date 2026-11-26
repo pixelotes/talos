@@ -234,3 +234,60 @@ fn a_dictionary_pack_answers_define_with_its_entry() {
     let guitar = ask("what does guitar mean").reply;
     assert!(guitar.starts_with("Guitar: "), "{guitar}");
 }
+
+/// A word of many senses in a concept pack is answered as an entry, by
+/// part of speech, when nothing in the conversation chooses a sense.
+#[cfg(feature = "knowledge")]
+#[test]
+fn a_word_of_many_senses_is_answered_as_an_entry() {
+    use talos_core::Knowledge;
+
+    let mut source = String::from(
+        "[pack]\nid = \"many\"\nversion = \"1\"\ntitle = \"many senses\"\n\
+         languages = [\"en\"]\nlicense = \"MIT\"\nnotice = \"for a test\"\n\
+         date = \"2026-11-26\"\nsource = \"many\"\n\n\
+         [[source]]\nname = \"many\"\nkind = \"pack\"\n",
+    );
+    let senses = [
+        ("v", "move fast on foot (briefly)", ""),
+        ("v", "flee", ""),
+        ("n", "a score in baseball", ""),
+        ("v", "extend between two points", ""),
+        ("v", "operate", ""),
+        ("n", "a race", ""),
+        ("adj", "melted", ""),
+        ("v", "function", ""),
+    ];
+    for (i, (pos, gloss, _)) in senses.iter().enumerate() {
+        let forms = if i == 0 {
+            ", forms = { ran = \"past\" }"
+        } else {
+            ""
+        };
+        source += &[
+            format!("\n[[concept]]\nid = \"many:{i}\"\n"),
+            format!("en = [{{ lemma = \"run\", pos = \"{pos}\", rank = {i}{forms} }}]\n"),
+            format!("gloss.en = \"{gloss}\"\n"),
+        ]
+        .concat();
+    }
+    let mut e = engine();
+    e.use_knowledge(Knowledge::from_source(&source).unwrap());
+    let ask = |text: &str| {
+        e.end(&ConvId::new("test"));
+        e.respond(turn(text)).reply
+    };
+    let entry = "Run, verb: 1. Move fast on foot (briefly). 2. Flee. \
+                 3. Extend between two points. (and 2 more)";
+    assert_eq!(
+        ask("what does run mean"),
+        format!(
+            "{entry}\nRun, noun: 1. A score in baseball. 2. A race.\nAlso listed as adjective."
+        )
+    );
+    // A verb's form reaches only the verb.
+    assert_eq!(
+        ask("what does ran mean"),
+        format!("\"ran\" is a form of \"run\".\n{entry}")
+    );
+}

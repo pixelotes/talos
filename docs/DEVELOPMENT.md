@@ -636,7 +636,8 @@ were not measured.
 | No choosing, no asking | the entry as the dictionary has it: three definitions for each of two parts of speech, and the count of the rest | "correr" has 37 definitions; "which one?" is not a question to ask |
 | Forms of a locution | dropped when the entry has another number of words than the form | "irse al mazo" lists every form of "ir", which sent "fui" to the locution |
 | The dictionary itself | not in the repository, not in a release; named, with its licence, on the command line | Talos stays MIT and ships nobody's content; the pack records the licence and the answer names the source |
-| English | no dictionary pack yet | the vocabulary pack's English definitions are real and ordered by frequency; what reads badly is the list of other senses, which is `define`'s wording, not the source. The English file of the same project is 67 MB |
+| English | no dictionary pack | the vocabulary pack's English definitions are real and ordered by frequency; what read badly was `define`'s wording, not the source. The English file of the same project is 67 MB |
+| A word of many senses, from the concept packs | more than four senses and nothing in the conversation to choose by (no words of the turn, no remembered sense, no recent concept): the entry, like a dictionary pack's, by part of speech in rank order, with no source line | "run" gave its first sense and a list of 55 labels of the others, "better" asked which of 46. Up to four senses the specification's wording stands (the first sense and "it can also mean", or the question), so its examples and the golden files are unchanged. A word typed as a headword is answered as that headword ("better" the noun, not "good"); an inflected form names the word it belongs to |
 
 ## Server
 

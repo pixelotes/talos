@@ -516,6 +516,12 @@ relations and translation never see its rows. One query reads it,
 its first two parts of speech, how many more there are, and the
 dictionary's name. Nothing is chosen or asked.
 
+A word with more than four senses in the concept packs is answered in the
+same form when nothing in the conversation chooses a sense: its senses
+grouped by part of speech in rank order, each by its definition. That is
+how English reads without a dictionary pack ("run": three of its 41 senses
+as a verb, three of 16 as a noun).
+
 **Making one.** `talos-pack kobo FILE --lang es --name NAME --license
 LICENSE [--url URL] [OUT]` converts a dictionary in the format e-readers
 use (Kobo's `dicthtml`: a ZIP of gzipped HTML fragments). Definitions are

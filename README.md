@@ -140,8 +140,6 @@ Known to be rough:
   irregular Spanish verb forms are not found. A dictionary pack (above)
   answers `define` instead and has none of the three problems; translation
   still reads the vocabulary pack.
-- **English definitions** of common words end in a long list of other
-  senses, or ask which of dozens is meant.
 - **Recognition of the newest skills** (`define`, `teach`) is the weakest.
 - **Platforms.** Developed on macOS; the Linux builds are produced by CI and
   have had little use.

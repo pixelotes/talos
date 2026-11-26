@@ -64,6 +64,11 @@ const REPLIES: &[&str] = &[
     "p_entry_form_also",
     "p_entry_source",
     "word_and",
+    "p_quoted",
+    "pos_n",
+    "pos_v",
+    "pos_adj",
+    "pos_adv",
 ];
 
 impl Skill for Define {
@@ -298,6 +303,17 @@ pub(crate) mod imp {
             Some(i) => Some((i, Step::Remembered)),
             None => choice.chosen,
         };
+        // Many senses and nothing in the conversation to choose by: the
+        // entry, not the commonest sense with a list of the rest, nor a
+        // question with dozens of options.
+        if found.senses.len() > MANY
+            && !foreign
+            && gloss_lang.is_none_or(|l| l == lang)
+            && chosen.is_none_or(|(_, step)| step == Step::Rank)
+            && let Some(answer) = summary(cx, k, &word, &found.senses, lang)?
+        {
+            return Ok(answer);
+        }
         let Some((index, step)) = chosen else {
             let (labels, choices) = options(k, &choice, lang, foreign)?;
             let or = p(cx, lang, "word_or", &[]);
@@ -393,16 +409,49 @@ pub(crate) mod imp {
             return Ok(None);
         };
         let first = &entries[0];
+        let others: Vec<String> = entries[1..].iter().map(|e| e.lemma.clone()).collect();
+        let sections: Vec<(Option<String>, Vec<String>)> = first
+            .sections
+            .iter()
+            .map(|s| (s.pos.clone(), s.definitions.clone()))
+            .collect();
+        let text = entry_text(
+            cx,
+            lang,
+            first.inflected.then_some((typed.as_str(), others.as_slice())),
+            &first.lemma,
+            &sections,
+            Some(&first.source.name),
+        );
+        cx.report("word", Value::Text(first.lemma.clone()));
+        cx.set_topic(first.lemma.clone());
+        Ok(Some(SkillResult::Answer(
+            Message::new("defined").var("text", text),
+        )))
+    }
+
+    /// An entry as text: the headword an inflected form belongs to (and
+    /// the others it may be), a line per part of speech with its first
+    /// definitions and how many are left, the parts of speech not shown,
+    /// and the source when it is a dictionary.
+    fn entry_text(
+        cx: &Context<'_>,
+        lang: Lang,
+        form: Option<(&str, &[String])>,
+        lemma: &str,
+        sections: &[(Option<String>, Vec<String>)],
+        source: Option<&str>,
+    ) -> String {
         let and = p(cx, lang, "word_and", &[]);
         let mut lines = Vec::new();
-        if first.inflected {
-            let others: Vec<String> = entries[1..]
+        if let Some((typed, others)) = form {
+            let others: Vec<String> = others
                 .iter()
-                .map(|e| format!("«{}»", e.lemma))
+                .map(|o| p(cx, lang, "p_quoted", &[("word", o)]))
                 .collect();
             let vars = [
-                ("form", typed.as_str()),
-                ("word", first.lemma.as_str()),
+                ("form", typed),
+                ("word", lemma),
                 ("others", &join(&others, &and)),
             ];
             let id = if others.is_empty() {
@@ -412,9 +461,9 @@ pub(crate) mod imp {
             };
             lines.push(p(cx, lang, id, &vars));
         }
-        let word = capitalise(&first.lemma);
-        for section in first.sections.iter().take(SECTIONS) {
-            let shown = &section.definitions[..section.definitions.len().min(DEFINITIONS)];
+        let word = capitalise(lemma);
+        for (pos, all) in sections.iter().take(SECTIONS) {
+            let shown = &all[..all.len().min(DEFINITIONS)];
             let mut definitions = if let [only] = shown {
                 closed(only)
             } else {
@@ -425,12 +474,12 @@ pub(crate) mod imp {
                     .collect::<Vec<_>>()
                     .join(" ")
             };
-            let more = section.definitions.len() - shown.len();
+            let more = all.len() - shown.len();
             if more > 0 {
                 definitions.push(' ');
                 definitions.push_str(&p(cx, lang, "p_entry_more", &[("n", &more.to_string())]));
             }
-            lines.push(match &section.pos {
+            lines.push(match pos {
                 Some(pos) => p(
                     cx,
                     lang,
@@ -445,26 +494,80 @@ pub(crate) mod imp {
                 ),
             });
         }
-        let others: Vec<String> = first
-            .sections
+        let others: Vec<String> = sections
             .iter()
             .skip(SECTIONS)
-            .filter_map(|s| s.pos.clone())
+            .filter_map(|(pos, _)| pos.clone())
             .collect();
         if !others.is_empty() {
             lines.push(p(cx, lang, "p_entry_also", &[("others", &join(&others, &and))]));
         }
-        lines.push(p(cx, lang, "p_entry_source", &[("name", &first.source.name)]));
-        cx.report("word", Value::Text(first.lemma.clone()));
-        cx.set_topic(first.lemma.clone());
+        if let Some(name) = source {
+            lines.push(p(cx, lang, "p_entry_source", &[("name", name)]));
+        }
+        lines.join("\n")
+    }
+
+    /// A word with more senses than this is answered as an entry when
+    /// nothing in the conversation chose one: naming or asking about
+    /// dozens of senses helps nobody ("run" has 57).
+    const MANY: usize = 4;
+
+    /// A word of many senses as an entry, from the concept packs: its
+    /// senses grouped by part of speech in rank order, each by its
+    /// definition in `lang`. The word as typed when it is a headword
+    /// ("better" the noun and verb, not "good"), else the first word it is
+    /// a form of ("went": "go"). `None` when no sense has a definition in
+    /// `lang`.
+    fn summary(
+        cx: &mut Context<'_>,
+        k: &Knowledge,
+        typed: &str,
+        senses: &[Sense],
+        lang: Lang,
+    ) -> Result<Option<SkillResult>, Error> {
+        let typed_key = key(typed);
+        let headword = senses.iter().find(|s| key(&s.word.lemma) == typed_key);
+        let lemma = headword.unwrap_or(&senses[0]).word.lemma.clone();
+        let mut others: Vec<String> = Vec::new();
+        let mut sections: Vec<(Option<String>, Vec<String>)> = Vec::new();
+        for sense in senses {
+            if sense.word.lemma != lemma {
+                if headword.is_none() && !others.contains(&sense.word.lemma) {
+                    others.push(sense.word.lemma.clone());
+                }
+                continue;
+            }
+            let Some(gloss) = k.gloss(&sense.concept, lang)? else {
+                continue;
+            };
+            let pos = sense
+                .word
+                .pos
+                .as_deref()
+                .filter(|pos| ["n", "v", "adj", "adv"].contains(pos))
+                .map(|pos| p(cx, lang, &format!("pos_{pos}"), &[]));
+            let text = capitalise(&gloss.text);
+            match sections.iter_mut().find(|(known, _)| *known == pos) {
+                Some((_, definitions)) => definitions.push(text),
+                None => sections.push((pos, vec![text])),
+            }
+        }
+        if sections.is_empty() {
+            return Ok(None);
+        }
+        let form = headword.is_none().then_some((typed, others.as_slice()));
+        let text = entry_text(cx, lang, form, &lemma, &sections, None);
+        cx.report("word", Value::Text(lemma.clone()));
+        cx.set_topic(lemma);
         Ok(Some(SkillResult::Answer(
-            Message::new("defined").var("text", lines.join("\n")),
+            Message::new("defined").var("text", text),
         )))
     }
 
     /// A definition ending as a sentence does.
     fn closed(definition: &str) -> String {
-        if definition.ends_with(['.', '!', '?', '…', ')']) {
+        if definition.ends_with(['.', '!', '?', '…']) {
             definition.to_owned()
         } else {
             format!("{definition}.")

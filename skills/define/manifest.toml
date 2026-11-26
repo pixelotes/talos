@@ -312,9 +312,30 @@ en = ["\"{form}\" is a form of \"{word}\", and also of {others}."]
 es = ["Fuente: {name}."]
 en = ["Source: {name}."]
 
+[reply.p_quoted]
+es = ["«{word}»"]
+en = ["\"{word}\""]
+
 [reply.word_and]
 es = ["y"]
 en = ["and"]
+
+# The parts of speech of the concept packs, named.
+[reply.pos_n]
+es = ["sustantivo"]
+en = ["noun"]
+
+[reply.pos_v]
+es = ["verbo"]
+en = ["verb"]
+
+[reply.pos_adj]
+es = ["adjetivo"]
+en = ["adjective"]
+
+[reply.pos_adv]
+es = ["adverbio"]
+en = ["adverb"]
 
 [reply.word_or]
 es = ["o"]
